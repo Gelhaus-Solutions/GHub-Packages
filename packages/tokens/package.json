@@ -1,0 +1,30 @@
+{
+  "name": "@ghub/tokens",
+  "version": "0.3.0",
+  "description": "The design tokens of the Gelhaus Solutions product family, as a Tailwind v4 theme. CSS-first, no JS config: one palette, so every product's surfaces look like one family.",
+  "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
+  "homepage": "https://ennogelhaus.de",
+  "exports": {
+    "./theme.css": "./theme.css",
+    "./modern.css": "./modern.css",
+    "./base.css": "./base.css"
+  },
+  "files": [
+    "theme.css",
+    "modern.css",
+    "base.css",
+    "LICENSE"
+  ],
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
+    "directory": "packages/tokens"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "cp ../../LICENSE ./LICENSE"
+  }
+}

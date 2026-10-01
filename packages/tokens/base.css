@@ -1,0 +1,113 @@
+/*
+ * Base element styles shared by every surface in the family. Imported after
+ * theme.css. Deliberately small: anything component-shaped belongs in
+ * @ghub/ui, not here.
+ */
+
+/*
+ * All of it inside @layer base, which is not cosmetic. Tailwind puts its
+ * utilities in @layer utilities, and an unlayered rule beats every layered
+ * one no matter how specific, so while this file sat outside a layer the
+ * `*` border-colour default below silently won against every
+ * `border-(--gc-border-*)` utility in the design system: controls drew at
+ * hairline instead of their own weight on all three surfaces. Base element
+ * defaults are what @layer base is for, and inside it a utility can do what
+ * a utility is supposed to do.
+ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--gc-border-hairline);
+  }
+
+  html {
+    background-color: var(--gc-surface-sunken);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--gc-surface-sunken);
+    color: var(--gc-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings are tight and never bolder than 600: weight is not how hierarchy
+     is expressed here, size and colour are. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: var(--tracking-tightest);
+    color: var(--gc-text-primary);
+  }
+
+  /* One focus treatment everywhere, and it is always visible for keyboard users. */
+  :focus-visible {
+    outline: 2px solid var(--gc-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Selection uses the accent wash, not the browser blue. */
+  ::selection {
+    background-color: var(--gc-accent-wash);
+    color: var(--gc-text-primary);
+  }
+
+  /* Scrollbars: thin, on-surface, no OS chrome breaking the dark canvas. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gc-border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--gc-border-subtle);
+    border: 3px solid transparent;
+    border-radius: var(--radius-full);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--gc-border-strong);
+  }
+
+  /* Numbers in tables and metrics align by default without extra classes. */
+  td.numeric,
+  th.numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* Anyone who asks for less motion gets none of ours. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

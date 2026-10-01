@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+*.tsbuildinfo
+
+# LICENSE copied into each published package by its prepack script
+packages/*/LICENSE
+
+# test output
+coverage/
+
+# env and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# logs and os cruft
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/

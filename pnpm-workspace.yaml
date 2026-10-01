@@ -1,0 +1,8 @@
+packages:
+  - "packages/*"
+
+allowBuilds:
+  # eslint-import-resolver-typescript's native resolver. The same allowance
+  # GControl makes; without it the resolver falls back to nothing and import
+  # rules stop resolving workspace packages.
+  unrs-resolver: true

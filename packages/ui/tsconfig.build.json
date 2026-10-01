@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /*
+     * Emitting, unlike the checking config next door.
+     *
+     * `react-jsx` rather than `preserve`: a published package has to contain
+     * JavaScript, because a consumer resolving `main` to a `.tsx` file only works
+     * if that consumer happens to transpile node_modules, which is true inside
+     * this repo and false for everybody else.
+     *
+     * `"use client"` survives compilation. tsc keeps a leading directive, which
+     * is what makes these components usable from a server component in a
+     * consuming app without the consumer knowing which of them are interactive.
+     */
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  /*
+   * Tests are not part of the package, and shipping them is not merely untidy.
+   * A compiled test imports vitest, which is a devDependency, so a consumer
+   * whose bundler followed it would fail to resolve a module this package never
+   * declared. The same exclusion every other package here carries.
+   */
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+}

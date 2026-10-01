@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.react.json",
+  /*
+   * Node's own resolution rather than a bundler's, in the checking config as
+   * well as the emitting one.
+   *
+   * This package is published, and the two consoles that consume it in this
+   * repository both run it through a bundler that tolerates a relative import
+   * with no extension. Nothing else does. Under `bundler` the checker agreed
+   * with them and the emitted `dist` was unloadable by node, which no test here
+   * could see: a bundler never asked, and a typecheck never runs the file.
+   *
+   * With `NodeNext` the checker demands the extensions node demands, so the
+   * thing that is checked is the thing that ships.
+   */
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src"]
+}

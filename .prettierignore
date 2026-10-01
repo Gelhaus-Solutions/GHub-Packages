@@ -1,0 +1,14 @@
+# What prettier must not touch, because something else owns the bytes.
+#
+# Prettier does not read .gitignore, so everything below has to be named here
+# even where git already ignores it.
+
+# pnpm writes this, in its own style.
+pnpm-lock.yaml
+
+# Written by changesets on every release.
+**/CHANGELOG.md
+
+# Build output.
+dist/
+coverage/

@@ -1,0 +1,579 @@
+/*
+ * The family design tokens. Direction: precision control room.
+ *
+ * Rules this file encodes, so that screens stay coherent without policing:
+ *   1. Dark is the default. Light is a first-class override, not an afterthought.
+ *   2. Surfaces separate by luminance step plus a hairline border. No drop shadows
+ *      in dark mode; elevation is expressed by border and background only.
+ *   3. Exactly one accent, and it is reserved for live state and primary action.
+ *      Status colour (ok/warn/crit) is never used for decoration.
+ *   4. Every number a human might compare is set in mono with tabular figures.
+ *   5. Spacing is a 4 px grid. Radii are tight: this is instrumentation, not marketing.
+ *
+ * Consumers do: @import "tailwindcss"; then import this file by workspace-relative
+ * path (Turbopack's PostCSS sandbox does not resolve bare specifiers in CSS).
+ */
+
+/* --------------------------------------------------------------------------
+ * Palette primitives (raw ramps). Never referenced directly by components:
+ * components use the semantic tokens below, so retheming stays one edit.
+ * -------------------------------------------------------------------------- */
+:root {
+  /* Neutral ramp, very slightly blue so it reads as instrument glass, not mud. */
+  --gc-neutral-1000: oklch(0.115 0.006 255);
+  --gc-neutral-950: oklch(0.145 0.007 255);
+  --gc-neutral-900: oklch(0.175 0.008 255);
+  --gc-neutral-850: oklch(0.205 0.009 255);
+  --gc-neutral-800: oklch(0.245 0.01 255);
+  --gc-neutral-700: oklch(0.32 0.011 255);
+  --gc-neutral-600: oklch(0.44 0.012 255);
+  --gc-neutral-500: oklch(0.56 0.012 255);
+  /* Half a step, and it exists for one reason: 500 is the quietest a text
+     colour can be on these surfaces and still pass AA, and it does not. */
+  --gc-neutral-450: oklch(0.6 0.012 255);
+  --gc-neutral-400: oklch(0.67 0.011 255);
+  --gc-neutral-300: oklch(0.78 0.009 255);
+  --gc-neutral-200: oklch(0.87 0.007 255);
+  --gc-neutral-100: oklch(0.94 0.005 255);
+  --gc-neutral-50: oklch(0.975 0.003 255);
+  --gc-neutral-0: oklch(1 0 0);
+
+  /* Accent: electric cyan. High chroma, used sparingly. */
+  --gc-accent-800: oklch(0.44 0.1 207);
+  /* Half a step, and it exists for the reason --gc-neutral-450 does: light's
+     hover had to move away from a white label and 700 is the resting state. */
+  --gc-accent-750: oklch(0.48 0.105 206);
+  --gc-accent-700: oklch(0.52 0.11 205);
+  --gc-accent-600: oklch(0.62 0.13 200);
+  --gc-accent-500: oklch(0.74 0.14 196);
+  --gc-accent-400: oklch(0.82 0.13 194);
+  --gc-accent-300: oklch(0.89 0.09 193);
+
+  /* Status ramps. */
+  --gc-ok-600: oklch(0.6 0.15 152);
+  --gc-ok-500: oklch(0.72 0.16 152);
+  --gc-ok-400: oklch(0.82 0.14 152);
+  --gc-warn-700: oklch(0.58 0.13 74);
+  --gc-warn-600: oklch(0.66 0.14 78);
+  --gc-warn-500: oklch(0.79 0.15 80);
+  --gc-warn-400: oklch(0.87 0.13 84);
+  --gc-crit-600: oklch(0.55 0.19 22);
+  --gc-crit-500: oklch(0.65 0.21 24);
+  --gc-crit-400: oklch(0.74 0.17 26);
+  --gc-info-500: oklch(0.7 0.13 255);
+  --gc-locked-500: oklch(0.68 0.15 300);
+}
+
+/* --------------------------------------------------------------------------
+ * Semantic tokens: dark (default).
+ * -------------------------------------------------------------------------- */
+:root {
+  --gc-surface-sunken: var(--gc-neutral-1000);
+  --gc-surface-base: var(--gc-neutral-950);
+  --gc-surface-raised: var(--gc-neutral-900);
+  --gc-surface-overlay: var(--gc-neutral-850);
+  --gc-surface-inset: oklch(0.1 0.006 255);
+  --gc-surface-hover: oklch(1 0 0 / 0.04);
+  --gc-surface-active: oklch(1 0 0 / 0.07);
+  --gc-surface-selected: oklch(0.74 0.14 196 / 0.1);
+
+  --gc-border-hairline: oklch(1 0 0 / 0.09);
+  --gc-border-subtle: oklch(1 0 0 / 0.14);
+  /**
+   * The boundary of a control: an input, a select, a secondary button.
+   *
+   * Its own token at 3:1 rather than a heavier `--gc-border-subtle`, because
+   * the two are different jobs held to different bars. WCAG 1.4.11 applies to
+   * the edge of something a person has to find in order to use it, and exempts
+   * a boundary that is purely decorative. A hairline between two rows of a
+   * table is the second; the edge of the box somebody has to type in is the
+   * first, and it was at 1.4:1.
+   */
+  --gc-border-control: oklch(1 0 0 / 0.36);
+  --gc-border-strong: oklch(1 0 0 / 0.48);
+  --gc-border-accent: var(--gc-accent-500);
+
+  --gc-text-primary: var(--gc-neutral-50);
+  --gc-text-secondary: var(--gc-neutral-300);
+  /*
+   * 450 rather than 500, which is the whole of the fix for a real AA failure.
+   *
+   * Tertiary is every explanatory sentence and every readout label in the
+   * product, and at 500 it measured 3.85 to 4.43 against these five surfaces:
+   * under the 4.5 that AA asks of text this size, on all of them. It passed the
+   * suite because the suite held it to the 3:1 large-text bar, which needs
+   * 18.66px regular or 14px bold and which nothing tertiary is ever set in.
+   * 450 is the quietest step that clears 4.5 everywhere, worst case 4.54 on the
+   * overlay, so it stays a step below secondary and still reads as quiet.
+   */
+  --gc-text-tertiary: var(--gc-neutral-450);
+  /*
+   * Disabled is for an INACTIVE CONTROL and for nothing else.
+   *
+   * It measures 2.31 to 2.65 in dark and 2.51 to 2.99 in light, nowhere near
+   * the 4.5 AA asks of text, and that is legitimate exactly once: WCAG 1.4.3
+   * exempts text that is part of an inactive user interface component. A
+   * disabled menu item is that. An explanatory line, a label, a placeholder and
+   * a sequence number are not, and this token used to draw all four.
+   *
+   * There is no room to split the difference. Tertiary at 4.54 worst case is
+   * already the quietest colour on these surfaces that passes, so a "quiet
+   * content" step between the two would fail by construction. Content that
+   * wants to be quieter than secondary takes tertiary and stops there.
+   */
+  --gc-text-disabled: var(--gc-neutral-600);
+  --gc-text-inverted: var(--gc-neutral-1000);
+  --gc-text-accent: var(--gc-accent-400);
+
+  --gc-accent: var(--gc-accent-500);
+  --gc-accent-hover: var(--gc-accent-400);
+  --gc-accent-press: var(--gc-accent-600);
+  --gc-accent-fg: oklch(0.14 0.02 220);
+  --gc-accent-wash: oklch(0.74 0.14 196 / 0.12);
+  --gc-accent-glow: oklch(0.74 0.14 196 / 0.28);
+
+  --gc-ok: var(--gc-ok-500);
+  --gc-ok-wash: oklch(0.72 0.16 152 / 0.14);
+  --gc-warn: var(--gc-warn-500);
+  --gc-warn-wash: oklch(0.79 0.15 80 / 0.14);
+  --gc-crit: var(--gc-crit-500);
+  --gc-crit-wash: oklch(0.65 0.21 24 / 0.16);
+  --gc-info: var(--gc-info-500);
+  --gc-info-wash: oklch(0.7 0.13 255 / 0.14);
+  --gc-locked: var(--gc-locked-500);
+  --gc-locked-wash: oklch(0.68 0.15 300 / 0.14);
+  /*
+   * 500 rather than 600, and the step is the whole of P7.
+   *
+   * A status colour is a graphic carrying meaning, so it owes 3:1. At 600 this
+   * measured 2.31:1 against the overlay, the worst of the five dark surfaces,
+   * while every other status sat between 5.01 and 9.12. It was not caught
+   * because it was missing from the assertion rather than exempt from it.
+   *
+   * 500 is the lowest step on the ramp that clears the bar, at 3.85:1, and the
+   * lowest is what is wanted: idle means dormant and is supposed to recede.
+   *
+   * What the lift must not do is let a dormant thing shout louder than a broken
+   * one, since how bad something is is the only thing this ramp carries. It
+   * stays under `crit` at 5.01 and `locked` at 5.88, and `contrast.test.ts`
+   * pins that pair rather than trusting it. It is deliberately not pinned under
+   * `ok` and `warn`: idle already reads louder than both in light, at 3.90
+   * against 3.10 and 3.67, and neither of those means anything is wrong, so
+   * their order against dormant says nothing.
+   *
+   * Light was never affected: it reads 3.90:1 and already points at 500.
+   */
+  --gc-idle: var(--gc-neutral-500);
+  --gc-idle-wash: oklch(1 0 0 / 0.06);
+
+  /*
+   * Status ink: the colour of status TEXT, which is a different question from
+   * the status colour itself and was being answered by the same token.
+   *
+   * The rule, and it is the whole of it: **`--gc-{status}` is the graphic and
+   * owes 3:1. `--gc-{status}-ink` is the text and owes 4.5:1.** Dots, bars,
+   * borders, chart series and gutter marks take the colour. Every word takes
+   * the ink, whether it sits on a wash or straight on a surface.
+   *
+   * A `StatusDot` is a graphic carrying its meaning in colour and shape, so it
+   * owes 3:1 against the surface, and `--gc-{status}` clears that everywhere.
+   * A `Badge` is text on its own wash, which owes 4.5:1, and the status colour
+   * on its own wash did not clear it: in light every variant measured between
+   * 2.73 and 3.78, and in dark `crit` was 4.22 and `idle` 3.89 on the overlay.
+   * That pairing was tested nowhere, because the suite checked the status
+   * colours against the surfaces and never against their own washes.
+   *
+   * Splitting the token is what lets the fix be surgical. `--gc-{status}` keeps
+   * its value, so every dot, chart series and table gutter bar is untouched and
+   * the light ramp still looks like itself. Only the text moves, and an ink
+   * equal to its status is one that already passed: saying so with a `var`
+   * rather than a repeated literal is what makes that visible.
+   *
+   * One ink serves both backgrounds rather than one per background. A wash is
+   * the harder of the two, because it tints the ground toward the very colour
+   * being drawn on it, so an ink solved against the wash clears the bare
+   * surface with room to spare: worst case 5.22 against a surface, 4.62
+   * against a wash.
+   */
+  --gc-ok-ink: var(--gc-ok);
+  --gc-warn-ink: var(--gc-warn);
+  /* 500 is 0.65 and measured 4.22 on the overlay. Two hundredths buys 4.74. */
+  --gc-crit-ink: oklch(0.68 0.21 24);
+  --gc-info-ink: var(--gc-info);
+  --gc-locked-ink: var(--gc-locked);
+  /* The idle wash is white at six per cent, so it lightens the surface under
+     the text and drops tertiary from 4.54 to 3.89. 400 rather than a new
+     literal: the ramp already has the step this needs. */
+  --gc-idle-ink: var(--gc-neutral-400);
+  --gc-accent-ink: var(--gc-text-accent);
+
+  /* Focus ring: always visible, never a browser default. */
+  --gc-ring: var(--gc-accent-400);
+  --gc-ring-offset: var(--gc-surface-base);
+
+  /* Elevation. Dark mode leans on borders; the shadow is a whisper. */
+  --gc-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+  --gc-shadow-md: 0 4px 12px oklch(0 0 0 / 0.45);
+  --gc-shadow-lg: 0 16px 40px oklch(0 0 0 / 0.55);
+
+  /* Chart series. Ordered for categorical use, accent first. */
+  --gc-chart-1: var(--gc-accent-500);
+  --gc-chart-2: oklch(0.74 0.14 285);
+  --gc-chart-3: var(--gc-ok-500);
+  --gc-chart-4: var(--gc-warn-500);
+  --gc-chart-5: oklch(0.7 0.15 330);
+  --gc-chart-6: oklch(0.72 0.12 240);
+  --gc-chart-grid: oklch(1 0 0 / 0.07);
+  /*
+   * The axis is TEXT, and this token was being set as if it were a line.
+   *
+   * `timeseries.tsx` uses it for `axisLabel.color` on both axes, at 10px, so it
+   * is the tick numbers on every chart in the product: exactly the "numbers a
+   * human might compare" this file's own rules open with. It owes 4.5:1 and it
+   * measured 2.31 to 2.65 across these five surfaces, failing on all of them.
+   *
+   * Nothing caught it because no test named a chart token at all. The axis line
+   * and the gridlines are drawn in `--gc-chart-grid`, which is decorative and
+   * stays where it is.
+   *
+   * Pointed at the quiet-text token rather than given a value: tertiary is the
+   * quietest step that clears AA on every surface, which is the same question
+   * this was answering badly.
+   */
+  --gc-chart-axis: var(--gc-text-tertiary);
+
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+ * Semantic tokens: light. Applied when the user picks it, or when the OS
+ * prefers light and the user has not pinned dark.
+ * -------------------------------------------------------------------------- */
+/* The light values appear twice on purpose: CSS has no mixins, and the pinned
+   selector and the OS-preference selector must each win on their own. Keep the
+   two blocks in sync; they are checked by packages/ui token tests. */
+:root[data-theme="light"] {
+  --gc-surface-sunken: var(--gc-neutral-100);
+  --gc-surface-base: var(--gc-neutral-50);
+  --gc-surface-raised: var(--gc-neutral-0);
+  --gc-surface-overlay: var(--gc-neutral-0);
+  --gc-surface-inset: var(--gc-neutral-100);
+  --gc-surface-hover: oklch(0 0 0 / 0.035);
+  --gc-surface-active: oklch(0 0 0 / 0.06);
+  --gc-surface-selected: oklch(0.62 0.13 200 / 0.1);
+
+  --gc-border-hairline: oklch(0 0 0 / 0.1);
+  --gc-border-subtle: oklch(0 0 0 / 0.16);
+  --gc-border-control: oklch(0 0 0 / 0.46);
+  --gc-border-strong: oklch(0 0 0 / 0.58);
+
+  --gc-text-primary: var(--gc-neutral-1000);
+  --gc-text-secondary: var(--gc-neutral-700);
+  --gc-text-tertiary: var(--gc-neutral-600);
+  --gc-text-disabled: var(--gc-neutral-400);
+  --gc-text-inverted: var(--gc-neutral-0);
+  --gc-text-accent: var(--gc-accent-700);
+
+  --gc-accent: var(--gc-accent-700);
+  /*
+   * Darker on hover, where dark goes lighter, and the direction is the rule.
+   *
+   * A primary button keeps its label colour through every state, so hover has
+   * to move AWAY from that label rather than in a fixed direction. Dark's label
+   * is near-black ink so lighter is correct there. Light's label is white, and
+   * this pointed at 600 and lifted the ground under it: white measured 3.32:1
+   * on the hovered button against the 4.5 it owes, so every primary button in
+   * the light theme lost AA the moment a pointer touched it. Resting was 5.08
+   * and pressed was 7.17, which is why nothing looked wrong.
+   *
+   * 750 is half a step, sitting between the resting 700 and the pressed 800, so
+   * the three states still read as three and white clears the bar on all of
+   * them at 5.97 here.
+   */
+  --gc-accent-hover: var(--gc-accent-750);
+  --gc-accent-press: var(--gc-accent-800);
+  --gc-accent-fg: var(--gc-neutral-0);
+  /*
+   * Light never overrode this, so it inherited dark's accent-500.
+   *
+   * Every other accent token is restated in this block and this one was missed,
+   * which left a colour chosen to sit on a near-black surface drawn on a white
+   * one: 1.79 to 2.14 across the five surfaces. It is the focus border on every
+   * text field, `Combobox` and `CodeInput`, so the thing it made faint is the
+   * indicator that tells somebody where the keyboard is. 700 is what `--gc-ring`
+   * already uses here for the same job, and it clears the 3:1 a focus indicator
+   * owes.
+   */
+  --gc-border-accent: var(--gc-accent-700);
+  --gc-accent-wash: oklch(0.62 0.13 200 / 0.12);
+  --gc-accent-glow: oklch(0.62 0.13 200 / 0.22);
+
+  --gc-ok: var(--gc-ok-600);
+  --gc-ok-wash: oklch(0.6 0.15 152 / 0.12);
+  --gc-warn: var(--gc-warn-700);
+  --gc-warn-wash: oklch(0.66 0.14 78 / 0.14);
+  --gc-crit: var(--gc-crit-600);
+  --gc-crit-wash: oklch(0.55 0.19 22 / 0.12);
+  --gc-info: oklch(0.55 0.15 255);
+  --gc-info-wash: oklch(0.55 0.15 255 / 0.12);
+  --gc-locked: oklch(0.55 0.16 300);
+  --gc-locked-wash: oklch(0.55 0.16 300 / 0.12);
+  --gc-idle: var(--gc-neutral-500);
+  --gc-idle-wash: oklch(0 0 0 / 0.05);
+
+  /* Every light badge failed, so every light ink is darker than its status.
+     Lightness only: chroma and hue are held, so a badge still reads as the
+     same colour rather than as a different one. */
+  --gc-ok-ink: oklch(0.46 0.15 152);
+  --gc-warn-ink: oklch(0.49 0.13 74);
+  --gc-crit-ink: oklch(0.5 0.19 22);
+  --gc-info-ink: oklch(0.48 0.15 255);
+  --gc-locked-ink: oklch(0.5 0.16 300);
+  /* Black at five per cent darkens under the text, so tertiary gains here
+     rather than losing: 5.84, and no ink of its own is needed. */
+  --gc-idle-ink: var(--gc-text-tertiary);
+  --gc-accent-ink: oklch(0.47 0.11 205);
+
+  --gc-ring: var(--gc-accent-700);
+
+  --gc-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.08);
+  --gc-shadow-md: 0 4px 12px oklch(0 0 0 / 0.1);
+  --gc-shadow-lg: 0 16px 40px oklch(0 0 0 / 0.14);
+
+  --gc-chart-1: var(--gc-accent-600);
+  --gc-chart-2: oklch(0.55 0.16 285);
+  --gc-chart-3: var(--gc-ok-600);
+  --gc-chart-4: var(--gc-warn-600);
+  --gc-chart-5: oklch(0.55 0.17 330);
+  --gc-chart-6: oklch(0.55 0.14 240);
+  --gc-chart-grid: oklch(0 0 0 / 0.08);
+  /* Text, not a line. See the dark block. Measured 3.90 to 4.65 here. */
+  --gc-chart-axis: var(--gc-text-tertiary);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --gc-surface-sunken: var(--gc-neutral-100);
+    --gc-surface-base: var(--gc-neutral-50);
+    --gc-surface-raised: var(--gc-neutral-0);
+    --gc-surface-overlay: var(--gc-neutral-0);
+    --gc-surface-inset: var(--gc-neutral-100);
+    --gc-surface-hover: oklch(0 0 0 / 0.035);
+    --gc-surface-active: oklch(0 0 0 / 0.06);
+    --gc-surface-selected: oklch(0.62 0.13 200 / 0.1);
+
+    --gc-border-hairline: oklch(0 0 0 / 0.1);
+    --gc-border-subtle: oklch(0 0 0 / 0.16);
+    --gc-border-control: oklch(0 0 0 / 0.46);
+    --gc-border-strong: oklch(0 0 0 / 0.58);
+
+    --gc-text-primary: var(--gc-neutral-1000);
+    --gc-text-secondary: var(--gc-neutral-700);
+    --gc-text-tertiary: var(--gc-neutral-600);
+    --gc-text-disabled: var(--gc-neutral-400);
+    --gc-text-inverted: var(--gc-neutral-0);
+    --gc-text-accent: var(--gc-accent-700);
+
+    --gc-accent: var(--gc-accent-700);
+    --gc-accent-hover: var(--gc-accent-750);
+    --gc-accent-press: var(--gc-accent-800);
+    --gc-accent-fg: var(--gc-neutral-0);
+    --gc-border-accent: var(--gc-accent-700);
+    --gc-accent-wash: oklch(0.62 0.13 200 / 0.12);
+    --gc-accent-glow: oklch(0.62 0.13 200 / 0.22);
+
+    --gc-ok: var(--gc-ok-600);
+    --gc-ok-wash: oklch(0.6 0.15 152 / 0.12);
+    --gc-warn: var(--gc-warn-700);
+    --gc-warn-wash: oklch(0.66 0.14 78 / 0.14);
+    --gc-crit: var(--gc-crit-600);
+    --gc-crit-wash: oklch(0.55 0.19 22 / 0.12);
+    --gc-info: oklch(0.55 0.15 255);
+    --gc-info-wash: oklch(0.55 0.15 255 / 0.12);
+    --gc-locked: oklch(0.55 0.16 300);
+    --gc-locked-wash: oklch(0.55 0.16 300 / 0.12);
+    --gc-idle: var(--gc-neutral-500);
+    --gc-idle-wash: oklch(0 0 0 / 0.05);
+
+    /* Every light badge failed, so every light ink is darker than its status.
+       Lightness only: chroma and hue are held, so a badge still reads as the
+       same colour rather than as a different one. */
+    --gc-ok-ink: oklch(0.46 0.15 152);
+    --gc-warn-ink: oklch(0.49 0.13 74);
+    --gc-crit-ink: oklch(0.5 0.19 22);
+    --gc-info-ink: oklch(0.48 0.15 255);
+    --gc-locked-ink: oklch(0.5 0.16 300);
+    /* Black at five per cent darkens under the text, so tertiary gains here
+       rather than losing: 5.84, and no ink of its own is needed. */
+    --gc-idle-ink: var(--gc-text-tertiary);
+    --gc-accent-ink: oklch(0.47 0.11 205);
+
+    --gc-ring: var(--gc-accent-700);
+
+    --gc-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.08);
+    --gc-shadow-md: 0 4px 12px oklch(0 0 0 / 0.1);
+    --gc-shadow-lg: 0 16px 40px oklch(0 0 0 / 0.14);
+
+    --gc-chart-1: var(--gc-accent-600);
+    --gc-chart-2: oklch(0.55 0.16 285);
+    --gc-chart-3: var(--gc-ok-600);
+    --gc-chart-4: var(--gc-warn-600);
+    --gc-chart-5: oklch(0.55 0.17 330);
+    --gc-chart-6: oklch(0.55 0.14 240);
+    --gc-chart-grid: oklch(0 0 0 / 0.08);
+    --gc-chart-axis: var(--gc-text-tertiary);
+
+    color-scheme: light;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Tailwind theme mapping. `inline` so the utilities resolve the semantic vars
+ * at use time, which is what makes the light override work without duplicating
+ * a single utility class.
+ * -------------------------------------------------------------------------- */
+@theme inline {
+  --color-sunken: var(--gc-surface-sunken);
+  --color-base: var(--gc-surface-base);
+  --color-raised: var(--gc-surface-raised);
+  --color-overlay: var(--gc-surface-overlay);
+  --color-inset: var(--gc-surface-inset);
+  --color-hover: var(--gc-surface-hover);
+  --color-active: var(--gc-surface-active);
+  --color-selected: var(--gc-surface-selected);
+
+  --color-hairline: var(--gc-border-hairline);
+  --color-subtle: var(--gc-border-subtle);
+  --color-strong: var(--gc-border-strong);
+
+  --color-fg: var(--gc-text-primary);
+  --color-fg-secondary: var(--gc-text-secondary);
+  --color-fg-tertiary: var(--gc-text-tertiary);
+  --color-fg-disabled: var(--gc-text-disabled);
+  --color-fg-inverted: var(--gc-text-inverted);
+  --color-fg-accent: var(--gc-text-accent);
+
+  --color-accent: var(--gc-accent);
+  --color-accent-hover: var(--gc-accent-hover);
+  --color-accent-press: var(--gc-accent-press);
+  --color-accent-fg: var(--gc-accent-fg);
+  --color-accent-wash: var(--gc-accent-wash);
+
+  --color-ok: var(--gc-ok);
+  --color-ok-wash: var(--gc-ok-wash);
+  --color-warn: var(--gc-warn);
+  --color-warn-wash: var(--gc-warn-wash);
+  --color-crit: var(--gc-crit);
+  --color-crit-wash: var(--gc-crit-wash);
+  --color-info: var(--gc-info);
+  --color-info-wash: var(--gc-info-wash);
+  --color-locked: var(--gc-locked);
+  --color-locked-wash: var(--gc-locked-wash);
+  --color-idle: var(--gc-idle);
+  --color-idle-wash: var(--gc-idle-wash);
+
+  --color-ok-ink: var(--gc-ok-ink);
+  --color-warn-ink: var(--gc-warn-ink);
+  --color-crit-ink: var(--gc-crit-ink);
+  --color-info-ink: var(--gc-info-ink);
+  --color-locked-ink: var(--gc-locked-ink);
+  --color-idle-ink: var(--gc-idle-ink);
+  --color-accent-ink: var(--gc-accent-ink);
+
+  --color-chart-1: var(--gc-chart-1);
+  --color-chart-2: var(--gc-chart-2);
+  --color-chart-3: var(--gc-chart-3);
+  --color-chart-4: var(--gc-chart-4);
+  --color-chart-5: var(--gc-chart-5);
+  --color-chart-6: var(--gc-chart-6);
+  --color-chart-grid: var(--gc-chart-grid);
+  --color-chart-axis: var(--gc-chart-axis);
+
+  /* Type. Geist ships as an npm package, so builds need no font CDN. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /*
+   * Scale: 10 / 11.5 / 12.5 / 13 / 17 / 26, plus 34 defined and unused.
+   *
+   * Tighter at the bottom than the scale this replaces, because that is where a
+   * control plane lives: a label, a value and the sentence explaining the value
+   * are three different sizes and used to be two. It drops the steps at 14 and
+   * 20, which nothing reached for once 13 and 17 existed.
+   */
+  --text-3xs: 0.625rem;
+  --text-3xs--line-height: 0.8125rem;
+  --text-2xs: 0.71875rem;
+  --text-2xs--line-height: 1.0625rem;
+  --text-xs: 0.78125rem;
+  --text-xs--line-height: 1.1875rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.1875rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.4375rem;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 2.5rem;
+
+  --tracking-tightest: -0.02em;
+  --tracking-wide-caps: 0.09em;
+
+  /* Radii: tight. Panels get the largest value and nothing exceeds it. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-panel: 10px;
+  --radius-full: 9999px;
+
+  --shadow-sm: var(--gc-shadow-sm);
+  --shadow-md: var(--gc-shadow-md);
+  --shadow-lg: var(--gc-shadow-lg);
+  --shadow-glow: 0 0 0 1px var(--gc-accent-glow), 0 0 18px -6px var(--gc-accent-glow);
+
+  /* Motion. Short, mechanical, never bouncy. */
+  --ease-out-quick: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-quick: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-instant: 90ms;
+  --duration-quick: 140ms;
+  --duration-normal: 220ms;
+  --duration-slow: 360ms;
+}
+
+/* --------------------------------------------------------------------------
+ * Utilities that encode a rule rather than a value, so the rule cannot drift.
+ * -------------------------------------------------------------------------- */
+@utility numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "ss01" 1;
+  letter-spacing: -0.01em;
+}
+
+@utility label-caps {
+  font-size: var(--text-3xs);
+  line-height: var(--text-3xs--line-height);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide-caps);
+  text-transform: uppercase;
+  color: var(--gc-text-tertiary);
+}
+
+@utility hairline {
+  border-width: 1px;
+  border-color: var(--gc-border-hairline);
+}
+
+@utility panel {
+  background-color: var(--gc-surface-raised);
+  border: 1px solid var(--gc-border-hairline);
+  border-radius: var(--radius-panel);
+}
+
+@utility focus-ring {
+  outline: 2px solid var(--gc-ring);
+  outline-offset: 2px;
+}

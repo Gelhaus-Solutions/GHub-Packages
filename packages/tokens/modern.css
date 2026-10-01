@@ -1,0 +1,508 @@
+/*
+ * Modern design tokens. Direction: a screen somebody opens twice a year.
+ *
+ * A SECOND token layer, beside `theme.css` and not replacing it. Console is an
+ * instrument an operator sits in front of for hours; modern is the surface a
+ * customer reaches once because an invoice arrived and once because something
+ * is wrong. The two want different things from the same product, so they are
+ * two languages rather than one language with a mood.
+ *
+ * WHO USES IT: GPlatform SSO and GPlatform Billing. Console (GControl's own web
+ * app, and GPlatform Control) stays on `theme.css` and is not affected by
+ * anything in this file. Nothing here redefines a `--gc-*` token, and the two
+ * files can be imported into the same app at once.
+ *
+ * Rules this file encodes:
+ *   1. Dark is drawn, light is tokened. Both columns are complete and measured.
+ *   2. Five surfaces, each with a job. Dark separates by luminance step, light
+ *      separates by shadow, because white on near-white has no step to give.
+ *   3. Exactly one accent, and the primary control on a screen is FILLED. This
+ *      is the one place modern departs from console, where the accent is on
+ *      links and the most important control is the quietest thing on screen.
+ *   4. Colour carries exactly two meanings: the accent marks what can be acted
+ *      on, the status ramp marks how bad something is. There is no third.
+ *   5. Weight makes hierarchy, up to a ceiling of 600. Console's flat-weight
+ *      rule is deliberately not kept: nobody learns this screen.
+ *
+ * PROVENANCE. Every value here comes from the wave 9 design bundle, sheet 21
+ * "Modern foundations", which carries a TOKEN | DARK | LIGHT table with a
+ * measured pairing on every row. The dark column is lifted verbatim from the
+ * sheet's own declarations. Twenty six of the thirty eight tokens have an
+ * explicit light value in that table and those are lifted too. The remaining
+ * twelve are DERIVED, each one marked below with the rule it was derived from
+ * and what it measures. Nothing here was chosen by eye.
+ *
+ * The derivation was validated before it was trusted: solving the sheet's
+ * stated dark control-border floor from its stated 3:1 target reproduces 0.34
+ * (worst of five surfaces, 0.3359), which is the number the sheet prints. Six
+ * further figures below reproduce the sheet's published measurements to two
+ * decimals. `packages/ui/src/modern-contrast.test.ts` re-measures all of it.
+ *
+ * Consumers do: @import "tailwindcss"; then import this file by
+ * workspace-relative path (Turbopack's PostCSS sandbox does not resolve bare
+ * specifiers in CSS).
+ */
+
+/* --------------------------------------------------------------------------
+ * Semantic tokens: dark (default). Lifted verbatim from sheet 21.
+ * -------------------------------------------------------------------------- */
+:root {
+  /*
+   * Five surfaces, each with a stated job. `ground` is what the sheet's table
+   * calls "page": the ground behind a signed-out card and the well a dense
+   * table sits in, and the only surface that appears with nothing on it.
+   */
+  --gm-ground: oklch(0.185 0.008 258);
+  --gm-sunken: oklch(0.155 0.007 258);
+  --gm-plate: oklch(0.225 0.009 258);
+  --gm-overlay: oklch(0.265 0.01 258);
+  --gm-inset: oklch(0.16 0.007 258);
+
+  /*
+   * Hover is a film over the surface, never a step to the next surface token.
+   * Stepping would collapse the five surfaces into each other on contact, and
+   * the whole elevation system is what tells a person what is on top of what.
+   * Measured on the plate this leaves quiet ink at 4.53, so it is safe under
+   * every ink modern uses.
+   */
+  --gm-hover: oklch(1 0 0 / 0.05);
+  --gm-active: oklch(1 0 0 / 0.08);
+  --gm-selected: oklch(0.72 0.12 200 / 0.12);
+
+  /*
+   * Four borders, and two of them are load bearing. The split is WCAG 1.4.11:
+   * the edge of something a person has to find in order to use it owes 3:1, and
+   * a line drawn between two rows does not. `hairline` and `subtle` are
+   * decorative and owe nothing; `control` owes 3 and has a stated floor of
+   * white 0.34, so 0.36 is the resting value with headroom.
+   */
+  --gm-hairline: oklch(1 0 0 / 0.11);
+  --gm-subtle: oklch(1 0 0 / 0.16);
+  --gm-control: oklch(1 0 0 / 0.36);
+  --gm-strong: oklch(1 0 0 / 0.46);
+
+  /*
+   * `ink-3` is the floor and may not go quieter: it measures 4.64 on the
+   * overlay, which is the worst of the five surfaces, against the 4.5 AA asks.
+   * It is also never placed on a wash, where it reaches only 4.04 on warn.
+   *
+   * `ink-off` is for an INACTIVE CONTROL and nothing else. It measures 2.3,
+   * which is legitimate exactly once: WCAG 1.4.3 exempts text that is part of
+   * an inactive user interface component. A label, a hint or a placeholder is
+   * not that, and takes `ink-3` and stops there.
+   */
+  --gm-ink: oklch(0.975 0.003 255);
+  --gm-ink-2: oklch(0.8 0.009 255);
+  --gm-ink-3: oklch(0.645 0.012 258);
+  --gm-ink-off: oklch(0.45 0.012 258);
+
+  /*
+   * White on the modern accent measures 2.36, so a filled accent button takes
+   * near-black ink rather than white. That is `accent-on`, and it is why the
+   * fill can be the primary control without failing AA on its own label.
+   */
+  --gm-accent: oklch(0.72 0.12 200);
+  --gm-accent-hover: oklch(0.78 0.12 198);
+  --gm-accent-press: oklch(0.66 0.13 202);
+  --gm-accent-on: oklch(0.15 0.02 215);
+  --gm-accent-text: oklch(0.78 0.11 200);
+  --gm-accent-wash: oklch(0.72 0.12 200 / 0.13);
+
+  /*
+   * Status: a GRAPHIC pair and an INK pair per level, held to different bars.
+   * The graphic owes 3:1 (a dot, a bar, a rule) and the ink owes 4.5:1 because
+   * it is read. They are different colours for that reason and not by accident.
+   *
+   * There are five levels and `locked` is not one of them: it leaves the ramp
+   * in modern, per sheet 22. `idle` has no wash, which is deliberate rather
+   * than an omission: nothing in modern tints a surface to say "nothing is
+   * happening".
+   */
+  --gm-ok: oklch(0.72 0.16 152);
+  --gm-ok-ink: oklch(0.76 0.15 152);
+  --gm-ok-wash: oklch(0.72 0.16 152 / 0.13);
+  --gm-warn: oklch(0.79 0.15 80);
+  --gm-warn-ink: oklch(0.82 0.14 82);
+  --gm-warn-wash: oklch(0.79 0.15 80 / 0.13);
+  --gm-crit: oklch(0.65 0.21 24);
+  --gm-crit-ink: oklch(0.72 0.18 25);
+  --gm-crit-wash: oklch(0.65 0.21 24 / 0.13);
+  --gm-info: oklch(0.7 0.13 255);
+  --gm-info-ink: oklch(0.75 0.12 250);
+  --gm-info-wash: oklch(0.7 0.13 255 / 0.13);
+  --gm-idle: oklch(0.58 0.012 255);
+  --gm-idle-ink: oklch(0.7 0.011 255);
+
+  /*
+   * The destructive fill is its own step rather than the status crit, which is
+   * too light to carry white. White clears 6.7:1 on this one.
+   */
+  --gm-crit-fill: oklch(0.5 0.2 22);
+
+  /*
+   * Focus is a hard 2px ring at offset 2 on every focusable thing, in both
+   * themes, and it never animates: a 90ms ring is a ring that is not there when
+   * somebody is tabbing fast. No glow, no blur, no spread. 10.2:1 on the plate.
+   */
+  --gm-ring: oklch(0.82 0.11 196);
+
+  /*
+   * Elevation. In dark it is a luminance step plus a 1px edge, and there is no
+   * drop shadow anywhere except the overlay, which needs one because it floats
+   * over a surface already lighter than the page. Light inverts this: the plate
+   * is already white, so the step is gone and the shadow does the work.
+   *
+   * The gradient material layer sheet 21 describes (a 1.9 per cent vertical
+   * gradient on a plate, 5.5 on a filled button) is NOT here. Its dark values
+   * are stated and its light ones are given only as the rule "the same four
+   * rules run inverted", which is a design decision rather than a derivation.
+   * Flat surfaces are correct until it is drawn, and a guess would be the thing
+   * that ships.
+   */
+  --gm-shadow-plate: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.28);
+  --gm-shadow-card: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 1px 3px oklch(0 0 0 / 0.22);
+  --gm-shadow-quiet: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.32);
+  --gm-shadow-overlay: 0 24px 48px -12px oklch(0 0 0 / 0.6), inset 0 1px 0 oklch(1 0 0 / 0.08);
+}
+
+/* --------------------------------------------------------------------------
+ * Semantic tokens: light. Applied when the user picks it, or when the OS
+ * prefers light and the user has not pinned dark.
+ *
+ * The light values appear twice on purpose, for the reason theme.css states:
+ * CSS has no mixins, and the pinned selector and the OS-preference selector
+ * must each win on their own. Keep the two blocks in sync; they are checked by
+ * packages/ui/src/modern-contrast.test.ts.
+ * -------------------------------------------------------------------------- */
+:root[data-theme="light"] {
+  /*
+   * In light the plate is pure white on a grey page, and separation is carried
+   * by shadow rather than by a luminance step. The overlay is also white and is
+   * told apart by its shadow alone, which is why the two share a value here.
+   */
+  --gm-ground: oklch(0.98 0.003 258);
+  --gm-sunken: oklch(0.955 0.004 258);
+  --gm-plate: oklch(1 0 0);
+  --gm-overlay: oklch(1 0 0);
+  --gm-inset: oklch(0.965 0.004 258);
+
+  /*
+   * DERIVED. The sheet states the inversion as a rule (a white film becomes a
+   * black one) but gives no percentage. A black film on white darkens more per
+   * unit than a white film on dark lightens, so light takes slightly less:
+   * these are dark's values scaled by console's own measured dark-to-light
+   * ratio for the same two tokens, which is the only place in either repo where
+   * this inversion has been solved and checked.
+   */
+  --gm-hover: oklch(0 0 0 / 0.045);
+  --gm-active: oklch(0 0 0 / 0.07);
+  /*
+   * DERIVED. A coloured film on white has less to push against than one on a
+   * plate, which is the sheet's own reason for dropping washes from 13 per cent
+   * to 10. `selected` is a coloured film and takes the same drop.
+   */
+  --gm-selected: oklch(0.52 0.11 205 / 0.1);
+
+  /*
+   * DERIVED, except `control`, which the sheet states as black 0.48.
+   *
+   * The rule applied to the other three: keep the visual weight the dark theme
+   * was drawn at, by solving each light alpha to the ratio its dark counterpart
+   * measures. Worst of the five surfaces, which is `sunken` in light:
+   *
+   *     hairline  0.14  measures 1.38   dark measures 1.39
+   *     subtle    0.21  measures 1.64   dark measures 1.65
+   *     control   0.48  measures 3.62   owes 3, stated by the sheet
+   *     strong    0.55  measures 4.61   dark measures 4.60
+   *
+   * The sheet's 0.48 carries deliberate headroom: 0.43 is the bare minimum that
+   * clears 3:1 here. The stated value is used rather than the minimum, because
+   * a stated value is a decision and this file is not the place to trim it.
+   */
+  --gm-hairline: oklch(0 0 0 / 0.14);
+  --gm-subtle: oklch(0 0 0 / 0.21);
+  --gm-control: oklch(0 0 0 / 0.48);
+  --gm-strong: oklch(0 0 0 / 0.55);
+
+  /* 16.20, 7.42 and 4.63 on sunken, the worst of the five. */
+  --gm-ink: oklch(0.19 0.008 258);
+  --gm-ink-2: oklch(0.42 0.012 258);
+  --gm-ink-3: oklch(0.53 0.014 258);
+  --gm-ink-off: oklch(0.68 0.01 258);
+
+  /*
+   * Light's accent fill takes a WHITE label, where dark's takes near-black, so
+   * `accent-on` inverts. White measures 5.08 on the resting fill.
+   *
+   * DERIVED: hover and press. The rule is that hover must move AWAY from the
+   * label, so light darkens where dark lightens. Modern's light accent is
+   * exactly console's `--gc-accent-700`, so console's half-step hover and its
+   * press are reused rather than invented: they were chosen against a white
+   * label on this same colour after a real AA failure, and they measure 6.03
+   * and 7.17 here.
+   */
+  --gm-accent: oklch(0.52 0.11 205);
+  --gm-accent-hover: oklch(0.48 0.105 206);
+  --gm-accent-press: oklch(0.44 0.1 207);
+  --gm-accent-on: oklch(1 0 0);
+  --gm-accent-text: oklch(0.5 0.11 205);
+  /* DERIVED: the stated wash drop, 13 per cent to 10. */
+  --gm-accent-wash: oklch(0.52 0.11 205 / 0.1);
+
+  /*
+   * Washes drop to 10 per cent, which is the sheet's one stated numeric change
+   * to the light column. Status inks on their own wash measure 4.99 to 5.03,
+   * and the graphics clear 3:1 on all five surfaces with warn the tightest at
+   * 3.53, which is the figure the sheet publishes.
+   */
+  --gm-ok: oklch(0.54 0.15 152);
+  --gm-ok-ink: oklch(0.46 0.15 152);
+  --gm-ok-wash: oklch(0.54 0.15 152 / 0.1);
+  --gm-warn: oklch(0.6 0.14 76);
+  --gm-warn-ink: oklch(0.49 0.13 74);
+  --gm-warn-wash: oklch(0.6 0.14 76 / 0.1);
+  --gm-crit: oklch(0.55 0.19 22);
+  --gm-crit-ink: oklch(0.5 0.19 22);
+  --gm-crit-wash: oklch(0.55 0.19 22 / 0.1);
+  --gm-info: oklch(0.48 0.15 255);
+  --gm-info-ink: oklch(0.48 0.15 255);
+  --gm-info-wash: oklch(0.48 0.15 255 / 0.1);
+  --gm-idle: oklch(0.54 0.012 258);
+  --gm-idle-ink: oklch(0.53 0.014 258);
+
+  /* White clears 7.13 here. */
+  --gm-crit-fill: oklch(0.48 0.2 22);
+
+  /*
+   * DERIVED. Dark's ring is a light cyan that would measure under 2 on white,
+   * which is the exact failure console had in its own light theme and fixed by
+   * pointing the ring at accent-700. The same colour is used here for the same
+   * reason and measures 4.46, against the 3 a focus indicator owes.
+   */
+  --gm-ring: oklch(0.52 0.11 205);
+
+  /*
+   * Light needs the shadow because white on near-white has no step to give.
+   * The plate and the overlay values are stated by sheet 21.
+   *
+   * DERIVED: `quiet` and `inset`. The sheet's rule is that where dark lifts a
+   * surface with a 1px top highlight, light presses it with a 1px darker bottom
+   * edge instead, and keeps the drop. A field inverts either way, because it
+   * has to read as a well rather than as a card, so it stays an inner shadow
+   * and only its strength changes: black at 0.32 over a dark surface is a
+   * visible well, and the same alpha over white is a bruise.
+   */
+  --gm-shadow-plate: 0 1px 2px oklch(0 0 0 / 0.06);
+  --gm-shadow-card: 0 1px 2px oklch(0 0 0 / 0.06);
+  --gm-shadow-quiet: inset 0 -1px 0 oklch(0 0 0 / 0.06);
+  --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.08);
+  --gm-shadow-overlay: 0 16px 40px oklch(0 0 0 / 0.14);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --gm-ground: oklch(0.98 0.003 258);
+    --gm-sunken: oklch(0.955 0.004 258);
+    --gm-plate: oklch(1 0 0);
+    --gm-overlay: oklch(1 0 0);
+    --gm-inset: oklch(0.965 0.004 258);
+
+    --gm-hover: oklch(0 0 0 / 0.045);
+    --gm-active: oklch(0 0 0 / 0.07);
+    --gm-selected: oklch(0.52 0.11 205 / 0.1);
+
+    --gm-hairline: oklch(0 0 0 / 0.14);
+    --gm-subtle: oklch(0 0 0 / 0.21);
+    --gm-control: oklch(0 0 0 / 0.48);
+    --gm-strong: oklch(0 0 0 / 0.55);
+
+    --gm-ink: oklch(0.19 0.008 258);
+    --gm-ink-2: oklch(0.42 0.012 258);
+    --gm-ink-3: oklch(0.53 0.014 258);
+    --gm-ink-off: oklch(0.68 0.01 258);
+
+    --gm-accent: oklch(0.52 0.11 205);
+    --gm-accent-hover: oklch(0.48 0.105 206);
+    --gm-accent-press: oklch(0.44 0.1 207);
+    --gm-accent-on: oklch(1 0 0);
+    --gm-accent-text: oklch(0.5 0.11 205);
+    --gm-accent-wash: oklch(0.52 0.11 205 / 0.1);
+
+    --gm-ok: oklch(0.54 0.15 152);
+    --gm-ok-ink: oklch(0.46 0.15 152);
+    --gm-ok-wash: oklch(0.54 0.15 152 / 0.1);
+    --gm-warn: oklch(0.6 0.14 76);
+    --gm-warn-ink: oklch(0.49 0.13 74);
+    --gm-warn-wash: oklch(0.6 0.14 76 / 0.1);
+    --gm-crit: oklch(0.55 0.19 22);
+    --gm-crit-ink: oklch(0.5 0.19 22);
+    --gm-crit-wash: oklch(0.55 0.19 22 / 0.1);
+    --gm-info: oklch(0.48 0.15 255);
+    --gm-info-ink: oklch(0.48 0.15 255);
+    --gm-info-wash: oklch(0.48 0.15 255 / 0.1);
+    --gm-idle: oklch(0.54 0.012 258);
+    --gm-idle-ink: oklch(0.53 0.014 258);
+
+    --gm-crit-fill: oklch(0.48 0.2 22);
+
+    --gm-ring: oklch(0.52 0.11 205);
+
+    --gm-shadow-plate: 0 1px 2px oklch(0 0 0 / 0.06);
+    --gm-shadow-card: 0 1px 2px oklch(0 0 0 / 0.06);
+    --gm-shadow-quiet: inset 0 -1px 0 oklch(0 0 0 / 0.06);
+    --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.08);
+    --gm-shadow-overlay: 0 16px 40px oklch(0 0 0 / 0.14);
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Tailwind theme mapping.
+ *
+ * PREFIXED `m-`, and the prefix is the whole point. Modern and console disagree
+ * about what `sunken`, `overlay`, `inset`, `accent` and every status level are
+ * worth, so mapping modern onto console's unprefixed utility names would mean
+ * whichever file is imported second silently redecides the other's colours. An
+ * app that imported both would render console components in modern's palette
+ * and nothing would go red.
+ *
+ * With the prefix the two coexist, which is what makes the migration
+ * incremental: billing has 47 files to move and can move them one at a time,
+ * with `bg-plate` and `bg-raised` on the same screen while it does. Dropping
+ * the prefix later is a mechanical rename; adding it later is not.
+ *
+ * `inline` so the utilities resolve the semantic vars at use time, which is
+ * what makes the light override work without duplicating a single utility.
+ * -------------------------------------------------------------------------- */
+@theme inline {
+  --color-m-ground: var(--gm-ground);
+  --color-m-sunken: var(--gm-sunken);
+  --color-m-plate: var(--gm-plate);
+  --color-m-overlay: var(--gm-overlay);
+  --color-m-inset: var(--gm-inset);
+  --color-m-hover: var(--gm-hover);
+  --color-m-active: var(--gm-active);
+  --color-m-selected: var(--gm-selected);
+
+  --color-m-hairline: var(--gm-hairline);
+  --color-m-subtle: var(--gm-subtle);
+  --color-m-control: var(--gm-control);
+  --color-m-strong: var(--gm-strong);
+
+  --color-m-ink: var(--gm-ink);
+  --color-m-ink-2: var(--gm-ink-2);
+  --color-m-ink-3: var(--gm-ink-3);
+  --color-m-ink-off: var(--gm-ink-off);
+
+  --color-m-accent: var(--gm-accent);
+  --color-m-accent-hover: var(--gm-accent-hover);
+  --color-m-accent-press: var(--gm-accent-press);
+  --color-m-accent-on: var(--gm-accent-on);
+  --color-m-accent-text: var(--gm-accent-text);
+  --color-m-accent-wash: var(--gm-accent-wash);
+
+  --color-m-ok: var(--gm-ok);
+  --color-m-ok-ink: var(--gm-ok-ink);
+  --color-m-ok-wash: var(--gm-ok-wash);
+  --color-m-warn: var(--gm-warn);
+  --color-m-warn-ink: var(--gm-warn-ink);
+  --color-m-warn-wash: var(--gm-warn-wash);
+  --color-m-crit: var(--gm-crit);
+  --color-m-crit-ink: var(--gm-crit-ink);
+  --color-m-crit-wash: var(--gm-crit-wash);
+  --color-m-crit-fill: var(--gm-crit-fill);
+  --color-m-info: var(--gm-info);
+  --color-m-info-ink: var(--gm-info-ink);
+  --color-m-info-wash: var(--gm-info-wash);
+  --color-m-idle: var(--gm-idle);
+  --color-m-idle-ink: var(--gm-idle-ink);
+
+  --color-m-ring: var(--gm-ring);
+
+  --shadow-m-plate: var(--gm-shadow-plate);
+  --shadow-m-card: var(--gm-shadow-card);
+  --shadow-m-quiet: var(--gm-shadow-quiet);
+  --shadow-m-inset: var(--gm-shadow-inset);
+  --shadow-m-overlay: var(--gm-shadow-overlay);
+
+  /*
+   * Eight steps, two more than console and none shared below 17. Console runs
+   * body 13 with six steps and a flat weight; modern runs body 15 with eight
+   * and lets weight 600 carry titles.
+   *
+   * That last part is a deliberate departure from the house rule, and sheet 21
+   * argues it rather than assuming it: console earns flat weight because an
+   * operator learns one layout and then reads values off it for hours, where
+   * weight would be noise. Nobody learns this screen. 600 is the ceiling and
+   * nothing goes bolder, ever.
+   *
+   * The weights and tracking ride on the step, so a caller writes `text-m-title`
+   * and gets the size, the leading, the tracking and the weight that step is
+   * defined with. Splitting them is how a title ends up at the right size and
+   * the wrong weight on one screen.
+   */
+  --text-m-display: 2.125rem;
+  --text-m-display--line-height: 2.625rem;
+  --text-m-display--letter-spacing: -0.025em;
+  --text-m-display--font-weight: 600;
+  --text-m-title: 1.625rem;
+  --text-m-title--line-height: 2.125rem;
+  --text-m-title--letter-spacing: -0.02em;
+  --text-m-title--font-weight: 600;
+  --text-m-heading: 1.25rem;
+  --text-m-heading--line-height: 1.75rem;
+  --text-m-heading--letter-spacing: -0.015em;
+  --text-m-heading--font-weight: 600;
+  --text-m-lede: 1.0625rem;
+  --text-m-lede--line-height: 1.6875rem;
+  --text-m-lede--letter-spacing: -0.005em;
+  --text-m-lede--font-weight: 400;
+  --text-m-body: 0.9375rem;
+  --text-m-body--line-height: 1.5rem;
+  --text-m-body--font-weight: 400;
+  --text-m-control: 0.875rem;
+  --text-m-control--line-height: 1.25rem;
+  --text-m-control--font-weight: 500;
+  --text-m-meta: 0.8125rem;
+  --text-m-meta--line-height: 1.25rem;
+  --text-m-meta--font-weight: 400;
+  /*
+   * The floor. Nothing in modern is smaller than this, and it is the eyebrow
+   * above a title, a badge and a count. Console's uppercase tracked label is
+   * out as a habit, so this is tracked +0.01 and set in sentence case.
+   */
+  --text-m-micro: 0.71875rem;
+  --text-m-micro--line-height: 1rem;
+  --text-m-micro--letter-spacing: 0.01em;
+  --text-m-micro--font-weight: 500;
+
+  /*
+   * Console runs 10 on a panel and 5 on a control. Modern doubles both and
+   * stops at 16: a 24px radius on a card is the fastest way to make a security
+   * product look like a toy. Nothing is a pill except a dot and a count badge.
+   */
+  --radius-m-card: 16px;
+  --radius-m-panel: 12px;
+  --radius-m-control: 10px;
+  --radius-m-chip: 8px;
+
+  /*
+   * The density rule, as values rather than as a comment on a mockup. A rail
+   * that is 264 on one screen and 260 on the next is the kind of drift nothing
+   * catches, because each screen looks right on its own.
+   */
+  --container-m-rail: 264px;
+  --container-m-content: 1080px;
+  --container-m-prose: 680px;
+
+  /*
+   * One curve, out only. Nothing eases in, nothing bounces, nothing springs,
+   * and console's four durations collapse to three. The focus ring is exempt
+   * and takes none of them: it is instant in both directions, because a 90ms
+   * ring is a ring that is not there when somebody is tabbing fast.
+   */
+  --ease-m: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-m-quick: 90ms;
+  --duration-m-disclosure: 160ms;
+  --duration-m-overlay: 180ms;
+}
