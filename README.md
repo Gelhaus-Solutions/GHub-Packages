@@ -8,6 +8,7 @@ stays in that product's repository.
 | --------------------------------- | ----------------------------------------------------------- |
 | [`@ghub/ui`](packages/ui)         | The design system: hand-rolled, accessible React components |
 | [`@ghub/tokens`](packages/tokens) | The design tokens behind it, as a Tailwind v4 theme         |
+| [`@ghub/totp`](packages/totp)     | TOTP (RFC 6238) for sign-in, with no runtime dependencies   |
 
 ## Working on it
 

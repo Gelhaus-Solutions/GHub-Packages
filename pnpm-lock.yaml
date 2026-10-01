@@ -41,6 +41,18 @@ importers:
 
   packages/tokens: {}
 
+  packages/totp:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.7
+        version: 22.20.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4))
+
   packages/ui:
     dependencies:
       class-variance-authority:

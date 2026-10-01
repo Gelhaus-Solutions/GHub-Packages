@@ -91,6 +91,7 @@ export default tseslint.config(
         typescript: {
           alwaysTryTypes: true,
           project: ["./packages/*/tsconfig.json"],
+          noWarnOnMultipleProjects: true,
         },
       },
     },
