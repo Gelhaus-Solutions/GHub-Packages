@@ -1,0 +1,42 @@
+# CI: format, lint, typecheck, build and test, on every push to main and every
+# pull request. The release is in release.yml, which runs on a tag.
+#
+# GitHub-hosted runners, never self-hosted ones. This repository is public, so
+# anybody can open a pull request against it, and a self-hosted runner would run
+# a stranger's code on our own machine. Hosted runners are free for a public
+# repository.
+#
+# Every action is pinned to a commit rather than to a tag. A tag is a mutable
+# pointer, and this repository builds packages every product installs.
+
+name: ci
+
+on:
+  # A `branches` filter already excludes tags, which keeps this out of the way
+  # of release.yml rather than racing it on every version.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+      # After the build, because nothing here is cached: the contrast suites
+      # read the token files from packages/tokens on every run, so a palette
+      # change that breaks an AA ratio fails here rather than in a product.
+      - run: pnpm test

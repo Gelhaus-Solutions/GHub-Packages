@@ -1,0 +1,42 @@
+# Node, pnpm and a warm store. Both workflows need exactly this, and a copy in
+# each is two places for the Node version to drift.
+#
+# corepack rather than a third-party setup action: `packageManager` in
+# package.json already pins the pnpm version, so activating it needs no second
+# source of truth and no extra party in a build that produces published
+# packages.
+
+name: setup
+description: Install dependencies with Node, corepack-activated pnpm and a cached store.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .nvmrc
+
+    # Here rather than in each workflow's `env:`, so the cache path below and
+    # the directory pnpm actually writes to cannot disagree.
+    - shell: bash
+      run: echo "npm_config_store_dir=$GITHUB_WORKSPACE/.pnpm-store" >> "$GITHUB_ENV"
+
+    - shell: bash
+      env:
+        # Never wait for a human: a job that hung on an invisible y/n would be a
+        # miserable thing to diagnose from a timeout.
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      run: |
+        corepack enable
+        corepack prepare --activate
+
+    # Keyed on the lockfile, so a dependency change misses and everything else
+    # hits. `restore-keys` means a miss still starts from the last good store.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ github.workspace }}/.pnpm-store
+        key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: pnpm-${{ runner.os }}-
+
+    - shell: bash
+      run: pnpm install --frozen-lockfile

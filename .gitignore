@@ -24,3 +24,6 @@ npm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+
+# written by the release workflow's publish step
+pnpm-publish-summary.json
