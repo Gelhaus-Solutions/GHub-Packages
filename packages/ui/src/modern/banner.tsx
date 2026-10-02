@@ -63,7 +63,7 @@ export function Banner({
       role={afterLoad ? "alert" : "status"}
       className={cn("w-full rounded-m-panel border p-4", TONE[tone], className)}
     >
-      <p className="text-m-control text-m-ink">{title}</p>
+      <p className="text-m-label text-m-ink">{title}</p>
       <p className="mt-1 text-m-meta text-m-ink-2">{children}</p>
     </div>
   );

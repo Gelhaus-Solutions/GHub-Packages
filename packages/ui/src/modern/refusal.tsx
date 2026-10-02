@@ -66,7 +66,7 @@ export function Refusal({
         className,
       )}
     >
-      <p className="text-m-control text-m-ink">{title}</p>
+      <p className="text-m-label text-m-ink">{title}</p>
       <p className="mt-2 text-m-meta text-m-ink-2">{reason}</p>
       <p className="mt-2 text-m-meta text-m-ink-2">{next}</p>
       {action === undefined ? null : <div className="mt-4">{action}</div>}

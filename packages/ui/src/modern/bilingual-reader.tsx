@@ -156,7 +156,7 @@ export function BilingualReader({
         <a
           href={`#${secondId}`}
           className={cn(
-            "sr-only text-m-control text-m-accent-text focus:not-sr-only focus:self-start",
+            "sr-only text-m-label text-m-accent-text focus:not-sr-only focus:self-start",
             FOCUS,
           )}
         >

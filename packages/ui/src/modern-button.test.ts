@@ -97,13 +97,13 @@ describe("buttonClasses holds the geometry sheet 09 states", () => {
     for (const variant of VARIANTS) {
       const classes = buttonClasses({ variant }).split(" ");
       expect(classes).toContain("rounded-m-control");
-      expect(classes).toContain("text-m-control");
+      expect(classes).toContain("text-m-label");
     }
   });
 
   it("keeps the type step beside the label ink, in every variant and state", () => {
     /*
-     * tailwind-merge reads `text-m-control` and `text-m-accent-on` as two text
+     * tailwind-merge reads `text-m-label` and `text-m-accent-on` as two text
      * colours and keeps the last, so a recipe run through `cn` loses its type
      * step and the label inherits whatever the page sets. Measured against
      * the `cn` in this package: that is what it does today.
@@ -111,12 +111,12 @@ describe("buttonClasses holds the geometry sheet 09 states", () => {
     for (const variant of VARIANTS) {
       for (const busy of [false, true]) {
         const classes = buttonClasses({ variant, busy }).split(" ");
-        expect(classes).toContain("text-m-control");
-        expect(classes.filter((c) => /^text-(?!m-control$)/.test(c))).toHaveLength(1);
+        expect(classes).toContain("text-m-label");
+        expect(classes.filter((c) => /^text-(?!m-label$)/.test(c))).toHaveLength(1);
       }
     }
     const html = render(createElement(Button, { variant: "primary", className: "ml-auto" }, "Go"));
-    expect(classesOf(html)).toEqual(expect.arrayContaining(["text-m-control", "text-m-accent-on"]));
+    expect(classesOf(html)).toEqual(expect.arrayContaining(["text-m-label", "text-m-accent-on"]));
   });
 
   it("never lists two classes for one property", () => {

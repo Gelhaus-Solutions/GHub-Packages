@@ -44,7 +44,7 @@ export function Pagination({
       disabled={onPress === undefined}
       onClick={onPress}
       className={cn(
-        "h-9 rounded-m-control px-3 text-m-control",
+        "h-9 rounded-m-control px-3 text-m-label",
         onPress === undefined
           ? // No border, no plate, no shadow. Nothing raised is left.
             "text-m-ink-off"

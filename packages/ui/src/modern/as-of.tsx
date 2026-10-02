@@ -206,7 +206,7 @@ export function AsOf({
         className,
       )}
     >
-      <span id={labelId} className="text-m-control text-m-ink">
+      <span id={labelId} className="text-m-label text-m-ink">
         {label}
       </span>
       <div ref={choices} className="contents">

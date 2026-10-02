@@ -37,7 +37,7 @@ export function Input({ height = 44, mono = false, className, ...rest }: InputPr
   return (
     <input
       className={cn(
-        "w-full rounded-m-control border border-m-control bg-m-inset px-3 text-m-control text-m-ink shadow-m-inset",
+        "w-full rounded-m-control border border-m-control bg-m-inset px-3 text-m-label text-m-ink shadow-m-inset",
         "placeholder:text-m-ink-3",
         height === 44 ? "h-11" : "h-9",
         mono ? "font-mono tabular-nums" : "",

@@ -193,6 +193,36 @@ describe("modern's tokens reach a screen too", () => {
   });
 });
 
+describe("a type step never shares a colour's name", () => {
+  /**
+   * `text-*` is two Tailwind namespaces at once: `--text-x` makes it a size,
+   * `--color-x` makes it a colour. When both exist, `text-x` compiles to the
+   * colour alone, an explicit `@utility` merges into the same rule rather than
+   * winning, and the size, the leading and the weight are simply not there.
+   *
+   * That shipped. Modern's label step was `--text-m-control` beside the edge
+   * colour `--color-m-control`, so every label set in it rendered in a 36%
+   * alpha edge ink at the inherited size, failing AA in two products, while
+   * every class string was spelled right and every token it named existed.
+   * Read across both files, because an app imports them together.
+   */
+  it("declares no --text-* step whose name is also a --color-*", () => {
+    const declared = (prefix: string): Set<string> =>
+      new Set(
+        [THEME, MODERN].flatMap((file) =>
+          Array.from(
+            readFileSync(file, "utf8").matchAll(new RegExp(`--${prefix}-([a-z0-9-]+?)\\s*:`, "g")),
+            (m) => m[1] as string,
+          ),
+        ),
+      );
+    const colours = declared("color");
+    const steps = Array.from(declared("text")).filter((name) => !name.includes("--"));
+
+    expect(steps.filter((name) => colours.has(name))).toEqual([]);
+  });
+});
+
 describe("base.css cannot outrank the utilities", () => {
   const css = readFileSync(BASE, "utf8");
 

@@ -460,9 +460,18 @@
   --text-m-body: 0.9375rem;
   --text-m-body--line-height: 1.5rem;
   --text-m-body--font-weight: 400;
-  --text-m-control: 0.875rem;
-  --text-m-control--line-height: 1.25rem;
-  --text-m-control--font-weight: 500;
+  /*
+   * The step a label, a control's text and a column head are set in. Not
+   * `--text-m-control`, which it was called until 0.4.0: `text-*` is both
+   * Tailwind's colour namespace and its size namespace, and with
+   * `--color-m-control` (the control edge) defined too, Tailwind 4 compiled
+   * `text-m-control` to the edge colour and nothing else. Every label set in
+   * it rendered in a 36% alpha ink at the inherited size, which fails AA.
+   * `token-plumbing.test.ts` now refuses any step that shares a colour's name.
+   */
+  --text-m-label: 0.875rem;
+  --text-m-label--line-height: 1.25rem;
+  --text-m-label--font-weight: 500;
   --text-m-meta: 0.8125rem;
   --text-m-meta--line-height: 1.25rem;
   --text-m-meta--font-weight: 400;

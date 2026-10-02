@@ -67,14 +67,14 @@ export function Table<Row>({ columns, rows, rowKey, caption, className }: TableP
                 scope="col"
                 aria-sort={column.sort === undefined ? undefined : column.sort}
                 className={cn(
-                  "h-[42px] border-b border-m-subtle px-5 text-m-control text-m-ink-2",
+                  "h-[42px] border-b border-m-subtle px-5 text-m-label text-m-ink-2",
                   column.numeric === true ? "text-right" : "",
                 )}
               >
                 {column.onSort === undefined ? (
                   column.header
                 ) : (
-                  <button type="button" onClick={column.onSort} className="text-m-control">
+                  <button type="button" onClick={column.onSort} className="text-m-label">
                     {column.header}
                   </button>
                 )}

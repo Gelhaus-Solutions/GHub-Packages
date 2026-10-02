@@ -23,7 +23,7 @@ const merge = extendTailwindMerge({
             "m-heading",
             "m-lede",
             "m-body",
-            "m-control",
+            "m-label",
             "m-meta",
             "m-micro",
           ],

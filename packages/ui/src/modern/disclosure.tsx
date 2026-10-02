@@ -64,7 +64,7 @@ export function Disclosure({ label, open, onOpenChange, children, className }: D
         onClick={() => {
           onOpenChange(!open);
         }}
-        className="text-m-control text-m-accent-text"
+        className="text-m-label text-m-accent-text"
       >
         {label}
       </button>

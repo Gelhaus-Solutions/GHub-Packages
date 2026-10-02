@@ -67,7 +67,7 @@ const BUSY_FILM = "bg-[linear-gradient(var(--gm-active),var(--gm-active))]";
 
 const BASE = [
   "inline-flex items-center justify-center gap-2 whitespace-nowrap select-none",
-  "rounded-m-control border text-m-control",
+  "rounded-m-control border text-m-label",
   /*
    * The ring is the one thing here that never animates, so there is no
    * `transition-colors` on this recipe at all: in Tailwind v4 that utility
@@ -133,7 +133,7 @@ const PADDING: Readonly<Record<ButtonSize, string>> = { 44: "px-[18px]", 36: "px
  *
  * **Joined with `clsx`, not merged with `cn`, and the list is built with no
  * two classes competing for one property so it does not need merging.**
- * tailwind-merge does not know modern's type steps: it reads `text-m-control`
+ * tailwind-merge does not know modern's type steps: it reads `text-m-label`
  * and `text-m-accent-on` as two text colours and keeps only the last, so the
  * button would lose its type step. The same applies to a caller who passes
  * this through `cn` with a class of their own.

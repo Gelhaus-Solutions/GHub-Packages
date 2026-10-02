@@ -381,7 +381,7 @@ export function ZonedDateTimeInput(props: ZonedDateTimeInputProps) {
             aria-live="off"
             className={cn(
               "inline-flex shrink-0 items-center rounded-m-control bg-m-sunken px-3",
-              "font-mono text-m-control text-m-ink-2 tabular-nums",
+              "font-mono text-m-label text-m-ink-2 tabular-nums",
               height === 44 ? "h-11" : "h-9",
             )}
           >
