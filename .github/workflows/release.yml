@@ -40,8 +40,10 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm format:check
       - run: pnpm lint
-      - run: pnpm typecheck
+      # Build first: a package that depends on another one here resolves it
+      # through its `dist`, which a fresh runner does not have until this runs.
       - run: pnpm build
+      - run: pnpm typecheck
       - run: pnpm test
 
   publish:

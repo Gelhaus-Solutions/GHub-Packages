@@ -34,9 +34,12 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm format:check
       - run: pnpm lint
-      - run: pnpm typecheck
+      # Build before typecheck. A package that depends on another one here
+      # (terms-client on terms-rules) resolves it through its published `dist`,
+      # so on a fresh runner its types do not exist until the build has run.
       - run: pnpm build
-      # After the build, because nothing here is cached: the contrast suites
-      # read the token files from packages/tokens on every run, so a palette
-      # change that breaks an AA ratio fails here rather than in a product.
+      - run: pnpm typecheck
+      # Nothing here is cached: the contrast suites read the token files from
+      # packages/tokens on every run, so a palette change that breaks an AA
+      # ratio fails here rather than in a product.
       - run: pnpm test
