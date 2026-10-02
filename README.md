@@ -4,11 +4,12 @@ The packages the Gelhaus Solutions products share. A package lives here when it 
 published and more than one product depends on it. A package only one product uses
 stays in that product's repository.
 
-| Package                           | What it is                                                  |
-| --------------------------------- | ----------------------------------------------------------- |
-| [`@ghub/ui`](packages/ui)         | The design system: hand-rolled, accessible React components |
-| [`@ghub/tokens`](packages/tokens) | The design tokens behind it, as a Tailwind v4 theme         |
-| [`@ghub/totp`](packages/totp)     | TOTP (RFC 6238) for sign-in, with no runtime dependencies   |
+| Package                                     | What it is                                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------------------- |
+| [`@ghub/ui`](packages/ui)                   | The design system: hand-rolled, accessible React components                       |
+| [`@ghub/tokens`](packages/tokens)           | The design tokens behind it, as a Tailwind v4 theme                               |
+| [`@ghub/totp`](packages/totp)               | TOTP (RFC 6238) for sign-in, with no runtime dependencies                         |
+| [`@ghub/terms-rules`](packages/terms-rules) | The consent rules: where an account stands with its terms, from a signed snapshot |
 
 ## Working on it
 
