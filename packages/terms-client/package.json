@@ -1,0 +1,52 @@
+{
+  "name": "@ghub/terms-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The client every Gelhaus Solutions product uses to ask GPlatform Terms where an account stands and to record an acceptance: a verified snapshot cache, an outbox, and nobody locked out while the service is unreachable. Server side only.",
+  "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
+  "homepage": "https://ennogelhaus.de",
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
+    "directory": "packages/terms-client"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "!dist/**/*.map",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.3.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "cp ../../LICENSE ./LICENSE",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ghub/terms-rules": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.7",
+    "@types/pg": "^8.15.6",
+    "pg": "^8.16.3",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.8"
+  }
+}
