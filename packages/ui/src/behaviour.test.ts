@@ -50,6 +50,10 @@ function sources(): string[] {
  */
 const MIXED: Readonly<Record<string, readonly string[]>> = {
   "field-state.ts": ["FIELD_MESSAGE_TONES", "FIELD_BORDER_TONES", "fieldBorderTone"],
+  // Names tailwind-merge's "font-size" group so the type steps survive a
+  // merge. That string is configuration about classes, not a class drawn, and
+  // `cn` itself, the one name exported, draws nothing.
+  "cn.ts": [],
 };
 
 describe("the shared behaviour core", () => {
