@@ -978,23 +978,33 @@ describe("the pin covers every modern component", () => {
 
   /** Every component this file actually renders. Kept by hand, on purpose. */
   const EXERCISED = [
+    "AsOf",
     "Banner",
+    "BilingualReader",
+    "Button",
     "Card",
     "Consequence",
     "Disclosure",
     "FormField",
+    "Hash",
     "Input",
+    "MailPreview",
     "Money",
     "PageHead",
     "Pagination",
     "Provenance",
     "RecordRow",
     "Refusal",
+    "ReorderList",
     "Section",
+    "Standing",
     "Status",
     "SummaryPair",
     "Table",
     "Tabs",
+    "TypedConfirmation",
+    "ZonedDateTime",
+    "ZonedDateTimeInput",
   ] as const;
 
   it("found the components at all", () => {
