@@ -1,10 +1,10 @@
 {
   "name": "@ghub/ui",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "The design system of the Gelhaus Solutions product family: hand-rolled accessible React components. No Radix, no shadcn, no headless component libraries.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
-  "license": "Elastic-2.0",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",

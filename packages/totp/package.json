@@ -1,10 +1,10 @@
 {
   "name": "@ghub/totp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TOTP (RFC 6238) and the base32 alphabet authenticator apps expect, hand-written against the RFC's own vectors. No dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
-  "license": "Elastic-2.0",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
