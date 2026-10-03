@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.5.1
+
+### Patch Changes
+
+- 26c571e: Tabs wrap on a narrow screen instead of running past its edge, and a label never breaks. FilterButton takes `typed`, for a value that can be typed as well as picked (a day in a From or To facet): the filter field is then always drawn, and what `parse` reads from it is offered first after Any.
+
 ## 0.5.0
 
 ### Minor Changes
