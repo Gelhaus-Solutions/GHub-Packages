@@ -137,6 +137,42 @@ The account's consents, the notices sent to it and its objections, on its own
 surface only, for the product's "export my data". It throws a `TermsApiError`
 while the service cannot answer: an export is retried, not made up.
 
+## Privacy requests
+
+A person who asks for their data to be erased, or objects to how it is
+processed, is recorded in GPlatform Terms. Staff decide there, per product and
+per kind of data, whether it is kept, pseudonymised or deleted, and queue that
+as a run: a dry run counts what the plan would touch, a run that executes
+carries it out. Terms never calls the product; the product asks, from the same
+scheduler that flushes the outbox:
+
+```ts
+await terms.handlePrivacyRuns("gadvisory", {
+  catalogue: PRIVACY_CATALOGUE,
+  carryOut: (run) => erase(run.subject, run.plan, { execute: run.execute, ref: run.reference }),
+});
+```
+
+`catalogue` lists every kind of data the product holds about a person: an `id`
+the plan names, a `label` and a `detail` staff read, the `actions` it supports
+and the `default` the console preselects, and `takesWithIt`, the categories that
+cannot outlive it (deleting an account deletes its applications). It is
+published on the first pass of each process and then hourly (`publishEveryMs`).
+
+`carryOut` gets the run: its `reference` (`DSR-<day>-<n>`, the name to log
+instead of the person), the person's `email`, other `identifiers` and the
+product's own `accountIds` that Terms knows at the address, the `plan` with one
+action per category, and `execute`, false for a dry run that must change
+nothing. It returns what it `found` and what it did (`done`) per category, and
+optionally what stays whatever the plan says (`kept`, with why) and `notes`. A
+`carryOut` that throws is reported as failed, with the error's message as the
+reason. A run whose report does not arrive is offered again by Terms after its
+lease, so `carryOut` must be safe to run twice.
+
+The pass throws when the catalogue or the runs cannot be exchanged, which the
+scheduler logs and tries again on its next tick. `publishErasureCatalogue`,
+`takePrivacyRuns` and `reportPrivacyRun` are the same steps one at a time.
+
 ## The outbox
 
 Every push and every acceptance is written to the outbox first and removed when

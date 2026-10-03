@@ -159,14 +159,14 @@ export class UnreadableAnswerError extends Error {
 
 type Fields = Readonly<Record<string, unknown>>;
 
-function object(value: unknown, path: string): Fields {
+export function object(value: unknown, path: string): Fields {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new UnreadableAnswerError(`${path} is not an object.`);
   }
   return value as Fields;
 }
 
-function string(value: unknown, path: string): string {
+export function string(value: unknown, path: string): string {
   if (typeof value !== "string") throw new UnreadableAnswerError(`${path} is not a string.`);
   return value;
 }
@@ -175,7 +175,7 @@ function nullableString(value: unknown, path: string): string | null {
   return value === null ? null : string(value, path);
 }
 
-function array(value: unknown, path: string): readonly unknown[] {
+export function array(value: unknown, path: string): readonly unknown[] {
   if (!Array.isArray(value)) throw new UnreadableAnswerError(`${path} is not a list.`);
   return value;
 }

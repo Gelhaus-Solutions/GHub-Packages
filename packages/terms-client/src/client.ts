@@ -25,6 +25,16 @@ import {
   type OutboxKind,
   type OutboxStore,
 } from "./outbox.js";
+import {
+  catalogueBody,
+  readPrivacyRuns,
+  reportBody,
+  type ErasureCategory,
+  type PrivacyHandler,
+  type PrivacyPassReport,
+  type PrivacyRun,
+  type PrivacyRunResult,
+} from "./privacy.js";
 import { SnapshotCache, type SnapshotSource, type SnapshotStore } from "./snapshot-cache.js";
 import {
   consentBody,
@@ -208,6 +218,23 @@ export interface TermsClient extends ProductRules {
     readonly rounds?: number;
     readonly batch?: number;
   }): Promise<FlushReport>;
+  /** Tells the service what the product holds about people, as kinds of data
+   *  with what it can do to each. Staff choose from it per request. */
+  publishErasureCatalogue(surface: string, categories: readonly ErasureCategory[]): Promise<void>;
+  /** The privacy runs waiting for the surface, marked taken. One taken and
+   *  never reported is offered again after the service's lease. */
+  takePrivacyRuns(surface: string): Promise<PrivacyRun[]>;
+  /** What a run found and did, or why it failed. Once per run. */
+  reportPrivacyRun(surface: string, runId: string, result: PrivacyRunResult): Promise<void>;
+  /**
+   * One pass over the surface's privacy requests: publishes the catalogue when
+   * due, takes the runs, carries each out with `handler.carryOut` and reports
+   * it. Call it from the product's own scheduler, beside `flushOutbox`.
+   * Throws when the catalogue or the runs cannot be exchanged; a run that
+   * throws is reported as failed, and one whose report does not arrive is
+   * offered again by the service after its lease.
+   */
+  handlePrivacyRuns(surface: string, handler: PrivacyHandler): Promise<PrivacyPassReport>;
 }
 
 interface Attempt {
@@ -219,6 +246,7 @@ interface Attempt {
 const DEFAULT_TIMEOUT_MS = 3_000;
 const DEFAULT_REFRESH_MS = 15 * 60_000;
 const DEFAULT_LEASE_MS = 2 * 60_000;
+const DEFAULT_PUBLISH_EVERY_MS = 60 * 60_000;
 const REFRESH_RETRY_MS = 60_000;
 /**
  * How long a person's request stops asking the service after it failed to
@@ -266,6 +294,8 @@ class Client implements TermsClient {
   private readonly chains = new Map<string, Promise<void>>();
   /** Until when a person's request does not ask the service. */
   private quietUntil = Number.NEGATIVE_INFINITY;
+  /** When each surface's erasure catalogue was last published, in ms. */
+  private readonly published = new Map<string, number>();
 
   constructor(options: TermsClientOptions) {
     this.http = {
@@ -560,6 +590,67 @@ class Client implements TermsClient {
     );
     if (answer.status !== 200) throw refusalOf(answer, "the account's own record");
     return readOwnRecord(jsonOf(answer, "the account's own record"));
+  }
+
+  // --- privacy requests ----------------------------------------------------
+
+  async publishErasureCatalogue(
+    surface: string,
+    categories: readonly ErasureCategory[],
+  ): Promise<void> {
+    required(surface, "surface");
+    const answer = await this.call("PUT", `v1/erasure-catalogues/${encodeURIComponent(surface)}`, {
+      json: JSON.stringify(catalogueBody(categories)),
+    });
+    if (answer.status !== 200) throw refusalOf(answer, "the erasure catalogue");
+    this.published.set(surface, this.clock().getTime());
+  }
+
+  async takePrivacyRuns(surface: string): Promise<PrivacyRun[]> {
+    required(surface, "surface");
+    const answer = await this.call("POST", `v1/privacy-runs/${encodeURIComponent(surface)}/take`);
+    if (answer.status !== 200) throw refusalOf(answer, "the privacy runs");
+    return readPrivacyRuns(jsonOf(answer, "the privacy runs"));
+  }
+
+  async reportPrivacyRun(surface: string, runId: string, result: PrivacyRunResult): Promise<void> {
+    required(surface, "surface");
+    required(runId, "runId");
+    const answer = await this.call(
+      "POST",
+      `v1/privacy-runs/${encodeURIComponent(surface)}/${encodeURIComponent(runId)}/report`,
+      { json: JSON.stringify(reportBody(result)) },
+    );
+    if (answer.status !== 200) throw refusalOf(answer, `the report of privacy run ${runId}`);
+  }
+
+  async handlePrivacyRuns(surface: string, handler: PrivacyHandler): Promise<PrivacyPassReport> {
+    const every = handler.publishEveryMs ?? DEFAULT_PUBLISH_EVERY_MS;
+    const last = this.published.get(surface);
+    const due = last === undefined || this.clock().getTime() - last >= every;
+    if (due) await this.publishErasureCatalogue(surface, handler.catalogue);
+    const runs = await this.takePrivacyRuns(surface);
+    let done = 0;
+    let failed = 0;
+    let unreported = 0;
+    for (const run of runs) {
+      let result: PrivacyRunResult;
+      try {
+        result = { ok: true, report: await handler.carryOut(run) };
+      } catch (error) {
+        this.report(error, `${run.execute ? "carrying out" : "counting"} ${run.reference}`);
+        result = { ok: false, error: messageOf(error) };
+      }
+      try {
+        await this.reportPrivacyRun(surface, run.id, result);
+        if (result.ok) done += 1;
+        else failed += 1;
+      } catch (error) {
+        this.report(error, `reporting ${run.reference}; it is offered again after its lease`);
+        unreported += 1;
+      }
+    }
+    return { published: due, taken: runs.length, done, failed, unreported };
   }
 
   // --- talking to the service ----------------------------------------------

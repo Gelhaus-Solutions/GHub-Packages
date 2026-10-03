@@ -8,8 +8,10 @@
  * ledger idempotent on the request reference, an acceptance refused for an
  * account it was not told of or for an identifier it cannot read, the state
  * decided by the rules from the newest ledger row, and the snapshot with its
- * signature and ETag. It is not the service, and the service's own tests are
- * the authority on what the service does.
+ * signature and ETag; and for privacy requests, the catalogue each surface
+ * published and runs that are taken once and reported once. It is not the
+ * service, and the service's own tests are the authority on what the service
+ * does.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -29,10 +31,23 @@ interface Row {
   readonly body: string;
 }
 
+/** A privacy run as the fake holds it: what a take hands out, and its report. */
+export interface FakePrivacyRun {
+  readonly surface: string;
+  /** The run as a take answers it, `id` included. */
+  readonly run: Record<string, unknown>;
+  state: "queued" | "taken" | "reported";
+  report: unknown;
+}
+
 export interface FakeTerms {
   readonly url: string;
   readonly subjects: Map<string, Record<string, unknown>>;
   readonly ledger: Row[];
+  /** Each surface's catalogue, as the product last published it. */
+  readonly catalogues: Map<string, unknown>;
+  /** Runs, queued by a test pushing them here. */
+  readonly privacyRuns: FakePrivacyRun[];
   /** Every request, as `METHOD path`. */
   readonly requests: string[];
   /** The next requests answered with this instead, oldest first. */
@@ -62,6 +77,8 @@ export async function fakeTerms(): Promise<FakeTerms> {
   let served: { snapshot: Signed; serial: number } | null = null;
   const subjects = new Map<string, Record<string, unknown>>();
   const ledger: Row[] = [];
+  const catalogues = new Map<string, unknown>();
+  const privacyRuns: FakePrivacyRun[] = [];
   const requests: string[] = [];
   const refusals: { status: number; code: string; message: string }[] = [];
   let port = 0;
@@ -214,6 +231,51 @@ export async function fakeTerms(): Promise<FakeTerms> {
       });
       return;
     }
+    // /api/v1/erasure-catalogues/{surface}
+    if (request.method === "PUT" && parts.length === 4 && parts[2] === "erasure-catalogues") {
+      const surface = parts[3] ?? "";
+      catalogues.set(surface, JSON.parse(await bodyOf(request)) as unknown);
+      reply(response, 200, { surface, publishedAt: new Date().toISOString() });
+      return;
+    }
+    // /api/v1/privacy-runs/{surface}/take
+    if (
+      request.method === "POST" &&
+      parts.length === 5 &&
+      parts[2] === "privacy-runs" &&
+      parts[4] === "take"
+    ) {
+      const waiting = privacyRuns.filter(
+        (one) => one.surface === parts[3] && one.state === "queued",
+      );
+      for (const one of waiting) one.state = "taken";
+      reply(response, 200, { runs: waiting.map((one) => one.run) });
+      return;
+    }
+    // /api/v1/privacy-runs/{surface}/{runId}/report
+    if (
+      request.method === "POST" &&
+      parts.length === 6 &&
+      parts[2] === "privacy-runs" &&
+      parts[5] === "report"
+    ) {
+      const held = privacyRuns.find(
+        (one) => one.surface === parts[3] && one.run["id"] === parts[4],
+      );
+      if (held === undefined) {
+        refuse(response, 404, "not-found", "No such run.");
+        return;
+      }
+      if (held.state !== "taken") {
+        refuse(response, 409, "privacy.run-not-taken", "This run is not taken.");
+        return;
+      }
+      const body = JSON.parse(await bodyOf(request)) as { ok: boolean };
+      held.state = "reported";
+      held.report = body;
+      reply(response, 200, { state: body.ok ? "done" : "failed" });
+      return;
+    }
     refuse(response, 404, "not-found", `No route ${path}.`);
   };
 
@@ -247,6 +309,8 @@ export async function fakeTerms(): Promise<FakeTerms> {
     url: `http://127.0.0.1:${String(port)}`,
     subjects,
     ledger,
+    catalogues,
+    privacyRuns,
     requests,
     refusals,
     serve(snapshot, serial) {

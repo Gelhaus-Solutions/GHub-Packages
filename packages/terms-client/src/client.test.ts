@@ -13,6 +13,7 @@ import {
 } from "./client.js";
 import { TermsApiError } from "./http.js";
 import { memoryOutboxStore, FIRST_RETRY_MS } from "./outbox.js";
+import type { PrivacyRun } from "./privacy.js";
 import type { StoredSnapshot } from "./snapshot-cache.js";
 import { API_KEY, fakeTerms, type FakeTerms } from "./testing/fake-terms.js";
 import {
@@ -341,6 +342,122 @@ describe("with the service up", () => {
     await accept(made, "export-1");
     const record = await made.ownRecord(SURFACE, "acct-1");
     expect(record.consents.map((one) => one.requestRef)).toEqual(["export-1"]);
+  });
+});
+
+describe("privacy requests", () => {
+  const CATALOGUE = [
+    {
+      id: "account",
+      label: "Account",
+      detail: "Name and address.",
+      actions: ["pseudonymise", "delete"],
+      default: "pseudonymise",
+      takesWithIt: ["answers"],
+    },
+    {
+      id: "answers",
+      label: "Answers",
+      detail: "What they wrote.",
+      actions: ["keep", "delete"],
+      default: "delete",
+    },
+  ] as const;
+  const REPORT = {
+    found: { account: 1, answers: 2 },
+    done: { answers: { action: "delete", count: 2 } },
+  } as const;
+
+  function queue(
+    id: string,
+    execute: boolean,
+    plan: Record<string, string> = { account: "pseudonymise", answers: "delete" },
+  ) {
+    api.privacyRuns.push({
+      surface: SURFACE,
+      run: {
+        id,
+        reference: `DSR-2036-03-10-${id}`,
+        kind: "erasure",
+        subject: {
+          email: "person@example.org",
+          identifiers: { github: "someone" },
+          accountIds: ["acct-1"],
+        },
+        plan,
+        execute,
+        addedLater: "a field this client does not know",
+      },
+      state: "queued",
+      report: null,
+    });
+  }
+
+  it("publishes the catalogue when due, carries out each run and reports it, a failure as failed", async () => {
+    const { client: made } = client();
+    queue("run-1", false);
+    queue("run-2", true);
+    const seen: string[] = [];
+    const handler = {
+      catalogue: CATALOGUE,
+      carryOut: (run: PrivacyRun) => {
+        seen.push(`${run.reference} ${String(run.execute)} ${run.subject.accountIds.join(",")}`);
+        return run.execute
+          ? Promise.reject(new Error("the database said no"))
+          : Promise.resolve(REPORT);
+      },
+    };
+    expect(await made.handlePrivacyRuns(SURFACE, handler)).toEqual({
+      published: true,
+      taken: 2,
+      done: 1,
+      failed: 1,
+      unreported: 0,
+    });
+    expect(api.catalogues.get(SURFACE)).toEqual({
+      categories: [CATALOGUE[0], { ...CATALOGUE[1], takesWithIt: [] }],
+    });
+    expect(seen).toEqual(["DSR-2036-03-10-run-1 false acct-1", "DSR-2036-03-10-run-2 true acct-1"]);
+    expect(api.privacyRuns.map((one) => one.report)).toEqual([
+      { ok: true, report: { ...REPORT, kept: [], notes: [] } },
+      { ok: false, error: "the database said no" },
+    ]);
+    expect(errors).toEqual([
+      expect.stringMatching(/^carrying out DSR-2036-03-10-run-2: the database said no/),
+    ]);
+
+    // Within the hour the catalogue is not sent again, and nothing is left to take.
+    now = new Date(now.getTime() + 30 * 60_000);
+    expect(await made.handlePrivacyRuns(SURFACE, handler)).toMatchObject({
+      published: false,
+      taken: 0,
+    });
+    now = new Date(now.getTime() + 31 * 60_000);
+    expect(await made.handlePrivacyRuns(SURFACE, handler)).toMatchObject({ published: true });
+  });
+
+  it("counts a run whose report did not arrive as unreported, and throws when the service is down", async () => {
+    const { client: made } = client();
+    await made.publishErasureCatalogue(SURFACE, CATALOGUE);
+    queue("run-3", true);
+    const pass = await made.handlePrivacyRuns(SURFACE, {
+      catalogue: CATALOGUE,
+      carryOut: () => {
+        api.refusals.push({ status: 503, code: "unavailable", message: "Down for a moment." });
+        return Promise.resolve(REPORT);
+      },
+    });
+    expect(pass).toEqual({ published: false, taken: 1, done: 0, failed: 0, unreported: 1 });
+    expect(api.privacyRuns[0]?.state).toBe("taken");
+
+    await api.stop();
+    await expect(made.takePrivacyRuns(SURFACE)).rejects.toBeInstanceOf(TermsApiError);
+  });
+
+  it("refuses a run with an action it does not know, rather than guessing", async () => {
+    const { client: made } = client();
+    queue("run-4", true, { account: "anonymise" });
+    await expect(made.takePrivacyRuns(SURFACE)).rejects.toThrow(/plan\.account is not an action/);
   });
 });
 

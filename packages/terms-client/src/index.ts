@@ -1,7 +1,8 @@
 /**
  * The client every Gelhaus Solutions product uses to talk to GPlatform Terms:
  * where an account stands with the documents its product asks it to accept,
- * the acceptances it makes, and the account facts notices are sent by.
+ * the acceptances it makes, the account facts notices are sent by, and the
+ * privacy requests staff send it.
  *
  * Built on @ghub/terms-rules, whose rules it binds to the newest verified
  * snapshot the service serves, and which it falls back to when the service
@@ -34,6 +35,16 @@ export {
   type OutboxStore,
 } from "./outbox.js";
 export { OUTBOX_TABLE_SQL, postgresOutboxStore, type SqlQuery } from "./postgres-outbox.js";
+export {
+  PRIVACY_ERROR_MAX,
+  type ErasureCategory,
+  type PrivacyAction,
+  type PrivacyHandler,
+  type PrivacyPassReport,
+  type PrivacyReport,
+  type PrivacyRun,
+  type PrivacyRunResult,
+} from "./privacy.js";
 export {
   TermsUnavailableError,
   type SnapshotSource,
