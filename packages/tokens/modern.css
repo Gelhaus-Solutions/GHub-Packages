@@ -164,6 +164,28 @@
   --gm-shadow-quiet: inset 0 1px 0 oklch(1 0 0 / 0.06);
   --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.32);
   --gm-shadow-overlay: 0 24px 48px -12px oklch(0 0 0 / 0.6), inset 0 1px 0 oklch(1 0 0 / 0.08);
+
+  /*
+   * The diff films, for `DiffViewer` and nothing else. Drawn for the GPlatform
+   * Terms staff console, where a version is read against the one before it.
+   *
+   * Removed text takes no hue at all: crit is kept for something lost, and a
+   * sentence a new version drops is not lost, it is replaced. So a removed line
+   * is ink at 5 per cent and a removed word ink at 15. Added text takes the ok
+   * hue as a FILM only, ok at 9 per cent on the line and 26 on the word, and
+   * never the ok ink or the ok dot, so an added paragraph cannot read as a
+   * status. The hunk heading band is ink at 4 per cent.
+   *
+   * Written as the colour with an alpha rather than as a `color-mix`, the way
+   * the washes above are, so the contrast suite can composite them: mixing a
+   * colour with `transparent` in oklch is that colour at that alpha. Every ink
+   * set on them, including a word mark on its line film, is measured there.
+   */
+  --gm-diff-add: oklch(0.72 0.16 152 / 0.09);
+  --gm-diff-add-word: oklch(0.72 0.16 152 / 0.26);
+  --gm-diff-del: oklch(0.975 0.003 255 / 0.05);
+  --gm-diff-del-word: oklch(0.975 0.003 255 / 0.15);
+  --gm-diff-band: oklch(0.975 0.003 255 / 0.04);
 }
 
 /* --------------------------------------------------------------------------
@@ -298,6 +320,13 @@
   --gm-shadow-quiet: inset 0 -1px 0 oklch(0 0 0 / 0.06);
   --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.08);
   --gm-shadow-overlay: 0 16px 40px oklch(0 0 0 / 0.14);
+
+  /* The same percentages over light's ok and light's ink. */
+  --gm-diff-add: oklch(0.54 0.15 152 / 0.09);
+  --gm-diff-add-word: oklch(0.54 0.15 152 / 0.26);
+  --gm-diff-del: oklch(0.19 0.008 258 / 0.05);
+  --gm-diff-del-word: oklch(0.19 0.008 258 / 0.15);
+  --gm-diff-band: oklch(0.19 0.008 258 / 0.04);
 }
 
 @media (prefers-color-scheme: light) {
@@ -353,6 +382,12 @@
     --gm-shadow-quiet: inset 0 -1px 0 oklch(0 0 0 / 0.06);
     --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.08);
     --gm-shadow-overlay: 0 16px 40px oklch(0 0 0 / 0.14);
+
+    --gm-diff-add: oklch(0.54 0.15 152 / 0.09);
+    --gm-diff-add-word: oklch(0.54 0.15 152 / 0.26);
+    --gm-diff-del: oklch(0.19 0.008 258 / 0.05);
+    --gm-diff-del-word: oklch(0.19 0.008 258 / 0.15);
+    --gm-diff-band: oklch(0.19 0.008 258 / 0.04);
   }
 }
 
@@ -418,6 +453,12 @@
   --color-m-idle-ink: var(--gm-idle-ink);
 
   --color-m-ring: var(--gm-ring);
+
+  --color-m-diff-add: var(--gm-diff-add);
+  --color-m-diff-add-word: var(--gm-diff-add-word);
+  --color-m-diff-del: var(--gm-diff-del);
+  --color-m-diff-del-word: var(--gm-diff-del-word);
+  --color-m-diff-band: var(--gm-diff-band);
 
   --shadow-m-plate: var(--gm-shadow-plate);
   --shadow-m-card: var(--gm-shadow-card);

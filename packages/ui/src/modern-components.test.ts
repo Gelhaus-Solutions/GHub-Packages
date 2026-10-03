@@ -547,6 +547,50 @@ describe("Section", () => {
     expect(with2).toContain("font-mono");
     expect(without).not.toContain("font-mono");
   });
+
+  it("renders a section with neither slot exactly as it did before they existed", () => {
+    /*
+     * The note and the aside were added for the Terms console's sheets, and a
+     * page already using Section must not move by a class. This is the head
+     * row as it rendered before the slots, spelled out.
+     */
+    const html = render(createElement(Section, { heading: "Addresses", count: 2, children: "r" }));
+    expect(html).toBe(
+      '<section class="flex flex-col">' +
+        '<div class="flex items-baseline gap-3 border-b border-m-hairline pb-3">' +
+        '<h2 class="text-m-heading text-m-ink">Addresses</h2>' +
+        '<span class="font-mono tabular-nums text-m-meta text-m-ink-3">2</span>' +
+        '</div><div class="mt-4">r</div></section>',
+    );
+  });
+
+  it("sets the note after the count, in quiet meta, outside the heading", () => {
+    const html = render(
+      createElement(Section, {
+        heading: "Coming up",
+        count: 2,
+        note: "next 60 days",
+        children: "r",
+      }),
+    );
+    expect(html).toMatch(/<h2[^>]*>Coming up<\/h2>/);
+    expect(html).toContain('<span class="text-m-meta text-m-ink-3">next 60 days</span>');
+    expect(html.indexOf("next 60 days")).toBeGreaterThan(html.indexOf("tabular-nums"));
+  });
+
+  it("pushes the aside right and lets the row wrap rather than overflow", () => {
+    const html = render(
+      createElement(Section, {
+        heading: "Coming up",
+        aside: createElement("a", { href: "/rollouts" }, "All rollouts"),
+        children: "r",
+      }),
+    );
+    expect(html).toContain('<div class="ml-auto"><a href="/rollouts">All rollouts</a></div>');
+    const row = /<div class="([^"]*border-m-hairline[^"]*)"/.exec(html)?.[1] ?? "";
+    expect(row.split(" ")).toContain("flex-wrap");
+    expect(html).not.toMatch(/<h2[^>]*>[^<]*<a/);
+  });
 });
 
 describe("Status", () => {
@@ -978,16 +1022,25 @@ describe("the pin covers every modern component", () => {
 
   /** Every component this file actually renders. Kept by hand, on purpose. */
   const EXERCISED = [
+    "Agenda",
     "AsOf",
     "Banner",
     "BilingualReader",
     "Button",
     "Card",
+    "ChangeLine",
     "Consequence",
+    "DayStepper",
+    "DiffViewer",
     "Disclosure",
+    "DraftKeeperBanner",
+    "FilterButton",
     "FormField",
+    "GoTo",
+    "GoToButton",
     "Hash",
     "Input",
+    "ListFilters",
     "MailPreview",
     "Money",
     "PageHead",
@@ -1003,6 +1056,7 @@ describe("the pin covers every modern component", () => {
     "Table",
     "Tabs",
     "TypedConfirmation",
+    "VersionState",
     "ZonedDateTime",
     "ZonedDateTimeInput",
   ] as const;

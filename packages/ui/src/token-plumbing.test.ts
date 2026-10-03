@@ -170,6 +170,31 @@ describe("modern's tokens reach a screen too", () => {
   });
 
   /**
+   * The diff films, by name, in all three palette blocks and under `m-`.
+   *
+   * The sweep above would catch one that was declared and not mapped, but not
+   * one that went missing from both places at once, or from a light block
+   * only: `DiffViewer` would then draw an added paragraph on no film at all in
+   * one theme, which reads as unchanged text, and nothing would go red. The
+   * five are named here so that a rename has to be made on purpose.
+   */
+  it("declares the five diff films in every palette block and maps each as m-diff-*", () => {
+    const films = ["add", "add-word", "del", "del-word", "band"].map((name) => `--gm-diff-${name}`);
+    const opens = modern.indexOf("@theme inline");
+    const palette = modern.slice(0, opens).replace(/\/\*[\s\S]*?\*\//g, "");
+    const blocks = palette.split(/:root[^{]*\{/).slice(1);
+    expect(blocks).toHaveLength(3);
+    for (const block of blocks) {
+      for (const film of films) expect(block, film).toMatch(new RegExp(`${film}\\s*:`));
+    }
+    const theme = modern.slice(opens);
+    for (const film of films) {
+      const utility = film.replace("--gm-", "--color-m-");
+      expect(theme).toMatch(new RegExp(`${utility}\\s*:\\s*var\\(${film}\\)`));
+    }
+  });
+
+  /**
    * Modern and console must not collide in the Tailwind namespace.
    *
    * They disagree about what `sunken`, `overlay`, `inset`, `accent` and every

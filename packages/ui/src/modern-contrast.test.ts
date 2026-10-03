@@ -276,6 +276,79 @@ describe.each(["dark", "light"] as const)("%s: graphics clear 1.4.11", (theme) =
   });
 });
 
+describe.each(["dark", "light"] as const)("%s: the diff films keep their ink readable", (theme) => {
+  /*
+   * `DiffViewer` lays films on its plate: a removed line on `diff-del`, an
+   * added one on `diff-add`, a changed word on the stronger film over its
+   * line's, and the hunk heading on `diff-band`. The proposal's promise is that
+   * ink on every one of them stays above 4.5 in both themes, and a film is the
+   * one surface this suite cannot measure by naming it, because what the eye
+   * sees is the film over the plate, and a word mark is a film over a film.
+   *
+   * So each film is composited in the order the component stacks them, and
+   * every ink the component sets on that stack is measured there: the
+   * paragraph inks, the quiet line number, the hunk range and the sign.
+   */
+  const tokens = THEMES[theme];
+
+  /** Films laid over the plate in order, last on top. */
+  function stack(...films: string[]): Srgb {
+    let behind = srgb(tokens["--gm-plate"] as string);
+    for (const film of films) {
+      const parsed = parseOklch(tokens[film] as string);
+      if (parsed === undefined) throw new Error(`not an oklch value: ${film}`);
+      behind = parsed.alpha < 1 ? over(parsed, behind) : parsed;
+    }
+    return behind;
+  }
+
+  it.each([
+    // [what, ink, films from the plate up]
+    ["added line, its text", "--gm-ink", ["--gm-diff-add"]],
+    /*
+     * ink-2, not the ink-3 the drawing used: ink-3 on the dark added film
+     * measures 4.48, a hair under. The removed film is lighter and ink-3
+     * clears it (4.55), so only the added line's number steps up.
+     */
+    ["added line, its number", "--gm-ink-2", ["--gm-diff-add"]],
+    ["added word, on its line", "--gm-ink", ["--gm-diff-add", "--gm-diff-add-word"]],
+    ["removed line, its text", "--gm-ink-2", ["--gm-diff-del"]],
+    ["removed line, its number", "--gm-ink-3", ["--gm-diff-del"]],
+    ["removed word, on its line", "--gm-ink", ["--gm-diff-del", "--gm-diff-del-word"]],
+    ["hunk heading, the section", "--gm-ink", ["--gm-diff-band"]],
+    ["hunk heading, the range", "--gm-ink-3", ["--gm-diff-band"]],
+    ["the added sign", "--gm-ok-ink", ["--gm-diff-add"]],
+  ] as const)("%s clears AA", (what, ink, films) => {
+    const ratio = contrastRatio(srgb(tokens[ink] as string), stack(...films));
+    record(`  ${theme.padEnd(5)} diff ${what.padEnd(26)} ${ratio.toFixed(2)}`);
+    expect(ratio).toBeGreaterThanOrEqual(WCAG_AA.TEXT);
+  });
+
+  it("the fold's accent words on the sunken band clear AA", () => {
+    const ratio = contrastRatio(
+      srgb(tokens["--gm-accent-text"] as string),
+      srgb(tokens["--gm-sunken"] as string),
+    );
+    record(`  ${theme.padEnd(5)} diff fold on sunken            ${ratio.toFixed(2)}`);
+    expect(ratio).toBeGreaterThanOrEqual(WCAG_AA.TEXT);
+  });
+
+  it("the word film still separates from its line film, so a mark is visible at all", () => {
+    /*
+     * Not a WCAG bar: the strike and the underline carry the mark for
+     * somebody who cannot see the film. This only refuses a token edit that
+     * makes the stronger film the same as the line's, which would leave the
+     * design's two weights as one.
+     */
+    for (const [line, word] of [
+      ["--gm-diff-add", "--gm-diff-add-word"],
+      ["--gm-diff-del", "--gm-diff-del-word"],
+    ] as const) {
+      expect(contrastRatio(stack(line), stack(line, word))).toBeGreaterThan(1.05);
+    }
+  });
+});
+
 describe("the derivation reproduces what the designer measured", () => {
   /*
    * This is the control case, and it is the reason the twelve derived values
