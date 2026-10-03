@@ -1,6 +1,6 @@
 {
   "name": "@ghub/terms-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The client every Gelhaus Solutions product uses to ask GPlatform Terms where an account stands and to record an acceptance: a verified snapshot cache, an outbox, and nobody locked out while the service is unreachable. Server side only.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
