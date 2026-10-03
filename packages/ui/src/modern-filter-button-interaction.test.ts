@@ -272,6 +272,72 @@ describe("FilterButton with more than seven values", () => {
   });
 });
 
+describe("FilterButton with a typed value", () => {
+  /** A day facet: three days to pick, any day to type as 2026-09-12. */
+  function Day({ changes, start = null }: { changes: (string | null)[]; start?: string | null }) {
+    const [value, setValue] = useState<string | null>(start);
+    return createElement(FilterButton, {
+      label: "From",
+      anyLabel: "Any",
+      value,
+      options: [
+        { value: "2026-10-03", label: "3 Oct 2026", hint: "today" },
+        { value: "2026-10-02", label: "2026-10-02", hint: "yesterday" },
+      ],
+      filterLabel: "Type a day",
+      typed: {
+        parse: (text) =>
+          /^\d{4}-\d{2}-\d{2}$/u.test(text.trim())
+            ? { value: text.trim(), label: `the day ${text.trim()}` }
+            : null,
+        placeholder: "2026-09-12",
+      },
+      onChange: (next) => {
+        changes.push(next);
+        setValue(next);
+      },
+    });
+  }
+
+  it("draws the field with few values, and offers what it reads first after Any", async () => {
+    const user = userEvent.setup();
+    const changes: (string | null)[] = [];
+    render(createElement(Day, { changes }));
+    screen.getByRole("button", { name: /^From:/ }).focus();
+    await user.keyboard("{Enter}");
+    const field = screen.getByRole("combobox", { name: "Type a day" });
+    expect(document.activeElement).toBe(field);
+    expect(field.getAttribute("placeholder")).toBe("2026-09-12");
+
+    await user.keyboard("2026-09-1");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Any"]);
+    await user.keyboard("2");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Any",
+      "the day 2026-09-12",
+    ]);
+    expect(activeOption()?.textContent).toBe("the day 2026-09-12");
+    await user.keyboard("{Enter}");
+    expect(changes).toEqual(["2026-09-12"]);
+    expect(screen.getByRole("button", { name: /^From:/ }).textContent).toContain(
+      "the day 2026-09-12",
+    );
+  });
+
+  it("does not offer a typed value twice when it is also an option", async () => {
+    const user = userEvent.setup();
+    render(createElement(Day, { changes: [] }));
+    screen.getByRole("button", { name: /^From:/ }).focus();
+    await user.keyboard("{Enter}");
+    // "2026-10-02" is an option's label too; it is offered once, as read.
+    await user.keyboard("2026-10-02");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Any",
+      "the day 2026-10-02",
+    ]);
+  });
+});
+
 describe("FilterButton marks the chosen option in more than colour", () => {
   it("with a check when the caller gives no word", async () => {
     const user = userEvent.setup();

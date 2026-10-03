@@ -727,6 +727,12 @@ describe("Tabs", () => {
     expect(html.match(/border-transparent/g) ?? []).toHaveLength(2);
   });
 
+  it("wraps on a narrow screen rather than running past its edge, and never breaks a label", () => {
+    const html = render(createElement(Tabs, { tabs: three, renderLink: link, label: "Sections" }));
+    expect(html).toMatch(/<ul class="[^"]*flex-wrap/);
+    expect(html.match(/whitespace-nowrap/g) ?? []).toHaveLength(3);
+  });
+
   it("names the set for somebody moving by landmark", () => {
     const html = render(createElement(Tabs, { tabs: three, renderLink: link, label: "Sections" }));
     expect(html).toMatch(/<nav[^>]*aria-label="Sections"/);

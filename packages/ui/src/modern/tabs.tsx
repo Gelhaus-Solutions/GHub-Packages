@@ -46,7 +46,12 @@ export interface TabsProps {
 export function Tabs({ tabs, renderLink, label, className }: TabsProps) {
   return (
     <nav aria-label={label} className={cn("border-b border-m-hairline", className)}>
-      <ul className="flex gap-6">
+      {/*
+       * Wrapped rather than scrolled on a narrow screen: a row that scrolls
+       * sideways hides tabs behind an edge nobody sees (WCAG 1.4.10), and this
+       * is a server component, so it cannot scroll the current one into view.
+       */}
+      <ul className="flex flex-wrap gap-x-6 gap-y-2">
         {tabs.map((tab) => (
           <li key={tab.href}>
             {renderLink({
@@ -57,7 +62,7 @@ export function Tabs({ tabs, renderLink, label, className }: TabsProps) {
                * when the selection moves.
                */
               className: cn(
-                "-mb-px inline-block border-b-2 pb-3 text-m-body",
+                "-mb-px inline-block border-b-2 pb-3 text-m-body whitespace-nowrap",
                 tab.current === true
                   ? "border-m-accent text-m-ink"
                   : "border-transparent text-m-ink-3",

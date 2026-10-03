@@ -44,6 +44,13 @@ export interface FilterButtonProps {
    * technology, because `aria-selected` already says it.
    */
   chosenLabel?: string;
+  /**
+   * A value that can be typed as well as picked: a day for a From or To facet,
+   * where no list holds every day. Given, the filter field is always drawn, and
+   * what `parse` reads from it is offered first after Any (`parse` answers null
+   * for text that is not one yet). Its `label` is what the option says.
+   */
+  typed?: { parse: (text: string) => FilterOption | null; placeholder?: string };
   className?: string;
 }
 
@@ -103,6 +110,7 @@ export function FilterButton({
   onChange,
   filterLabel,
   chosenLabel,
+  typed,
   className,
 }: FilterButtonProps) {
   const id = useId();
@@ -120,12 +128,19 @@ export function FilterButton({
   const list = useRef<HTMLUListElement>(null);
   const filterField = useRef<HTMLDivElement>(null);
 
-  const filtered = options.length > FILTER_ABOVE;
+  const filtered = options.length > FILTER_ABOVE || typed !== undefined;
+  const read = query.trim() === "" ? null : (typed?.parse(query) ?? null);
+  const listed = matching(options, query).filter((option) => option.value !== read?.value);
   const rows: readonly Row[] = [
     { value: null, label: anyOptionLabel ?? anyLabel },
-    ...matching(options, query),
+    ...(read === null ? [] : [read]),
+    ...listed,
   ];
-  const chosen = value === null ? undefined : options.find((option) => option.value === value);
+  // A typed value is not among the options; the button says it as `parse` words it.
+  const chosen =
+    value === null
+      ? undefined
+      : (options.find((option) => option.value === value) ?? typed?.parse(value) ?? undefined);
   const set = value !== null;
 
   function show() {
@@ -308,13 +323,17 @@ export function FilterButton({
                 aria-expanded={true}
                 aria-autocomplete="list"
                 aria-activedescendant={activeId}
+                {...(typed?.placeholder === undefined ? {} : { placeholder: typed.placeholder })}
                 value={query}
                 onChange={(event) => {
                   const next = event.target.value;
                   setQuery(next);
                   // The first match rather than Any, which is always there and
                   // is never what somebody typing a name is looking for.
-                  setActive(next.trim() !== "" && matching(options, next).length > 0 ? 1 : 0);
+                  const reads = next.trim() !== "" && (typed?.parse(next) ?? null) !== null;
+                  setActive(
+                    next.trim() !== "" && (reads || matching(options, next).length > 0) ? 1 : 0,
+                  );
                 }}
                 onKeyDown={(event) => {
                   onListKeyDown(event, true);
