@@ -580,7 +580,20 @@ export function bind(snapshot: Snapshot): Terms {
         toRecord: newest.version,
       };
       if (!binds(on, key, holding)) return { ...base, kind: "not-binding", acceptBy: null };
-      const rank = mine === undefined ? -1 : versions.all.indexOf(mine);
+      let rank = mine === undefined ? -1 : versions.all.indexOf(mine);
+      // An editorial fix in force carries an acceptance of the version before
+      // it on this surface: nobody who accepted that one is asked again.
+      while (rank >= 0) {
+        const next = versions.all[rank + 1];
+        if (
+          next === undefined ||
+          next.version.rollout.atOnce !== "editorial" ||
+          next.inForce > at
+        ) {
+          break;
+        }
+        rank += 1;
+      }
       const inForce = versions.inForce === null ? -1 : versions.all.indexOf(versions.inForce);
       if (rank < inForce) return { ...base, kind: "behind", acceptBy: null };
       if (rank < versions.all.indexOf(newest)) {

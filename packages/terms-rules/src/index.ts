@@ -30,6 +30,7 @@ export {
   type Snapshot,
   type SnapshotDocument,
   type SnapshotRollout,
+  type AtOnce,
   type SnapshotSurface,
   type SnapshotVersion,
 } from "./snapshot.js";

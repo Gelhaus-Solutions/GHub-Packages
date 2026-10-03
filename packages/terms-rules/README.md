@@ -67,7 +67,16 @@ declare binds nothing, so an older cached snapshot keeps answering.
 another may come into force: 43 days of 24 hours, and the same Europe/Berlin
 clock time 43 calendar days later, whichever is later. Across the autumn clock
 change that is 43 days and an hour; across the spring change, 43 full days.
-`parseSnapshot` holds every rollout to it.
+`parseSnapshot` holds every rollout to it, except one that says why nobody is
+owed notice:
+
+- `atOnce: "editorial"`, a fix that changes nothing anybody agreed to (a
+  typo). An account that accepted the version before it on the same surface
+  has accepted this one, so nobody is asked again.
+- `atOnce: "no-accounts"`, dated while nobody had accepted anything on the
+  surfaces it reaches. It binds like any version from then on.
+
+The publisher decides which, since only it can see the accounts.
 
 ## The five states
 

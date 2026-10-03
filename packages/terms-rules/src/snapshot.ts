@@ -158,7 +158,25 @@ export interface SnapshotRollout {
    *  version, because a later surface's summary names a later date to object
    *  by. See ChangeSummary. */
   readonly summary?: ChangeSummary;
+  /**
+   * Set when the version binds at once, without six weeks' notice, and why
+   * nobody is owed any (absent on every ordinary rollout):
+   *
+   * - `editorial`: a fix that changes nothing anybody agreed to, a typo. An
+   *   account that accepted the version before it on the same surface has
+   *   accepted this one; nobody is asked again.
+   * - `no-accounts`: nobody had accepted anything on the surfaces it reaches
+   *   when it was dated, so nobody was owed notice. It binds like any version
+   *   from then on.
+   *
+   * The publisher decides which, and is the one that can see the accounts:
+   * these rules take its word, as they take its dates.
+   */
+  readonly atOnce?: AtOnce;
 }
+
+/** Why a version binds without notice. See SnapshotRollout.atOnce. */
+export type AtOnce = "editorial" | "no-accounts";
 
 export interface Snapshot {
   readonly format: 1;
@@ -476,10 +494,20 @@ function rolloutAt(value: unknown, path: string): SnapshotRollout {
     value,
     path,
     ["versionId", "surface", "announcedAt", "inForceFrom"],
-    ["summary"],
+    ["summary", "atOnce"],
   );
   if (record.surface !== null && typeof record.surface !== "string") {
     fail(`${path}.surface`, `should be a surface id or null, and is ${describe(record.surface)}.`);
+  }
+  if (
+    record.atOnce !== undefined &&
+    record.atOnce !== "editorial" &&
+    record.atOnce !== "no-accounts"
+  ) {
+    fail(
+      `${path}.atOnce`,
+      `should be "editorial" or "no-accounts", and is ${describe(record.atOnce)}.`,
+    );
   }
   return Object.freeze({
     versionId: versionIdentifier(record.versionId, `${path}.versionId`),
@@ -489,6 +517,7 @@ function rolloutAt(value: unknown, path: string): SnapshotRollout {
     ...(record.summary === undefined
       ? {}
       : { summary: languages(record.summary, `${path}.summary`, prose) }),
+    ...(record.atOnce === undefined ? {} : { atOnce: record.atOnce as AtOnce }),
   });
 }
 
@@ -568,7 +597,7 @@ const CHECKED = new WeakSet<Snapshot>();
  *   terms (which bind every account) to one capacity;
  * - a version that supersedes an earlier one on a surface and comes into force
  *   less than six weeks and a day after it is announced there (see
- *   notice.ts). The first version of a document on a surface supersedes
+ *   notice.ts), unless its rollout says it binds at once and why (`atOnce`). The first version of a document on a surface supersedes
  *   nothing and is owed no notice: the versions archived before notice
  *   existed bind from the moment they were frozen, and agreements were
  *   recorded against them on that footing.
@@ -704,7 +733,11 @@ export function parseSnapshot(json: unknown): Snapshot {
             `comes into force at the same instant as ${JSON.stringify(previous.version.versionId)}, another version of ${JSON.stringify(key)}. Which one binds would come down to array order.`,
           );
         }
-        if (entry.inForce < earliestInForceAt(entry.announced)) {
+        // A version that binds at once says why nobody is owed notice.
+        if (
+          entry.rollout.atOnce === undefined &&
+          entry.inForce < earliestInForceAt(entry.announced)
+        ) {
           fail(
             where,
             `supersedes ${JSON.stringify(previous.version.versionId)} and is in force ${entry.rollout.inForceFrom}, less than six weeks and a day after it is announced (${entry.rollout.announcedAt}): the earliest is ${new Date(earliestInForceAt(entry.announced)).toISOString()}, 43 full days and the same Berlin clock time 43 days on, whichever is later. The notice mail may leave a day after the announcement, and the six weeks run from the mail.`,
