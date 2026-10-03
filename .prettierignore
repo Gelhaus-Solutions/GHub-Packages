@@ -12,3 +12,8 @@ pnpm-lock.yaml
 # Build output.
 dist/
 coverage/
+
+# The signed snapshot @ghub/terms-rules carries: its signature covers these
+# exact bytes, and a reformatted copy no longer verifies.
+packages/terms-rules/snapshot/snapshot.json
+packages/terms-rules/snapshot/snapshot.sig.json

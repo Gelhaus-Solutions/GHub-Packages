@@ -100,8 +100,15 @@ keys this release pins. Self-hosted GControl uses it and never talks to
 GPlatform Terms; new archived versions reach it with each release, as they
 always have.
 
-No release carries a snapshot yet. Until the first one does, `offline()` throws
-`NoBundledSnapshotError`. It needs Node 22.3 or later.
+0.1.3 is the first release that carries one: serial 203 of 3 October 2026,
+signed by GPlatform Terms' key `gpterms-snapshot` version 1, which it pins. It
+answers for GAdvisory, GControl, GPlatform Control, SSO and Billing exactly as
+`@ghub/gctl-terms` 0.1.4 did through the first rollout, and for Contribution
+Checker. It cannot yet answer for GOpenCDR, GOpenCNR and GOpenCSR: their
+surfaces cover a document whose version is archived and not yet dated, and the
+rules refuse to guess. Those products stay on `@ghub/gctl-terms` until a
+release carries a snapshot that answers for them. `offline()` needs Node 22.3
+or later.
 
 ## Snapshots and signatures
 
