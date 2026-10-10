@@ -39,6 +39,18 @@ importers:
         specifier: ^8.65.0
         version: 8.71.0(eslint@9.39.5(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
 
+  packages/glockdown-sdk:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.7
+        version: 22.20.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4))
+
   packages/gmint-protocol:
     devDependencies:
       '@types/node':
