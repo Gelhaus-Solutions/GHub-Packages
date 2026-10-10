@@ -1,7 +1,6 @@
 {
   "name": "@ghub/gmint-protocol",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "The GMint wire protocol: signed, channel-bound requests and signed, HPKE-sealed responses for short-lived credentials. Hand-written on node:crypto, no dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
