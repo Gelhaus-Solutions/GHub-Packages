@@ -45,6 +45,17 @@ await git.fetch({ auth: token.reveal() });
 - **Clone detection**: every request carries the next number of a durable counter; a second
   holder of your key shows up and gets you quarantined, which is what you want.
 
+## Certificate renewal
+
+Client certificates live 7 days. The client renews its certificate for the same key once two
+thirds of its life are gone, checking on an hourly timer (which never keeps the process alive) and
+before each `getToken`, and writes the new chain over `tls.certFile` in one step. Several
+processes may share the files: a renewal one of them wrote is picked up by the others. A renewal
+that fails is reported to `onRenewError` and the old certificate stays in use while it is valid,
+so alert on that callback: a certificate that runs out cannot be renewed any more, only re-enrolled.
+`renewCertificate()` renews at once; `close()` stops the timer; `autoRenew: false` turns it all
+off.
+
 ## Handling the token
 
 `GmintToken` never prints itself: `String(token)`, `JSON.stringify(token)` and `util.inspect`

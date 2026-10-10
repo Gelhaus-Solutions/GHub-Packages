@@ -10,19 +10,28 @@
  *
  * Only then does the caller see a token. Retries happen only for transport failures and the
  * codes the protocol marks retryable, with a fresh connection and a fresh request each time.
+ *
+ * The client certificate lives 7 days. The client renews it for the same key once two thirds of
+ * its life are gone (SPEC section 7), on a timer and before a mint, and writes the new chain over
+ * the old file in one step; a renewal another process wrote is picked up from disk.
  */
 
-import { createPrivateKey, type KeyObject } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { X509Certificate, createPrivateKey, type KeyObject } from "node:crypto";
+import { readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { connect, type TLSSocket } from "node:tls";
 import {
+  RENEW_PATH,
   b64uDecode,
+  buildRenewRequest,
   buildRequest,
+  chainPem,
   channelBinding,
   ed25519PublicKey,
   isCode,
   localSigner,
+  verifyRenewResponse,
   verifyResponse,
+  type BuiltRenewRequest,
   type BuiltRequest,
   type GithubScope,
   type PermissionLevel,
@@ -54,6 +63,10 @@ export interface GmintClientOptions {
   attempts?: number;
   /** GitHub's API, for revocation. Tests point it elsewhere. */
   githubApi?: string;
+  /** Renew the client certificate on a timer and before mints. Default true. */
+  autoRenew?: boolean;
+  /** Told about a renewal that failed; the old certificate stays in use while it is valid. */
+  onRenewError?: (e: GmintError) => void;
 }
 
 export interface TokenRequest {
@@ -66,6 +79,17 @@ export interface TokenRequest {
   purpose?: string;
 }
 
+/** Every certificate in a PEM bundle. */
+function certificates(pem: Buffer): X509Certificate[] {
+  const blocks = pem
+    .toString("utf8")
+    .match(/-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----/g);
+  return (blocks ?? []).map((b) => new X509Certificate(b));
+}
+
+/** How often the renewal timer looks at the certificate. */
+const RENEW_CHECK_MS = 60 * 60 * 1000;
+
 /** Refuses key files anyone but the owner can read. */
 function readPrivate(path: string): Buffer {
   const mode = statSync(path).mode;
@@ -77,12 +101,16 @@ function readPrivate(path: string): Buffer {
 export class GmintClient {
   private readonly signingKey: KeyObject;
   private readonly kid: string;
-  private readonly cert: Buffer;
+  private cert: Buffer;
+  private certMtime = 0;
   private readonly tlsKey: Buffer;
   private readonly ca: Buffer;
+  private renewing: Promise<Date> | null = null;
+  private readonly timer: NodeJS.Timeout | null = null;
   private readonly serverKeys = new Map<string, KeyObject>();
   private readonly host: string;
   private readonly port: number;
+  private readonly origin: string;
   private readonly htu: string;
 
   constructor(private readonly o: GmintClientOptions) {
@@ -90,6 +118,7 @@ export class GmintClient {
     if (url.protocol !== "https:") throw new GmintError("bad_request", "url must be https");
     this.host = url.hostname;
     this.port = Number(url.port || 443);
+    this.origin = url.origin;
     this.htu = `${url.origin}/v1/token`;
     this.kid = o.signingKey.kid;
     this.signingKey =
@@ -97,6 +126,7 @@ export class GmintClient {
     if (this.signingKey.asymmetricKeyType !== "ed25519")
       throw new GmintError("bad_request", "the signing key must be Ed25519");
     this.cert = readFileSync(o.tls.certFile);
+    this.certMtime = statSync(o.tls.certFile).mtimeMs;
     this.tlsKey = readPrivate(o.tls.keyFile);
     this.ca = readFileSync(o.tls.caFile);
     for (const [kid, raw] of Object.entries(o.serverKeys)) {
@@ -107,9 +137,107 @@ export class GmintClient {
     }
     if (this.serverKeys.size === 0)
       throw new GmintError("bad_request", "at least one pinned server key is required");
+    if (o.autoRenew !== false) {
+      this.timer = setInterval(() => void this.renewIfDue(), RENEW_CHECK_MS);
+      this.timer.unref();
+    }
+  }
+
+  /** Stops the renewal timer. The timer never keeps the process alive either way. */
+  close(): void {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /** When the certificate in use expires. */
+  certificateExpiry(): Date {
+    this.reloadCertificate();
+    return new Date(certificates(this.cert)[0]!.validTo);
+  }
+
+  /** Picks up a certificate another process renewed. */
+  private reloadCertificate(): void {
+    try {
+      const mtime = statSync(this.o.tls.certFile).mtimeMs;
+      if (mtime === this.certMtime) return;
+      this.cert = readFileSync(this.o.tls.certFile);
+      this.certMtime = mtime;
+    } catch {
+      // Keep the certificate in memory; the next renewal writes the file again.
+    }
+  }
+
+  /** Renews once two thirds of the certificate's life are gone; errors go to `onRenewError`. */
+  private async renewIfDue(now = Date.now()): Promise<void> {
+    this.reloadCertificate();
+    const leaf = certificates(this.cert)[0];
+    if (!leaf) return;
+    const from = Date.parse(leaf.validFrom);
+    const to = Date.parse(leaf.validTo);
+    if (now < from + ((to - from) * 2) / 3) return;
+    try {
+      await this.renewCertificate();
+    } catch (e) {
+      this.o.onRenewError?.(e instanceof GmintError ? e : new GmintError("transport", String(e)));
+    }
+  }
+
+  /**
+   * Asks GMint for a new certificate for the same TLS key and writes it over the certificate
+   * file. Concurrent calls share one renewal. Returns the new expiry.
+   */
+  renewCertificate(): Promise<Date> {
+    this.renewing ??= this.renewOnce().finally(() => (this.renewing = null));
+    return this.renewing;
+  }
+
+  private async renewOnce(): Promise<Date> {
+    const socket = await this.connect();
+    let built: BuiltRenewRequest;
+    let cb: Uint8Array;
+    try {
+      const measured = channelBinding(socket);
+      if (!measured) throw new GmintError("untrusted", "not a TLS 1.3 connection");
+      cb = measured;
+      built = await buildRenewRequest({
+        signer: localSigner(this.kid, this.signingKey),
+        iss: this.o.clientId,
+        aud: `gmint:${this.o.instance}`,
+        htu: `${this.origin}${RENEW_PATH}`,
+        cb,
+        tlsKey: createPrivateKey(this.tlsKey),
+      });
+    } catch (e) {
+      socket.destroy();
+      if (e instanceof GmintError) throw e;
+      throw new GmintError("bad_request", (e as Error).message);
+    }
+    const res = await this.post(
+      socket,
+      RENEW_PATH,
+      "application/gmint-renew+jws",
+      built.jws,
+    ).finally(() => socket.destroy());
+    if (!res.type.startsWith("application/gmint-renew-res+jws")) throw unsignedRefusal(res);
+    const v = verifyRenewResponse(res.body, {
+      serverKeys: (kid) => this.serverKeys.get(kid),
+      request: built,
+      cb,
+      anchors: certificates(this.ca),
+    });
+    if (!v.ok) throw new GmintError("untrusted", v.reason);
+    if (v.value.status === "refused") throw new GmintError(v.value.code, "renewal refused");
+    const pem = chainPem(v.value.chain);
+    // Same directory, then rename: a reader sees the old file or the new one, never half of one.
+    const tmp = `${this.o.tls.certFile}.${process.pid}.tmp`;
+    writeFileSync(tmp, pem, { mode: statSync(this.o.tls.certFile).mode & 0o777 });
+    renameSync(tmp, this.o.tls.certFile);
+    this.cert = Buffer.from(pem);
+    this.certMtime = statSync(this.o.tls.certFile).mtimeMs;
+    return new Date(v.value.notAfter * 1000);
   }
 
   async getToken(req: TokenRequest): Promise<GmintToken> {
+    if (this.o.autoRenew !== false) await this.renewIfDue();
     const attempts = this.o.attempts ?? 3;
     let last: GmintError | null = null;
     for (let i = 0; i < attempts; i++) {
@@ -147,14 +275,16 @@ export class GmintClient {
 
   private async post(
     socket: TLSSocket,
+    path: string,
+    contentType: string,
     body: string,
   ): Promise<{ status: number; type: string; body: string }> {
     try {
       const res = await postOnSocket(
         socket,
         this.host,
-        "/v1/token",
-        "application/gmint-req+jws",
+        path,
+        contentType,
         body,
         this.o.timeoutMs ?? 10_000,
       );
@@ -198,17 +328,13 @@ export class GmintClient {
       throw new GmintError("bad_request", (e as Error).message);
     }
 
-    const res = await this.post(socket, built.jws).finally(() => socket.destroy());
-    if (!res.type.startsWith("application/gmint-res+jws")) {
-      // An unsigned refusal: the request never authenticated, or a unit was down.
-      let code: unknown;
-      try {
-        code = (JSON.parse(res.body) as { code?: unknown }).code;
-      } catch {
-        code = undefined;
-      }
-      throw new GmintError(isCode(code) ? code : "transport", `HTTP ${res.status}`);
-    }
+    const res = await this.post(
+      socket,
+      "/v1/token",
+      "application/gmint-req+jws",
+      built.jws,
+    ).finally(() => socket.destroy());
+    if (!res.type.startsWith("application/gmint-res+jws")) throw unsignedRefusal(res);
     const v = verifyResponse(res.body, {
       serverKeys: (kid) => this.serverKeys.get(kid),
       request: built,
@@ -243,4 +369,15 @@ export class GmintClient {
       signal: AbortSignal.timeout(5_000),
     });
   }
+}
+
+/** An unsigned refusal: the request never authenticated, or a unit was down. */
+function unsignedRefusal(res: { status: number; body: string }): GmintError {
+  let code: unknown;
+  try {
+    code = (JSON.parse(res.body) as { code?: unknown }).code;
+  } catch {
+    code = undefined;
+  }
+  return new GmintError(isCode(code) ? code : "transport", `HTTP ${res.status}`);
 }
