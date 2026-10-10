@@ -24,6 +24,7 @@
     "!dist/.tsbuildinfo",
     "!dist/**/*.map",
     "SPEC.md",
+    "src/vectors.*.json",
     "LICENSE"
   ],
   "engines": {

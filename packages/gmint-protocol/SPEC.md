@@ -3,6 +3,8 @@
 This is the normative description of the bytes a GMint client and a GMint server exchange for one
 mint (sections 3 to 6) and for one certificate renewal (section 7). `src/messages.ts`, `src/renew.ts`
 and `src/csr.ts` are its implementation and `src/*.test.ts` its executable checks.
+`src/vectors.messages.json` holds one of each message from fixed test keys, every byte
+reproducible (`src/vectors.test.ts` is its generator), for implementations in other stacks.
 
 ## 1. Transport
 

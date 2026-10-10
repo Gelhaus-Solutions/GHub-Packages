@@ -21,7 +21,8 @@ What it gives you:
 - **No dependencies.** Everything is `node:crypto`, checked against the RFC 8037 and RFC 9180
   vectors.
 
-The normative description is [SPEC.md](SPEC.md).
+The normative description is [SPEC.md](SPEC.md); `src/vectors.messages.json` has one of each
+message from fixed keys, for checking another implementation byte for byte.
 
 ```ts
 import { buildRequest, channelBinding, localSigner, verifyResponse } from "@ghub/gmint-protocol";
