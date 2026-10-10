@@ -13,6 +13,7 @@ stays in that product's repository.
 | [`@ghub/terms-client`](packages/terms-client)     | A product's client for GPlatform Terms: standings, acceptances, an outbox             |
 | [`@ghub/gmint-protocol`](packages/gmint-protocol) | GMint's wire protocol: signed, channel-bound requests, HPKE-sealed responses          |
 | [`@ghub/gmint-sdk`](packages/gmint-sdk)           | The GMint client: short-lived, narrowly scoped GitHub App tokens, verified end to end |
+| [`@ghub/sshsig`](packages/sshsig)                 | SSHSIG verification for hardware-key signatures, shared by GMint and GLockdown        |
 
 ## Working on it
 
