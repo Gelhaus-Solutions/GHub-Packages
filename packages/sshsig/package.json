@@ -1,7 +1,6 @@
 {
   "name": "@ghub/sshsig",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "SSHSIG verification (OpenSSH PROTOCOL.sshsig) for hardware-key signatures (sk-ssh-ed25519). Hand-written on node:crypto, no dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
