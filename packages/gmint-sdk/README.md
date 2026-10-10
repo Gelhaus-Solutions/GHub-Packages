@@ -64,6 +64,50 @@ needs it. `revoke()` (or `await using`) revokes it on GitHub.
 
 Key files must be `chmod 600`; the client refuses anything group- or world-readable.
 
+## Security guidance
+
+- Keep the TLS key, the signing key and the sequence file on the host that calls GMint, `chmod 600`,
+  never in an image or a repository. Where you can, keep the signing key on hardware or a separate
+  host: against a compromised GMint edge holding a stolen key, the request signature is the only
+  defence.
+- Take the tenant from the authenticated session, never from stored configuration or the request,
+  and keep your own per-tenant installation mapping. GMint checks the tenant against the grant
+  again, so either side alone stops a request for another tenant's installation.
+- Ask for the least: the one installation, the named repositories and the permissions this
+  operation uses. Leaving them out is an error, never "everything".
+- Give each replica its own identity unless replicas share the sequence file: a second holder of
+  the same key looks exactly like a cloned key and gets the client quarantined.
+- `await using` the token and pass `reveal()` straight to the call that needs it; never log, store
+  or return it.
+- Treat `locked_down` as its own state (GitHub access is locked down), `untrusted` as an attack,
+  and retry only what `retryable` allows.
+- Wire `onRenewError` to your alerting, and pin GMint's server keys and root as the operator gives
+  them to you, never as fetched from the network.
+
+## NestJS
+
+[`examples/nestjs/gmint.module.ts`](examples/nestjs/gmint.module.ts) replaces a token service that
+held the GitHub App's private key with one that holds none. It type-checks against this package
+(`pnpm typecheck:examples`).
+
+```ts
+@Module({ imports: [GmintModule.forRoot(gmintOptions)] })
+export class GitSyncModule {}
+
+// in a service that injects GmintTokenService:
+await using token = await this.gmint.tokenForInstallation({
+  grant: "gadvisory-git-sync",
+  installationId: row.installationId,
+  repositoryIds: [row.repositoryId],
+  permissions: { contents: "read" },
+  tenant: session.scopeId,
+});
+await git.fetch({ auth: token.reveal() });
+```
+
+`tokenForInstallation` maps GMint's codes to HTTP exceptions: `locked_down` to a 503 that says so,
+`denied` and `quarantined` to 403, `untrusted` to a logged 500.
+
 ## Errors
 
 `GmintError.code` is one of the protocol's stable codes (`denied`, `locked_down`,

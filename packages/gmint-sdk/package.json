@@ -37,9 +37,11 @@
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
+    "typecheck:examples": "tsc -p examples/tsconfig.json",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@nestjs/common": "^10.4.22",
     "@types/node": "^22.19.7",
     "typescript": "5.9.3",
     "vitest": "^4.1.8"

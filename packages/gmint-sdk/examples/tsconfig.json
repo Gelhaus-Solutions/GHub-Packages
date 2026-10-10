@@ -1,0 +1,11 @@
+{
+  // Type-checks the examples against the built package (`pnpm build` first); emits nothing.
+  "extends": "../../../tsconfig.node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "rootDir": "."
+  },
+  "include": ["."]
+}
