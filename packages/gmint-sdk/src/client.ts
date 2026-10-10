@@ -69,10 +69,16 @@ export interface GmintClientOptions {
   onRenewError?: (e: GmintError) => void;
 }
 
+/**
+ * What one operation needs. Name the repositories by id (`repositoryIds`) or by name within the
+ * installation (`repositories`, resolved by GitHub; the token's scope then carries the ids too), or
+ * name neither for an org-scoped token, which only an org-scoped grant allows.
+ */
 export interface TokenRequest {
   grant: string;
   installationId: number;
-  repositoryIds: number[];
+  repositoryIds?: number[];
+  repositories?: string[];
   permissions: Record<string, PermissionLevel>;
   /** The tenant a multi-tenant client acts for, taken from the authenticated session. */
   tenant?: string;
@@ -302,9 +308,12 @@ export class GmintClient {
       const measured = channelBinding(socket);
       if (!measured) throw new GmintError("untrusted", "not a TLS 1.3 connection");
       cb = measured;
+      if (req.repositoryIds && req.repositories)
+        throw new GmintError("bad_request", "name repositories by id or by name, not both");
       const scope: GithubScope = {
         installation_id: req.installationId,
-        repository_ids: req.repositoryIds,
+        ...(req.repositoryIds ? { repository_ids: req.repositoryIds } : {}),
+        ...(req.repositories ? { repositories: req.repositories } : {}),
         permissions: req.permissions,
       };
       built = await buildRequest({

@@ -154,7 +154,15 @@ describe.runIf(hasOpenssl())("GmintClient against a protocol-speaking stand-in",
                   issued: {
                     credential: `ghs_test${requests}`,
                     expires_at: "2099-01-01T00:00:00Z",
-                    scope: v.value.payload.req.scope,
+                    // As GMint answers a request by name: the ids GitHub resolved, aligned.
+                    scope: v.value.payload.req.scope.repositories
+                      ? {
+                          ...v.value.payload.req.scope,
+                          repository_ids: v.value.payload.req.scope.repositories.map(
+                            (_, i) => 100 + i,
+                          ),
+                        }
+                      : v.value.payload.req.scope,
                   },
                 })
               : await buildResponse({
@@ -214,6 +222,19 @@ describe.runIf(hasOpenssl())("GmintClient against a protocol-speaking stand-in",
     await token[Symbol.asyncDispose]();
     expect(revoked.at(-1)).toBe(`token ghs_test${requests}`);
     expect(() => token.reveal()).toThrow(/revoked/);
+  });
+
+  it("asks by repository name and learns the ids, or for an org-scoped token (D-71)", async () => {
+    mode = "issue";
+    const { repositoryIds: _ids, ...rest } = ask;
+    await using byName = await client().getToken({ ...rest, repositories: ["web", "api"] });
+    expect(byName.scope.repositories).toEqual(["api", "web"]);
+    expect(byName.scope.repository_ids).toEqual([100, 101]);
+    await using org = await client().getToken({ ...rest, permissions: { members: "read" } });
+    expect(org.scope.repository_ids).toBeUndefined();
+    await expect(client().getToken({ ...ask, repositories: ["web"] })).rejects.toMatchObject({
+      code: "bad_request",
+    });
   });
 
   it("maps refusals to typed errors and retries only what may be retried", async () => {

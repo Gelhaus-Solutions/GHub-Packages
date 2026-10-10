@@ -43,10 +43,19 @@ export const SEAL_INFO_PREFIX = "gmint/v1/seal";
 export type PermissionLevel = "read" | "write" | "admin";
 const LEVEL_RANK: Record<PermissionLevel, number> = { read: 1, write: 2, admin: 3 };
 
+/**
+ * What a token may touch (SPEC section 3, D-71 in GMint). A request names its repositories by id
+ * (`repository_ids`) or by name (`repositories`), or names none, which asks for an org-scoped
+ * token: organization permissions only, whatever the server's policy allows of that. A granted
+ * scope always carries the ids; when the request named repositories, `repositories` holds their
+ * names in the order of `repository_ids`.
+ */
 export interface GithubScope {
   installation_id: number;
   /** Strictly ascending, 1 to 500 entries. */
-  repository_ids: number[];
+  repository_ids?: number[];
+  /** Repository names within the installation: in a request 1 to 500, strictly ascending. */
+  repositories?: string[];
   permissions: Record<string, PermissionLevel>;
 }
 
@@ -130,6 +139,8 @@ export const AUD = /^gmint:[a-z0-9][a-z0-9-]{0,62}$/;
 const GRANT = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const TENANT = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const PERMISSION = /^[a-z][a-z_]{0,63}$/;
+// GitHub's repository names: letters, digits, '-', '_' and '.', at most 100; never "." or "..".
+const REPO_NAME = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,100}$/;
 const RFC3339_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/;
 // Printable ASCII only: a credential is a token, never text with control characters.
 const CREDENTIAL = /^[\x21-\x7e]{1,4096}$/;
@@ -155,23 +166,45 @@ export function bytesField(v: JsonValue | undefined, length: number): Uint8Array
   return b && b.length === length ? b : null;
 }
 
-function parseScope(v: JsonValue | undefined): GithubScope | null {
-  if (!isObject(v) || !hasExactKeys(v, ["installation_id", "repository_ids", "permissions"]))
-    return null;
-  const { installation_id, repository_ids, permissions } = v;
-  if (!isPosInt(installation_id)) return null;
-  if (
-    !Array.isArray(repository_ids) ||
-    repository_ids.length < 1 ||
-    repository_ids.length > MAX_REPOS
-  ) {
-    return null;
-  }
-  for (let i = 0; i < repository_ids.length; i++) {
-    const id = repository_ids[i];
+function parseIds(v: JsonValue | undefined): number[] | null {
+  if (!Array.isArray(v) || v.length < 1 || v.length > MAX_REPOS) return null;
+  for (let i = 0; i < v.length; i++) {
+    const id = v[i];
     if (!isPosInt(id)) return null;
-    if (i > 0 && id <= (repository_ids[i - 1] as number)) return null; // strictly ascending
+    if (i > 0 && id <= (v[i - 1] as number)) return null; // strictly ascending
   }
+  return v as number[];
+}
+
+function parseNames(v: JsonValue | undefined, ascending: boolean): string[] | null {
+  if (!Array.isArray(v) || v.length < 1 || v.length > MAX_REPOS) return null;
+  const seen = new Set<string>();
+  for (let i = 0; i < v.length; i++) {
+    const name = v[i];
+    if (typeof name !== "string" || !REPO_NAME.test(name) || seen.has(name)) return null;
+    if (ascending && i > 0 && name <= (v[i - 1] as string)) return null;
+    seen.add(name);
+  }
+  return v as string[];
+}
+
+/**
+ * A request's scope names ids, or names, or nothing (org-scoped). A granted scope always has the
+ * ids when it has repositories, and the names too, aligned with them, when they were asked for.
+ */
+function parseScope(v: JsonValue | undefined, kind: "request" | "granted"): GithubScope | null {
+  if (
+    !isObject(v) ||
+    !hasExactKeys(v, ["installation_id", "permissions"], ["repository_ids", "repositories"])
+  )
+    return null;
+  const { installation_id, permissions } = v;
+  if (!isPosInt(installation_id)) return null;
+  const ids = "repository_ids" in v ? parseIds(v.repository_ids) : undefined;
+  const repos = "repositories" in v ? parseNames(v.repositories, kind === "request") : undefined;
+  if (ids === null || repos === null) return null;
+  if (kind === "request" && ids && repos) return null;
+  if (kind === "granted" && repos && (!ids || ids.length !== repos.length)) return null;
   if (!isObject(permissions)) return null;
   const names = Object.keys(permissions);
   if (names.length < 1 || names.length > MAX_PERMISSIONS) return null;
@@ -182,14 +215,19 @@ function parseScope(v: JsonValue | undefined): GithubScope | null {
       return null;
     perms[name] = level;
   }
-  return { installation_id, repository_ids: repository_ids as number[], permissions: perms };
+  return {
+    installation_id,
+    ...(ids ? { repository_ids: ids } : {}),
+    ...(repos ? { repositories: repos } : {}),
+    permissions: perms,
+  };
 }
 
 function parseMintRequest(v: JsonValue | undefined): MintRequest | null {
   if (!isObject(v) || !hasExactKeys(v, ["provider", "grant", "scope"], ["tenant", "purpose"]))
     return null;
   if (v.provider !== "github" || typeof v.grant !== "string" || !GRANT.test(v.grant)) return null;
-  const scope = parseScope(v.scope);
+  const scope = parseScope(v.scope, "request");
   if (!scope) return null;
   const out: MintRequest = { provider: "github", grant: v.grant, scope };
   if ("tenant" in v) {
@@ -301,17 +339,30 @@ function parseSealPlaintext(bytes: Uint8Array): SealPlaintext | null {
   if (typeof v.credential !== "string" || !CREDENTIAL.test(v.credential)) return null;
   if (typeof v.expires_at !== "string" || !RFC3339_UTC.test(v.expires_at)) return null;
   const hashed = bytesField(v.hashed, 32);
-  const scope = parseScope(v.scope);
+  const scope = parseScope(v.scope, "granted");
   if (!hashed || !scope) return null;
   if (!constantTimeEqual(hashed, sha256(utf8Encode(v.credential)))) return null;
   return { credential: v.credential, expires_at: v.expires_at, scope, hashed: v.hashed as string };
 }
 
-/** True when `granted` asks for nothing beyond `ceiling`: same installation, subset of repositories, no higher level. */
+/**
+ * True when `granted` reaches nothing beyond `ceiling`: the same installation; repositories within
+ * the ceiling's, compared by id when the ceiling has ids and by name when it has only names (then
+ * the ids must come with them); none at all when the ceiling has none; no permission higher.
+ */
 export function scopeWithin(granted: GithubScope, ceiling: GithubScope): boolean {
   if (granted.installation_id !== ceiling.installation_id) return false;
-  const allowed = new Set(ceiling.repository_ids);
-  if (!granted.repository_ids.every((id) => allowed.has(id))) return false;
+  if (ceiling.repository_ids) {
+    const allowed = new Set(ceiling.repository_ids);
+    if (!granted.repository_ids?.every((id) => allowed.has(id))) return false;
+  } else if (ceiling.repositories) {
+    const allowed = new Set(ceiling.repositories);
+    const names = granted.repositories;
+    if (!names || !names.every((n) => allowed.has(n))) return false;
+    if (granted.repository_ids?.length !== names.length) return false;
+  } else if (granted.repository_ids || granted.repositories) {
+    return false;
+  }
   for (const [name, level] of Object.entries(granted.permissions)) {
     const max = Object.hasOwn(ceiling.permissions, name) ? ceiling.permissions[name] : undefined;
     if (!max || LEVEL_RANK[level] > LEVEL_RANK[max]) return false;
@@ -319,11 +370,20 @@ export function scopeWithin(granted: GithubScope, ceiling: GithubScope): boolean
   return true;
 }
 
-/** Normalizes a scope for sending: repository ids sorted ascending and deduplicated. */
+/** Normalizes a scope for sending: repository ids or names sorted ascending and deduplicated. */
 export function normalizeScope(scope: GithubScope): GithubScope {
   return {
     installation_id: scope.installation_id,
-    repository_ids: [...new Set(scope.repository_ids)].sort((a, b) => a - b),
+    ...(scope.repository_ids
+      ? { repository_ids: [...new Set(scope.repository_ids)].sort((a, b) => a - b) }
+      : {}),
+    ...(scope.repositories
+      ? {
+          repositories: [...new Set(scope.repositories)].sort((a, b) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        }
+      : {}),
     permissions: { ...scope.permissions },
   };
 }

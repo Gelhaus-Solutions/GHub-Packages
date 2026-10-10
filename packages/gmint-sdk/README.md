@@ -56,6 +56,14 @@ so alert on that callback: a certificate that runs out cannot be renewed any mor
 `renewCertificate()` renews at once; `close()` stops the timer; `autoRenew: false` turns it all
 off.
 
+## Naming repositories
+
+Name the repositories a token needs by id (`repositoryIds`) or, if you only know their names, by
+name within the installation (`repositories: ["web", "api"]`). GitHub resolves the names, GMint
+checks the ids it granted against your grant, and `token.scope` then carries both:
+`repository_ids` with `repositories` holding the name of each, in the same order. Name neither for
+an org-scoped token (organization permissions only), which only an org-scoped grant allows.
+
 ## Handling the token
 
 `GmintToken` never prints itself: `String(token)`, `JSON.stringify(token)` and `util.inspect`

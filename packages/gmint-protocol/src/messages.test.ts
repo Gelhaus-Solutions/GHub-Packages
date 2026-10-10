@@ -420,3 +420,153 @@ describe("scopeWithin", () => {
     ).toBe(false);
   });
 });
+
+describe("repository names and org-scoped requests (D-71)", () => {
+  const byName: MintRequest = {
+    provider: "github",
+    grant: "gadvisory-git-sync",
+    scope: {
+      installation_id: 12345678,
+      repositories: ["web", "api", "web"],
+      permissions: { contents: "read", metadata: "read" },
+    },
+  };
+  const orgScoped: MintRequest = {
+    provider: "github",
+    grant: "gadvisory-org-read",
+    scope: { installation_id: 12345678, permissions: { members: "read", metadata: "read" } },
+  };
+  const ctx = (built: BuiltRequest) => ({
+    serverKeys: serverKey,
+    request: built,
+    clientKid: "gadv-api-1",
+    cb,
+    now: NOW,
+  });
+  const answer = async (built: BuiltRequest, scope: object) =>
+    buildResponse({
+      signer: serverSigner,
+      request: verified(built),
+      status: "issued",
+      issued: { ...issued, scope: scope as typeof issued.scope },
+      now: NOW,
+    });
+
+  it("sends names sorted and deduplicated, and gets the ids back aligned with them", async () => {
+    const built = await request({ req: byName });
+    expect(verified(built).payload.req.scope).toEqual({
+      installation_id: 12345678,
+      repositories: ["api", "web"],
+      permissions: { contents: "read", metadata: "read" },
+    });
+    const granted = {
+      installation_id: 12345678,
+      repository_ids: [111, 222],
+      repositories: ["web", "api"],
+      permissions: { contents: "read", metadata: "read" },
+    };
+    const res = verifyResponse(await answer(built, granted), ctx(built));
+    expect(res.ok && res.value.status === "issued" && res.value.issued.scope).toEqual(granted);
+  });
+
+  it("refuses a granted name that was not asked for, or names without their ids", async () => {
+    const built = await request({ req: byName });
+    const other = {
+      installation_id: 12345678,
+      repository_ids: [111, 333],
+      repositories: ["web", "secrets"],
+      permissions: { contents: "read" },
+    };
+    expect(verifyResponse(await answer(built, other), ctx(built))).toEqual({
+      ok: false,
+      reason: "response_scope_exceeded",
+    });
+    await expect(
+      answer(built, {
+        installation_id: 12345678,
+        repositories: ["web"],
+        permissions: { contents: "read" },
+      }),
+    ).rejects.toThrow(/does not satisfy/);
+  });
+
+  it("asks for an org-scoped token with no repositories, and refuses one that has some", async () => {
+    const built = await request({ req: orgScoped });
+    expect(verified(built).payload.req.scope).toEqual(orgScoped.scope);
+    const ok = verifyResponse(await answer(built, orgScoped.scope), ctx(built));
+    expect(ok.ok).toBe(true);
+    const withRepos = { ...orgScoped.scope, repository_ids: [111] };
+    expect(verifyResponse(await answer(built, withRepos), ctx(built))).toEqual({
+      ok: false,
+      reason: "response_scope_exceeded",
+    });
+  });
+
+  async function signedPayload(payload: object): Promise<string> {
+    return signCompact(REQUEST_TYP, utf8Encode(JSON.stringify(payload)), clientSigner);
+  }
+
+  it.each([
+    ["ids and names together", { repository_ids: [1], repositories: ["web"] }],
+    ["names out of order", { repositories: ["web", "api"] }],
+    ["a name GitHub cannot have", { repositories: ["we b"] }],
+    ["a dot name", { repositories: [".."] }],
+    ["an empty name list", { repositories: [] }],
+    [
+      "501 names",
+      { repositories: Array.from({ length: 501 }, (_, i) => `r${String(i).padStart(3, "0")}`) },
+    ],
+  ])("refuses a request with %s", async (_, repos) => {
+    const good = (await request({ req: orgScoped })).payload;
+    const bad = { ...good, req: { ...good.req, scope: { ...good.req.scope, ...repos } } };
+    expect(
+      verifyRequest(await signedPayload(bad), { resolveKey, aud: AUD, htu: HTU, cb, now: NOW }),
+    ).toEqual({ ok: false, reason: "request_malformed" });
+  });
+
+  it("compares by name against a names ceiling and by id against an ids ceiling", () => {
+    const names = {
+      installation_id: 1,
+      repositories: ["api", "web"],
+      permissions: { contents: "read" as const },
+    };
+    const ids = {
+      installation_id: 1,
+      repository_ids: [1, 2],
+      permissions: { contents: "read" as const },
+    };
+    const org = { installation_id: 1, permissions: { members: "read" as const } };
+    const p = { contents: "read" as const };
+    expect(
+      scopeWithin(
+        { installation_id: 1, repository_ids: [7], repositories: ["web"], permissions: p },
+        names,
+      ),
+    ).toBe(true);
+    expect(scopeWithin({ installation_id: 1, repositories: ["web"], permissions: p }, names)).toBe(
+      false,
+    );
+    expect(
+      scopeWithin(
+        { installation_id: 1, repository_ids: [7], repositories: ["db"], permissions: p },
+        names,
+      ),
+    ).toBe(false);
+    expect(
+      scopeWithin(
+        { installation_id: 1, repository_ids: [2], repositories: ["x"], permissions: p },
+        ids,
+      ),
+    ).toBe(true);
+    expect(scopeWithin({ installation_id: 1, repositories: ["web"], permissions: p }, ids)).toBe(
+      false,
+    );
+    expect(scopeWithin({ installation_id: 1, permissions: { members: "read" } }, org)).toBe(true);
+    expect(
+      scopeWithin(
+        { installation_id: 1, repository_ids: [1], permissions: { members: "read" } },
+        org,
+      ),
+    ).toBe(false);
+  });
+});

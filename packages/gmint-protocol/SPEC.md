@@ -49,17 +49,22 @@ members):
 | `enc`  | string  | b64url X25519 public key (32 bytes), fresh per request, for the answer                                                                                       |
 | `req`  | object  | What is asked for, below                                                                                                                                     |
 
-`req`: exactly `provider`, `grant`, `scope`, optionally `tenant` and `purpose`.
+`req`: exactly `provider`, `grant`, `scope`, optionally `tenant` and `purpose`. The scope names its
+repositories by id or by name, or none: a request by name is resolved by GitHub within the
+installation, and the server checks the ids GitHub granted against its policy before answering;
+a request with no repositories asks for an org-scoped token, which only an org-scoped grant
+allows.
 
-| Member                  | Rule                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------ |
-| `provider`              | `github`                                                                       |
-| `grant`                 | `[a-z0-9][a-z0-9._-]{0,63}`, the grant id in the server's policy               |
-| `scope.installation_id` | Positive integer                                                               |
-| `scope.repository_ids`  | 1 to 500 positive integers, strictly ascending                                 |
-| `scope.permissions`     | 1 to 64 members, names `[a-z][a-z_]{0,63}`, values `read`, `write` or `admin`  |
-| `tenant`                | `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`, the tenant a multi-tenant client acts for |
-| `purpose`               | 1 to 200 UTF-16 code units, none below U+0020 and no U+007F                    |
+| Member                  | Rule                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`              | `github`                                                                                                                                                            |
+| `grant`                 | `[a-z0-9][a-z0-9._-]{0,63}`, the grant id in the server's policy                                                                                                    |
+| `scope.installation_id` | Positive integer                                                                                                                                                    |
+| `scope.repository_ids`  | 1 to 500 positive integers, strictly ascending; or, instead, `scope.repositories`; or neither (org-scoped)                                                          |
+| `scope.repositories`    | 1 to 500 repository names in the installation, `[A-Za-z0-9._-]{1,100}` but not `.` or `..`, strictly ascending in ASCII order; never together with `repository_ids` |
+| `scope.permissions`     | 1 to 64 members, names `[a-z][a-z_]{0,63}`, values `read`, `write` or `admin`                                                                                       |
+| `tenant`                | `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`, the tenant a multi-tenant client acts for                                                                                      |
+| `purpose`               | 1 to 200 UTF-16 code units, none below U+0020 and no U+007F                                                                                                         |
 
 ## 4. Server checks, in order
 
@@ -102,12 +107,12 @@ the request's `enc` key:
 
 Plaintext (strict JSON, exactly these members):
 
-| Member       | Rule                                                                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `credential` | 1 to 4096 characters from U+0021 to U+007E: printable ASCII without the space (opaque; GitHub's token format is variable) |
-| `expires_at` | RFC 3339 UTC timestamp, `YYYY-MM-DDTHH:MM:SS` with an optional fraction of 1 to 9 digits, then `Z` (checked by form)      |
-| `scope`      | The scope granted, same shape as the request's                                                                            |
-| `hashed`     | b64url SHA-256 of `credential`, the value GitHub's audit log calls `hashed_token`                                         |
+| Member       | Rule                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `credential` | 1 to 4096 characters from U+0021 to U+007E: printable ASCII without the space (opaque; GitHub's token format is variable)                                                                                     |
+| `expires_at` | RFC 3339 UTC timestamp, `YYYY-MM-DDTHH:MM:SS` with an optional fraction of 1 to 9 digits, then `Z` (checked by form)                                                                                          |
+| `scope`      | The scope granted: `repository_ids` whenever it has repositories, and `repositories` too when the request named them, holding their names in the order of `repository_ids`; neither for an org-scoped request |
+| `hashed`     | b64url SHA-256 of `credential`, the value GitHub's audit log calls `hashed_token`                                                                                                                             |
 
 ### 5.2 Client checks, in order
 
@@ -117,8 +122,9 @@ Plaintext (strict JSON, exactly these members):
 4. `cb` equals the client's own exporter.
 5. `iat` within 60 s.
 6. For `issued`: open the seal; the plaintext parses; `hashed` matches `credential`; the granted
-   scope is within the requested one (same installation, a subset of the repositories, no
-   permission above what was asked).
+   scope is within the requested one: the same installation; its repository ids a subset of the
+   requested ids, or, for a request by name, its names a subset of the requested names with an id
+   for each; no repositories at all for an org-scoped request; no permission above what was asked.
 
 ## 6. Codes
 
