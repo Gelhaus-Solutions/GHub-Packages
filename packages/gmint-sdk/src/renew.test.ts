@@ -23,7 +23,7 @@ import {
   verifyRenewRequest,
   type Code,
 } from "@ghub/gmint-protocol";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { GmintClient } from "./client";
 import type { GmintError } from "./errors";
 
@@ -40,10 +40,6 @@ const dir = mkdtempSync(join(tmpdir(), "gmint-sdk-renew-"));
 const f = (n: string) => join(dir, n);
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-/** openssl's [CC]YYMMDDHHMMSSZ for a time `hours` from now. */
-const at = (hours: number) =>
-  new Date(Date.now() + hours * 3_600_000).toISOString().replace(/[-:T]/g, "").slice(0, 14) + "Z";
-
 describe.runIf(hasOpenssl())("certificate renewal", () => {
   const ossl = (...args: string[]) => execFileSync("openssl", args, { stdio: "ignore" });
   const clientSign = generateKeyPairSync("ed25519");
@@ -53,8 +49,11 @@ describe.runIf(hasOpenssl())("certificate renewal", () => {
   let mode: "issue" | "other_key" | Code = "issue";
   let renewals = 0;
 
-  /** Issues a certificate for a CSR with the test root, valid between the two times. */
-  const issue = (csr: string, from: string, to: string) => {
+  /**
+   * Issues a certificate for a CSR with the test root, valid for `days` from now. Only `-days`:
+   * `-not_before` and `-not_after` need OpenSSL 3.4, and CI runners have 3.0.
+   */
+  const issue = (csr: string, days: number) => {
     writeFileSync(f("req.csr"), csr);
     writeFileSync(
       f("leaf.ext"),
@@ -70,10 +69,8 @@ describe.runIf(hasOpenssl())("certificate renewal", () => {
       "-CAkey",
       f("ca.key"),
       "-CAcreateserial",
-      "-not_before",
-      from,
-      "-not_after",
-      to,
+      "-days",
+      String(days),
       "-copy_extensions",
       "copyall",
       "-extfile",
@@ -134,8 +131,9 @@ describe.runIf(hasOpenssl())("certificate renewal", () => {
       "-out",
       f("server.pem"),
     );
-    // Two thirds of this certificate's life are gone: 20 hours old, 4 hours left.
-    writeFileSync(f("client.pem"), issue(readFileSync(f("client.csr"), "utf8"), at(-20), at(4)));
+    // A day's certificate; the auto-renewal test moves the client's clock 17 hours on, past two
+    // thirds of its life, while TLS keeps checking real time.
+    writeFileSync(f("client.pem"), issue(readFileSync(f("client.csr"), "utf8"), 1));
     chmodSync(f("client.key"), 0o600);
     writeFileSync(f("sign.pem"), clientSign.privateKey.export({ format: "pem", type: "pkcs8" }), {
       mode: 0o600,
@@ -196,8 +194,7 @@ describe.runIf(hasOpenssl())("certificate renewal", () => {
                           mode === "issue"
                             ? csrPem(v.value.csrDer)
                             : readFileSync(f("other.csr"), "utf8"),
-                          at(0),
-                          at(7 * 24),
+                          7,
                         ),
                       ).raw,
                     ),
@@ -244,42 +241,47 @@ describe.runIf(hasOpenssl())("certificate renewal", () => {
   });
 
   it("renews by itself when two thirds of the life are gone, for the same key", async () => {
-    mode = "issue";
-    const before = new X509Certificate(readFileSync(f("client.pem")));
-    const errors: GmintError[] = [];
-    const c = client({ autoRenew: true, onRenewError: (e) => errors.push(e) });
-    const seen = renewals;
-    // getToken renews first; the mint itself then fails here (the stand-in has no token route).
-    await expect(
-      c.getToken({
-        grant: "g",
-        installationId: 1,
-        repositoryIds: [1],
-        permissions: { contents: "read" },
-      }),
-    ).rejects.toMatchObject({ code: "bad_request" });
-    expect(errors).toEqual([]);
-    expect(renewals).toBe(seen + 1);
-    const after = new X509Certificate(readFileSync(f("client.pem")));
-    expect(after.serialNumber).not.toBe(before.serialNumber);
-    expect(after.publicKey.export({ type: "spki", format: "der" })).toEqual(
-      before.publicKey.export({ type: "spki", format: "der" }),
-    );
-    expect(c.certificateExpiry().getTime()).toBe(Date.parse(after.validTo));
-    expect(statSync(f("client.pem")).mode & 0o777).toBe(0o644 & ~process.umask());
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 17 * 3_600_000 });
+    try {
+      mode = "issue";
+      const before = new X509Certificate(readFileSync(f("client.pem")));
+      const errors: GmintError[] = [];
+      const c = client({ autoRenew: true, onRenewError: (e) => errors.push(e) });
+      const seen = renewals;
+      // getToken renews first; the mint itself then fails here (the stand-in has no token route).
+      await expect(
+        c.getToken({
+          grant: "g",
+          installationId: 1,
+          repositoryIds: [1],
+          permissions: { contents: "read" },
+        }),
+      ).rejects.toMatchObject({ code: "bad_request" });
+      expect(errors).toEqual([]);
+      expect(renewals).toBe(seen + 1);
+      const after = new X509Certificate(readFileSync(f("client.pem")));
+      expect(after.serialNumber).not.toBe(before.serialNumber);
+      expect(after.publicKey.export({ type: "spki", format: "der" })).toEqual(
+        before.publicKey.export({ type: "spki", format: "der" }),
+      );
+      expect(c.certificateExpiry().getTime()).toBe(Date.parse(after.validTo));
+      expect(statSync(f("client.pem")).mode & 0o777).toBe(0o644 & ~process.umask());
 
-    // Freshly renewed: not due again, and the new certificate is the one the server now sees.
-    await c
-      .getToken({
-        grant: "g",
-        installationId: 1,
-        repositoryIds: [1],
-        permissions: { contents: "read" },
-      })
-      .catch(() => undefined);
-    expect(renewals).toBe(seen + 1);
-    expect(await c.renewCertificate()).toBeInstanceOf(Date);
-    c.close();
+      // Freshly renewed: not due again, and the new certificate is the one the server now sees.
+      await c
+        .getToken({
+          grant: "g",
+          installationId: 1,
+          repositoryIds: [1],
+          permissions: { contents: "read" },
+        })
+        .catch(() => undefined);
+      expect(renewals).toBe(seen + 1);
+      expect(await c.renewCertificate()).toBeInstanceOf(Date);
+      c.close();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shares one renewal between concurrent callers, and another client picks it up from disk", async () => {

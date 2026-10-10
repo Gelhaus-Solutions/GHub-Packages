@@ -8,6 +8,13 @@
  */
 
 import {
+  GmintClient,
+  GmintError,
+  type GmintClientOptions,
+  type GmintToken,
+  type TokenRequest,
+} from "@ghub/gmint-sdk";
+import {
   ForbiddenException,
   Inject,
   Injectable,
@@ -18,13 +25,6 @@ import {
   type DynamicModule,
   type OnModuleDestroy,
 } from "@nestjs/common";
-import {
-  GmintClient,
-  GmintError,
-  type GmintClientOptions,
-  type GmintToken,
-  type TokenRequest,
-} from "@ghub/gmint-sdk";
 
 export const GMINT_OPTIONS = Symbol("GMINT_OPTIONS");
 
