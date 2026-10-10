@@ -1,6 +1,6 @@
 {
   "name": "@ghub/ui",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "The design system of the Gelhaus Solutions product family: hand-rolled accessible React components. No Radix, no shadcn, no headless component libraries.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
