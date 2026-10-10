@@ -1,5 +1,16 @@
 # @ghub/gmint-sdk
 
+## 0.2.0
+
+### Minor Changes
+
+- 150b651: `getToken` takes `repositories` (names within the installation) instead of `repositoryIds`, or neither for an org-scoped token; `token.scope` then carries the ids GitHub resolved and the names aligned with them (GMint D-71).
+
+### Patch Changes
+
+- Updated dependencies [150b651, 8f86b1b]
+  - @ghub/gmint-protocol@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
