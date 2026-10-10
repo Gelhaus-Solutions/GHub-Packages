@@ -1,0 +1,50 @@
+{
+  "name": "@ghub/gmint-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The client for GMint, the broker that holds GitHub App keys: get a short-lived, narrowly scoped installation token over TLS 1.3 + mTLS with signed, channel-bound requests and sealed responses. No third-party dependencies.",
+  "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
+  "homepage": "https://ennogelhaus.de",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
+    "directory": "packages/gmint-sdk"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "!dist/**/*.map",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "cp ../../LICENSE ./LICENSE",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.7",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.8"
+  },
+  "dependencies": {
+    "@ghub/gmint-protocol": "workspace:*"
+  }
+}
