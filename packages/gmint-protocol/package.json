@@ -1,0 +1,48 @@
+{
+  "name": "@ghub/gmint-protocol",
+  "version": "0.0.0",
+  "description": "The GMint wire protocol: signed, channel-bound requests and signed, HPKE-sealed responses for short-lived credentials. Hand-written on node:crypto, no dependencies.",
+  "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
+  "homepage": "https://ennogelhaus.de",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
+    "directory": "packages/gmint-protocol"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "!dist/**/*.map",
+    "SPEC.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "cp ../../LICENSE ./LICENSE",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.7",
+    "fast-check": "^4.3.0",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.8"
+  }
+}
