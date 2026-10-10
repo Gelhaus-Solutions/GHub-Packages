@@ -20,9 +20,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import * as modern from "./modern/index.js";
 import {
+  Badge,
   Banner,
   Card,
   Consequence,
+  GlassPanel,
   Disclosure,
   FormField,
   type Column,
@@ -42,6 +44,21 @@ import {
 
 function render(node: ReactNode): string {
   return renderToStaticMarkup(node as never);
+}
+
+/**
+ * The markup an app without Aurora effectively renders: every `aurora:` class
+ * and every `data-m-*` hook removed. Those are inert there (Tailwind emits
+ * nothing for a variant the app never declared, and nothing styles the
+ * hooks), so a pin on modern's own rendering compares against this.
+ */
+function withoutAurora(html: string): string {
+  return html
+    .replace(/ data-m-[a-z-]+=""/g, "")
+    .replace(/class="([^"]*)"/g, (_, classes: string) => {
+      const kept = classes.split(" ").filter((name) => name !== "" && !name.startsWith("aurora:"));
+      return `class="${kept.join(" ")}"`;
+    });
 }
 
 describe("PageHead", () => {
@@ -552,9 +569,12 @@ describe("Section", () => {
     /*
      * The note and the aside were added for the Terms console's sheets, and a
      * page already using Section must not move by a class. This is the head
-     * row as it rendered before the slots, spelled out.
+     * row as it rendered before the slots, spelled out, and it is still what
+     * an app without Aurora gets once the inert aurora classes are set aside.
      */
-    const html = render(createElement(Section, { heading: "Addresses", count: 2, children: "r" }));
+    const html = withoutAurora(
+      render(createElement(Section, { heading: "Addresses", count: 2, children: "r" })),
+    );
     expect(html).toBe(
       '<section class="flex flex-col">' +
         '<div class="flex items-baseline gap-3 border-b border-m-hairline pb-3">' +
@@ -990,6 +1010,48 @@ describe("Provenance", () => {
   });
 });
 
+describe("GlassPanel", () => {
+  it("is a section by default, named by its label, on modern's plate off Aurora", () => {
+    const html = render(createElement(GlassPanel, { label: "The request", children: "x" }));
+    expect(html).toMatch(/^<section aria-label="The request" class="[^"]*bg-m-plate/);
+    expect(html).toContain("aurora:a-glass");
+  });
+
+  it("takes the element it is asked for and pads by purpose", () => {
+    const aside = render(createElement(GlassPanel, { as: "aside", pad: "form", children: "x" }));
+    expect(aside).toMatch(/^<aside class="[^"]*px-5 py-\[18px\]/);
+    const flush = render(createElement(GlassPanel, { pad: "none", children: "x" }));
+    expect(flush).not.toMatch(/\bp[xy]-/);
+  });
+
+  it("tints by tone with the level's wash and edge", () => {
+    const html = render(createElement(GlassPanel, { tone: "crit", children: "x" }));
+    expect(html).toContain("bg-m-crit-wash");
+    expect(html).toContain("aurora:border-m-crit/38");
+  });
+});
+
+describe("Badge", () => {
+  it("is one pill shape, mono and tabular, whatever its tone", () => {
+    for (const tone of ["plain", "accent", "crit"] as const) {
+      const html = render(createElement(Badge, { tone, children: "8" }));
+      expect(html).toMatch(/class="[^"]*h-5[^"]*rounded-full[^"]*font-mono[^"]*tabular-nums/);
+    }
+  });
+
+  it("says what the number counts to a screen reader, after the number", () => {
+    const html = render(createElement(Badge, { tone: "crit", word: "late", children: "8" }));
+    expect(html).toContain('8<span class="sr-only"> late</span>');
+    expect(html).toContain("bg-m-crit-wash");
+  });
+
+  it("solid accent is the one that needs you", () => {
+    expect(render(createElement(Badge, { tone: "accent", children: "54" }))).toContain(
+      "bg-m-accent text-m-accent-on",
+    );
+  });
+});
+
 describe("the pin covers every modern component", () => {
   /**
    * The footprint question, and it lives here rather than in
@@ -1030,6 +1092,7 @@ describe("the pin covers every modern component", () => {
   const EXERCISED = [
     "Agenda",
     "AsOf",
+    "Badge",
     "Banner",
     "BilingualReader",
     "Button",
@@ -1042,6 +1105,7 @@ describe("the pin covers every modern component", () => {
     "DraftKeeperBanner",
     "FilterButton",
     "FormField",
+    "GlassPanel",
     "GoTo",
     "GoToButton",
     "Hash",

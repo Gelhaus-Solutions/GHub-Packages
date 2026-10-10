@@ -37,6 +37,13 @@
  * to look flat, and the person who made neither the import nor the decision
  * will end up defending it.
  *
+ * **Aurora** is a surface of this language, not a third one: modern's dark
+ * column forced, denser type, and frosted glass. The components here carry its
+ * classes under an `aurora:` variant that exists only in an app importing
+ * `@ghub/tokens/aurora.css`, and match only under `data-aurora` on the root.
+ * Every other app compiles exactly what it did before. `GlassPanel`, `Badge`
+ * and the `AURORA_*` recipes are the pieces drawn for it.
+ *
  * Console stays on the root export and on `theme.css`. Nothing here is a
  * replacement for anything there: they are two languages, and the seven control
  * room instruments modern leaves out stay in console because that is where they
@@ -144,6 +151,18 @@ export {
 } from "./go-to.js";
 export { Agenda, type AgendaItem, type AgendaProps } from "./agenda.js";
 export { DayStepper, type DayStepperProps } from "./day-stepper.js";
+export { GlassPanel, type GlassPanelProps, type GlassTone } from "./glass-panel.js";
+export { Badge, type BadgeProps, type BadgeTone } from "./badge.js";
+export {
+  AURORA_FIELD,
+  AURORA_FLAT,
+  AURORA_GLASS,
+  AURORA_MENU,
+  AURORA_TRACK,
+  AURORA_TRACK_ITEM,
+  AURORA_TRACK_OFF,
+  AURORA_TRACK_ON,
+} from "./aurora.js";
 export {
   DraftKeeperBanner,
   useDraftKeeper,

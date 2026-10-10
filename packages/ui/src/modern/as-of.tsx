@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type FocusEvent, type ReactNode } f
 import { cn } from "../cn.js";
 import { CopyChip } from "../copy-chip.js";
 import { SegmentedControl } from "../segmented-control.js";
+import { AURORA_GLASS } from "./aurora.js";
 import { ZonedDateTimeInput, type ZonedChange } from "./zoned-date-time.js";
 import {
   DEFAULT_ZONE,
@@ -203,6 +204,7 @@ export function AsOf({
     <div
       className={cn(
         "flex flex-wrap items-center gap-x-4 gap-y-3 rounded-m-panel bg-m-plate px-[18px] py-3.5 shadow-m-plate",
+        AURORA_GLASS,
         className,
       )}
     >

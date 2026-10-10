@@ -17,6 +17,29 @@ general-purpose theme, and it changes when the family's design does.
 
 Until 0.2.3 this package was published as `@ghub/gctl-config-tailwind`.
 
+## Aurora
+
+`aurora.css` is a surface of the modern language: modern's dark column forced (there is
+no light theme), type one step denser, and frosted glass with slow coloured light behind
+it. It is opt-in twice, and an app that does neither step compiles exactly what it did
+before:
+
+```css
+@import "@ghub/tokens/modern.css";
+@import "@ghub/tokens/aurora.css";
+```
+
+```html
+<html data-aurora data-theme="dark"></html>
+```
+
+The import declares the `aurora:` variant, the `a-` utilities (`a-glass`, `bg-a-field`,
+`rounded-a-glass`, `shadow-a-primary`, ...) and their values; the attribute switches them
+on. The components in `@ghub/ui/modern` carry `aurora:` classes beside their own, so they
+take the glass where both steps are made and nowhere else. With
+`prefers-reduced-transparency` every pane becomes a solid plate, and with
+`prefers-reduced-motion` nothing rises or drifts.
+
 ## Licence
 
 Elastic License 2.0. Source-available: you may read, self-host and modify it for your own

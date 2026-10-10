@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes } from "react";
 import { cn } from "../cn.js";
+import { AURORA_FIELD } from "./aurora.js";
 
 /**
  * Two heights, and the choice is about who is typing rather than about density.
@@ -39,8 +40,11 @@ export function Input({ height = 44, mono = false, className, ...rest }: InputPr
       className={cn(
         "w-full rounded-m-control border border-m-control bg-m-inset px-3 text-m-label text-m-ink shadow-m-inset",
         "placeholder:text-m-ink-3",
-        height === 44 ? "h-11" : "h-9",
-        mono ? "font-mono tabular-nums" : "",
+        height === 44 ? "h-11 aurora:h-10 aurora:max-sm:h-11" : "h-9",
+        AURORA_FIELD,
+        "aurora:text-[14px]",
+        // Ids, keys and references are mono at 13 in Aurora, a step below text.
+        mono ? "font-mono tabular-nums aurora:text-[13px]" : "",
         className,
       )}
       {...rest}

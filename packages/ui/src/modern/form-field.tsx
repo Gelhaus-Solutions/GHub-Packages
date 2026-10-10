@@ -90,7 +90,7 @@ export function FormField({ label, children, hint, error, rules, className }: Fo
       .join(" ") || undefined;
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("flex flex-col gap-2 aurora:gap-[7px]", className)}>
       <label htmlFor={controlId} className="text-m-label text-m-ink">
         {label}
       </label>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS, AURORA_IN_SECTION } from "./aurora.js";
 
 /**
  * The list primitive. Sessions, addresses, applications, members, invoices and
@@ -48,8 +49,12 @@ export interface RecordRowProps {
 export function RecordRow({ name, chip, meta, status, action, className }: RecordRowProps) {
   return (
     <div
+      data-m-flush=""
       className={cn(
         "flex min-h-16 items-center gap-4 rounded-m-panel bg-m-plate px-[18px] py-4",
+        AURORA_GLASS,
+        AURORA_IN_SECTION,
+        "aurora:min-h-[52px] aurora:py-[9px]",
         // Hover is a film over the material rather than a step to the next
         // surface token, and only where there is something to press. A row that
         // reacts to a pointer and then does nothing is a promise it cannot keep.

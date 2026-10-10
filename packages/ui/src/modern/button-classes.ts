@@ -86,13 +86,23 @@ const BASE = [
    */
   "disabled:pointer-events-none disabled:border-transparent disabled:bg-transparent",
   "disabled:bg-none disabled:text-m-ink-off disabled:shadow-none disabled:no-underline",
+  /*
+   * Aurora: every button is a pill, and an inactive one keeps a faint ink
+   * fill rather than no material, because on glass an outline-less label
+   * reads as a hole. The disabled classes are restated under the variant so
+   * they outrank the aurora material on the same element.
+   */
+  "aurora:rounded-full",
+  "aurora:disabled:border-transparent aurora:disabled:bg-m-ink/10 aurora:disabled:shadow-none",
 ];
 
 const MATERIAL: Readonly<Record<ButtonVariant, string>> = {
   // The primary's fill is chosen with its state below, because at rest and busy
   // it is two different tokens for the same property.
-  primary: "border-transparent text-m-accent-on",
-  secondary: "border-m-control bg-m-plate text-m-ink shadow-m-quiet",
+  primary: "border-transparent text-m-accent-on aurora:shadow-a-primary",
+  // Aurora's secondary is an outline on the glass, not a plate on it.
+  secondary:
+    "border-m-control bg-m-plate text-m-ink shadow-m-quiet aurora:border-a-edge-button aurora:bg-transparent aurora:shadow-none",
   quiet: "border-transparent bg-transparent text-m-accent-text",
   destructive: "border-transparent bg-m-crit-fill text-white",
 };
@@ -123,10 +133,20 @@ const BUSY: Readonly<Record<ButtonVariant, string>> = {
   destructive: `${BUSY_FILM} cursor-progress`,
 };
 
-const HEIGHT: Readonly<Record<ButtonSize, string>> = { 44: "h-11", 36: "h-9" };
+/*
+ * Aurora draws its large button at 42 and its standard one at 36, and keeps
+ * 44 on a phone, where it is the size of a thumb.
+ */
+const HEIGHT: Readonly<Record<ButtonSize, string>> = {
+  44: "h-11 aurora:h-[42px] aurora:text-[14.5px] aurora:max-sm:h-11",
+  36: "h-9 aurora:text-[14px] aurora:max-sm:h-11",
+};
 
-/* Sheet 09's paddings: 18 at 44 and 12 at 36. */
-const PADDING: Readonly<Record<ButtonSize, string>> = { 44: "px-[18px]", 36: "px-3" };
+/* Sheet 09's paddings: 18 at 44 and 12 at 36. Aurora's: 20 and 16. */
+const PADDING: Readonly<Record<ButtonSize, string>> = {
+  44: "px-[18px] aurora:px-5",
+  36: "px-3 aurora:px-4",
+};
 
 /**
  * Class list for a modern button, or for a link wearing one. Safe on the server.

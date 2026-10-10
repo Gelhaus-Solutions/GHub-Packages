@@ -7,11 +7,13 @@
   "exports": {
     "./theme.css": "./theme.css",
     "./modern.css": "./modern.css",
+    "./aurora.css": "./aurora.css",
     "./base.css": "./base.css"
   },
   "files": [
     "theme.css",
     "modern.css",
+    "aurora.css",
     "base.css",
     "LICENSE"
   ],

@@ -94,7 +94,7 @@ function SearchField({ label, placeholder, value, onChange }: SearchFieldProps) 
   }
 
   return (
-    <label className="relative block min-w-0 flex-[1_1_220px] sm:max-w-[300px]">
+    <label className="relative block min-w-0 flex-[1_1_220px] sm:max-w-[300px] aurora:sm:max-w-[360px]">
       <span className="sr-only">{label}</span>
       <Search
         aria-hidden="true"
@@ -121,7 +121,8 @@ function SearchField({ label, placeholder, value, onChange }: SearchFieldProps) 
           event.preventDefault();
           send(text);
         }}
-        className="pl-[34px] max-sm:h-11"
+        // Aurora: the search is a pill, 34 high, edged in ink at 14 per cent.
+        className="pl-[34px] max-sm:h-11 aurora:h-[34px] aurora:rounded-full aurora:border-a-edge-pill aurora:text-[13.5px] aurora:max-sm:h-11"
       />
     </label>
   );

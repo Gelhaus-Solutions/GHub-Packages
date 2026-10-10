@@ -24,7 +24,22 @@ const CHIP: Readonly<Record<StatusLevel, string>> = {
   warn: "bg-m-warn-wash border-m-warn/30",
   crit: "bg-m-crit-wash border-m-crit/30",
   info: "bg-m-info-wash border-m-info/30",
-  idle: "bg-m-idle/10 border-m-idle/30",
+  // Aurora draws idle as the hover film with ink-2, not a grey wash.
+  idle: "bg-m-idle/10 border-m-idle/30 aurora:bg-m-hover aurora:text-m-ink-2",
+};
+
+/*
+ * Aurora's pill: 22 high, no edge, 12/500. The large one beside a record's
+ * title is 26 high and keeps an edge in its level at 35 per cent.
+ */
+const AURORA_PILL =
+  "aurora:h-[22px] aurora:rounded-full aurora:border-transparent aurora:px-[9px] aurora:py-0 aurora:gap-1.5 aurora:text-[12px] aurora:leading-none aurora:font-medium aurora:whitespace-nowrap";
+const AURORA_LARGE: Readonly<Record<StatusLevel, string>> = {
+  ok: "aurora:border-m-ok/35",
+  warn: "aurora:border-m-warn/35",
+  crit: "aurora:border-m-crit/35",
+  info: "aurora:border-m-info/35",
+  idle: "aurora:border-m-idle/35",
 };
 
 /**
@@ -54,16 +69,26 @@ export interface StatusProps {
    * word would not read as one object. Inline everywhere else.
    */
   chip?: boolean;
+  /**
+   * The chip beside a page's title (`PageHead`'s `status`): a step larger,
+   * and in Aurora edged in its level. Implies `chip`.
+   */
+  large?: boolean;
   className?: string;
 }
 
-export function Status({ level, children, chip = false, className }: StatusProps) {
+export function Status({ level, children, chip = false, large = false, className }: StatusProps) {
+  const pill = chip || large;
   return (
     <span
       className={cn(
         "inline-flex items-center gap-2 text-m-meta",
-        chip ? `rounded-m-chip border px-2 py-0.5 ${CHIP[level]}` : "",
+        pill ? `rounded-m-chip border px-2 py-0.5 ${CHIP[level]} ${AURORA_PILL}` : "",
+        large
+          ? `aurora:h-[26px] aurora:gap-[7px] aurora:px-[11px] aurora:text-[12.5px] ${AURORA_LARGE[level]}`
+          : "",
         INK[level],
+        pill && level === "idle" ? "aurora:text-m-ink-2" : "",
         className,
       )}
     >
@@ -74,7 +99,13 @@ export function Status({ level, children, chip = false, className }: StatusProps
        */}
       <span
         aria-hidden="true"
-        className={cn("size-1.5 shrink-0 rounded-full ring-3 ring-current/17", DOT[level])}
+        className={cn(
+          "size-1.5 shrink-0 rounded-full ring-3 ring-current/17",
+          // A pill's dot carries no halo in Aurora; the pill is the halo.
+          pill ? "aurora:ring-0" : "",
+          large ? "aurora:size-[7px]" : "",
+          DOT[level],
+        )}
       />
       {children}
     </span>

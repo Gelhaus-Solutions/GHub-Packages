@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS } from "./aurora.js";
 import { buttonClasses } from "./button-classes.js";
 import { Input } from "./input.js";
 import { addDays, formatDate, parseDate } from "./zoned-time.js";
@@ -50,7 +51,7 @@ export interface DayStepperProps {
 const HOVER_FILM = "hover:bg-[linear-gradient(var(--gm-hover),var(--gm-hover))]";
 
 const STEP = cn(
-  "inline-grid size-9 shrink-0 place-items-center rounded-m-control border border-m-control bg-m-plate text-m-ink shadow-m-quiet max-sm:size-11",
+  "inline-grid size-9 shrink-0 place-items-center rounded-m-control border border-m-control bg-m-plate text-m-ink shadow-m-quiet max-sm:size-11 aurora:rounded-full aurora:border-a-edge-button aurora:bg-transparent aurora:shadow-none",
   HOVER_FILM,
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
 );
@@ -147,6 +148,7 @@ export function DayStepper({
     <div
       className={cn(
         "flex flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-m-panel bg-m-plate px-[18px] py-3.5 shadow-m-plate",
+        AURORA_GLASS,
         className,
       )}
     >

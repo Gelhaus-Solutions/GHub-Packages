@@ -276,3 +276,83 @@ describe("base.css cannot outrank the utilities", () => {
     expect(stray).toEqual([]);
   });
 });
+
+describe("aurora's utilities reach a screen", () => {
+  const AURORA = join(here, "..", "..", "tokens", "aurora.css");
+  const aurora = readFileSync(AURORA, "utf8");
+  const modern = readFileSync(MODERN, "utf8");
+
+  /*
+   * Without the variant every `aurora:` class in this package compiles to
+   * nothing, which is the point in an app that never asked for Aurora and a
+   * silent failure in one that did.
+   */
+  it("declares the aurora variant on the data-aurora attribute", () => {
+    expect(aurora).toMatch(
+      /@custom-variant aurora \(&:where\(\[data-aurora\], \[data-aurora\] \*\)\);/,
+    );
+  });
+
+  /*
+   * Forced dark restates modern's dark column rather than referencing it, so
+   * that it outranks both light blocks. Restated values drift; this is what
+   * keeps them modern's to the digit.
+   */
+  it("forces exactly modern's dark values", () => {
+    const darkEnd = modern.indexOf("}", modern.indexOf(":root {"));
+    const dark = new Map(
+      Array.from(
+        modern.slice(modern.indexOf(":root {"), darkEnd).matchAll(/(--gm-[a-z0-9-]+):\s*([^;]+);/g),
+        (m) => [m[1] as string, (m[2] as string).trim()],
+      ),
+    );
+    const opens = aurora.indexOf("html:root[data-aurora] {");
+    const forced = new Map(
+      Array.from(
+        aurora.slice(opens, aurora.indexOf("}", opens)).matchAll(/(--gm-[a-z0-9-]+):\s*([^;]+);/g),
+        (m) => [m[1] as string, (m[2] as string).trim()],
+      ),
+    );
+    expect(dark.size).toBeGreaterThan(40);
+    expect(Object.fromEntries(forced)).toEqual(Object.fromEntries(dark));
+  });
+
+  /*
+   * The `a-` names a component uses, checked against what aurora.css defines:
+   * a colour, a shadow, a radius, a type step, or a utility of its own. A
+   * misspelt one is not an error anywhere else; it is a pane with no glass.
+   */
+  it("names no a- utility aurora.css does not define", () => {
+    const defined = new Set(
+      Array.from(aurora.matchAll(/(--[a-z]+-a-[a-z0-9-]+)\s*:/g), (m) => m[1]),
+    );
+    const utilities = new Set(Array.from(aurora.matchAll(/@utility (a-[a-z0-9-]+)/g), (m) => m[1]));
+    const NAMESPACE: Readonly<Record<string, readonly string[]>> = {
+      bg: ["--color"],
+      border: ["--color"],
+      text: ["--text", "--color"],
+      shadow: ["--shadow"],
+      rounded: ["--radius"],
+    };
+
+    const offenders: string[] = [];
+    for (const file of sourceFiles(here)) {
+      if (file.endsWith(".test.ts")) continue;
+      const code = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const match of code.matchAll(
+        /(?<![\w-])(?:(bg|border|text|shadow|rounded)-)?(a-[a-z0-9-]+)/g,
+      )) {
+        const [whole, kind, name] = match as unknown as [string, string | undefined, string];
+        if (kind === undefined) {
+          if (!/^a-glass/.test(name)) continue;
+          if (!utilities.has(name)) offenders.push(`${file.slice(here.length + 1)}: ${whole}`);
+          continue;
+        }
+        const ok = (NAMESPACE[kind] ?? []).some((prefix) => defined.has(`${prefix}-${name}`));
+        if (!ok) offenders.push(`${file.slice(here.length + 1)}: ${whole}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

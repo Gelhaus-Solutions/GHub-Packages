@@ -27,8 +27,8 @@ describe("DraftKeeperBanner", () => {
   it("is the info Banner, polite, never an interruption", () => {
     const html = render();
     expect(html).toMatch(/^<div role="status" class="[^"]*bg-m-info-wash[^"]*border-m-info\/34/);
-    expect(html).toContain(
-      '<p class="text-m-label text-m-ink">Your unsaved changes from 09:40 CEST are back</p>',
+    expect(html).toMatch(
+      /<p class="text-m-label text-m-ink[^"]*">Your unsaved changes from 09:40 CEST are back<\/p>/,
     );
   });
 

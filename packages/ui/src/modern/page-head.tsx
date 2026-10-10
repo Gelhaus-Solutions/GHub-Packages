@@ -40,14 +40,36 @@ export interface PageHeadProps {
   lede?: ReactNode;
   /** Zero or one. More than one means the screen has not decided. */
   action?: ReactNode;
+  /**
+   * Where the thing the page is about stands, beside its title: a `Status`
+   * chip, `large`. A list has none; a record (an agreement, a case) has one.
+   */
+  status?: ReactNode;
+  /**
+   * One quiet line under the lede: who made it and when, or what the figures
+   * on the page are counted from. Meta ink, never a sentence that matters.
+   */
+  meta?: ReactNode;
   className?: string;
 }
 
-export function PageHead({ eyebrow, title, lede, action, className }: PageHeadProps) {
+export function PageHead({ eyebrow, title, lede, action, status, meta, className }: PageHeadProps) {
   return (
-    <header className={cn("flex items-center justify-between gap-10 pb-18", className)}>
-      <div className="min-w-0">
-        {eyebrow === undefined ? null : <p className="text-m-micro text-m-ink-3">{eyebrow}</p>}
+    <header
+      className={cn(
+        "flex items-center justify-between gap-10 pb-18",
+        // Aurora aligns the one action to the bottom right, under which the
+        // head wraps on a narrow screen rather than squeezing the title.
+        "aurora:flex-wrap aurora:items-end aurora:gap-x-5 aurora:gap-y-3.5 aurora:pb-4",
+        className,
+      )}
+    >
+      <div className="min-w-0 aurora:min-w-[min(300px,100%)] aurora:flex-1">
+        {eyebrow === undefined ? null : (
+          <p className="text-m-micro text-m-ink-3 aurora:text-[13px] aurora:leading-[18px] aurora:font-normal">
+            {eyebrow}
+          </p>
+        )}
         {/*
          * `text-balance` rather than a truncation: the contract is that a long
          * title wraps to two lines at the measure and never truncates. A name
@@ -55,16 +77,33 @@ export function PageHead({ eyebrow, title, lede, action, className }: PageHeadPr
          * be cut off, and an ellipsis in a heading is how a customer cannot
          * tell two records apart.
          */}
-        <h1
-          className={cn(
-            "text-m-title text-balance text-m-ink",
-            eyebrow === undefined ? "" : "mt-2",
-          )}
-        >
-          {title}
-        </h1>
+        {status === undefined ? (
+          <h1
+            className={cn(
+              "text-m-title text-balance text-m-ink",
+              eyebrow === undefined ? "" : "mt-2 aurora:mt-1.5",
+            )}
+          >
+            {title}
+          </h1>
+        ) : (
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-x-3 gap-y-2",
+              eyebrow === undefined ? "" : "mt-2 aurora:mt-1.5",
+            )}
+          >
+            <h1 className="text-m-title text-balance text-m-ink">{title}</h1>
+            {status}
+          </div>
+        )}
         {lede === undefined ? null : (
-          <p className="mt-3 max-w-m-prose text-m-lede text-m-ink-2">{lede}</p>
+          <p className="mt-3 max-w-m-prose text-m-lede text-pretty text-m-ink-2 aurora:mt-1">
+            {lede}
+          </p>
+        )}
+        {meta === undefined ? null : (
+          <p className="mt-2 max-w-[860px] text-m-meta text-m-ink-3 aurora:mt-1.5">{meta}</p>
         )}
       </div>
       {/*

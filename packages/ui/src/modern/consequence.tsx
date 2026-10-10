@@ -59,7 +59,10 @@ export function Consequence({ lines, className }: ConsequenceProps) {
   return (
     <ul className={cn("flex flex-col gap-3", className)}>
       {ordered.map((line, index) => (
-        <li key={index} className="flex items-start gap-3 text-m-body text-m-ink">
+        <li
+          key={index}
+          className="flex items-start gap-3 text-m-body text-m-ink aurora:gap-2.5 aurora:text-[13.5px] aurora:leading-5"
+        >
           {/*
            * `aria-hidden` for the reason it is on every other dot in modern:
            * the sentence carries the meaning and the colour repeats it. A list
@@ -67,7 +70,10 @@ export function Consequence({ lines, className }: ConsequenceProps) {
            */}
           <span
             aria-hidden="true"
-            className={cn("mt-2 size-1.5 shrink-0 rounded-full", DOT[line.level])}
+            className={cn(
+              "mt-2 size-1.5 shrink-0 rounded-full aurora:mt-[7px] aurora:size-[7px]",
+              DOT[line.level],
+            )}
           />
           <span>{line.text}</span>
         </li>

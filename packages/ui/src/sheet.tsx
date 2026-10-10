@@ -137,15 +137,16 @@ export function Sheet({
         tabIndex={-1}
         className={cn(
           "absolute flex flex-col border-(--gc-border-hairline) bg-raised shadow-2xl outline-none",
+          "aurora:a-glass-menu aurora:border-a-edge-pill aurora:shadow-a-menu",
           panelPosition[side],
           className,
         )}
       >
         {title === undefined ? null : (
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-(--gc-border-hairline) px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-(--gc-border-hairline) px-4 py-3 aurora:border-m-hairline">
             <h2
               id={headingId}
-              className="truncate text-sm font-semibold tracking-[-0.01em] text-fg"
+              className="truncate text-sm font-semibold tracking-[-0.01em] text-fg aurora:text-a-h2 aurora:text-m-ink"
             >
               {title}
             </h2>
@@ -158,6 +159,7 @@ export function Sheet({
                 // is the design and the hit area is what a thumb needs.
                 "-m-2 grid size-11 shrink-0 place-items-center rounded-(--radius-md) text-fg-tertiary",
                 "transition-colors duration-(--duration-instant) hover:bg-hover hover:text-fg",
+                "aurora:rounded-full aurora:text-m-ink-3 aurora:hover:bg-m-hover aurora:hover:text-m-ink",
                 "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--gc-ring)",
               )}
             >

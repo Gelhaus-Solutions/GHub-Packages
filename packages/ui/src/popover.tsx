@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import { cn } from "./cn.js";
 import { focusablesIn } from "./focus.js";
+import { AURORA_MENU } from "./modern/aurora.js";
 
 /**
  * An anchored overlay, hand-rolled, with the keyboard contract written down.
@@ -210,6 +211,7 @@ export function Popover({
       className={cn(
         "fixed z-50 rounded-(--radius-md) border border-(--gc-border-subtle) bg-overlay shadow-(--shadow-md)",
         "focus:outline-none",
+        AURORA_MENU,
         // Invisible until placed, rather than rendered at the origin and seen
         // moving there. Opacity rather than `visibility: hidden`, and the
         // difference is not cosmetic: a hidden element cannot take focus, and
@@ -309,14 +311,14 @@ export function Menu({ items, className, ...popover }: MenuProps) {
   return (
     // Merged rather than replaced: passing `className` to a `Menu` and having
     // it silently dropped is the kind of prop that looks applied in a review.
-    <Popover {...popover} className={cn("py-1", className)}>
+    <Popover {...popover} className={cn("py-1 aurora:p-1.5", className)}>
       <div ref={list} role="menu" aria-label={popover.label} onKeyDown={onKeyDown}>
         {items.map((item, index) =>
           item.separator === true ? (
             <div
               key={`rule-${String(index)}`}
               role="separator"
-              className="my-1 border-t border-(--gc-border-hairline)"
+              className="my-1 border-t border-(--gc-border-hairline) aurora:my-1.5 aurora:border-m-hairline"
             />
           ) : (
             <MenuRow key={item.key} item={item} onClose={popover.onClose} />
@@ -338,17 +340,19 @@ function MenuRow({
     "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm",
     "transition-colors duration-(--duration-instant)",
     "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--gc-ring)",
+    // Aurora: 36 high, a 10px corner, 13.5.
+    "aurora:h-9 aurora:rounded-a-item aurora:px-3 aurora:py-0 aurora:text-[13.5px] aurora:focus-visible:outline-m-ring",
     item.disabled === true
-      ? "cursor-not-allowed text-fg-disabled"
+      ? "cursor-not-allowed text-fg-disabled aurora:text-m-ink-off"
       : item.danger === true
-        ? "text-crit-ink hover:bg-crit-wash"
-        : "text-fg-secondary hover:bg-hover hover:text-fg",
+        ? "text-crit-ink hover:bg-crit-wash aurora:text-m-crit-ink aurora:hover:bg-m-crit-wash"
+        : "text-fg-secondary hover:bg-hover hover:text-fg aurora:text-m-ink-2 aurora:hover:bg-m-hover aurora:hover:text-m-ink",
   );
 
   const body = (
     <>
       {item.icon === undefined ? null : (
-        <span className="flex shrink-0 text-fg-tertiary">{item.icon}</span>
+        <span className="flex shrink-0 text-fg-tertiary aurora:text-m-ink-3">{item.icon}</span>
       )}
       <span className="min-w-0 truncate">{item.label}</span>
     </>

@@ -57,10 +57,10 @@ export function SummaryPair({
 
   return (
     <div className={cn("min-w-0", className)}>
-      <dt className="text-m-meta text-m-ink-3">{label}</dt>
+      <dt className="text-m-meta text-m-ink-3 aurora:text-[12px] aurora:leading-4">{label}</dt>
       <dd
         className={cn(
-          "mt-1 text-m-body",
+          "mt-1 text-m-body aurora:mt-[3px] aurora:leading-5",
           mono && !absent ? "font-mono tabular-nums" : "",
           // The empty sentence is quieter than a value, because it is
           // explanation rather than data and must not be mistaken for one.

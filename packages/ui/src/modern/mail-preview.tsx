@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS, AURORA_IN_SECTION } from "./aurora.js";
 
 /**
  * Where a previewed mail stands. Only `loading` and `test-failed` change what
@@ -113,8 +114,11 @@ export function MailPreview({
        * inside has a fill to clip at the corners, and clipping would cut the
        * focus ring of the `pre`, which sits flush with the figure's left edge.
        */}
-      <figure className="rounded-m-panel bg-m-plate shadow-m-plate">
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 border-b border-m-hairline px-5 py-3.5 font-mono text-m-meta">
+      <figure
+        data-m-flush=""
+        className={cn("rounded-m-panel bg-m-plate shadow-m-plate", AURORA_GLASS, AURORA_IN_SECTION)}
+      >
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 border-b border-m-hairline px-5 py-3.5 font-mono text-m-meta aurora:px-[18px] aurora:py-3 aurora:leading-[19px]">
           {header(headerLabels.from, from)}
           {replyTo === undefined ? null : header(headerLabels.replyTo, replyTo)}
           {header(headerLabels.subject, subject, lang)}

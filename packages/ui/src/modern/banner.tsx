@@ -11,6 +11,24 @@ const TONE: Readonly<Record<BannerTone, string>> = {
   crit: "bg-m-crit-wash border-m-crit/34",
 };
 
+/*
+ * Aurora: glass with the level's light falling across it from the top left
+ * (14 per cent, gone by 60), an edge in the level at 38, and a dot that glows.
+ */
+const AURORA_TONE: Readonly<Record<BannerTone, string>> = {
+  info: "aurora:border-m-info/38 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-info)_14%,transparent),transparent_60%)]",
+  ok: "aurora:border-m-ok/38 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-ok)_14%,transparent),transparent_60%)]",
+  warn: "aurora:border-m-warn/38 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-warn)_14%,transparent),transparent_60%)]",
+  crit: "aurora:border-m-crit/38 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-crit)_14%,transparent),transparent_60%)]",
+};
+
+const AURORA_DOT: Readonly<Record<BannerTone, string>> = {
+  info: "bg-m-info shadow-[0_0_10px_var(--gm-info)]",
+  ok: "bg-m-ok shadow-[0_0_10px_var(--gm-ok)]",
+  warn: "bg-m-warn shadow-[0_0_10px_var(--gm-warn)]",
+  crit: "bg-m-crit shadow-[0_0_10px_var(--gm-crit)]",
+};
+
 /**
  * A screen level notice, and the one wash a screen is allowed.
  *
@@ -61,10 +79,27 @@ export function Banner({
   return (
     <div
       role={afterLoad ? "alert" : "status"}
-      className={cn("w-full rounded-m-panel border p-4", TONE[tone], className)}
+      className={cn(
+        "w-full rounded-m-panel border p-4",
+        TONE[tone],
+        "aurora:flex aurora:items-start aurora:gap-3.5 aurora:a-glass aurora:rounded-a-banner aurora:px-[18px] aurora:py-3.5 aurora:shadow-a-highlight",
+        AURORA_TONE[tone],
+        className,
+      )}
     >
-      <p className="text-m-label text-m-ink">{title}</p>
-      <p className="mt-1 text-m-meta text-m-ink-2">{children}</p>
+      {/* Decoration: the word in the title carries the level. */}
+      <span
+        aria-hidden="true"
+        className={cn("mt-1.5 hidden size-2 shrink-0 rounded-full aurora:block", AURORA_DOT[tone])}
+      />
+      <div className="min-w-0 aurora:flex-1">
+        <p className="text-m-label text-m-ink aurora:text-[14.5px] aurora:leading-[21px]">
+          {title}
+        </p>
+        <p className="mt-1 text-m-meta text-m-ink-2 aurora:mt-0.5 aurora:text-[13.5px] aurora:leading-5">
+          {children}
+        </p>
+      </div>
     </div>
   );
 }

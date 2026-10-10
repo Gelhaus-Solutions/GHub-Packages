@@ -119,7 +119,7 @@ export function Standing(props: StandingProps) {
             className={cn(
               // 24 tall at the meta line height with its 1px edges, the target
               // minimum, and `min-h-6` holds it there if the type ever moves.
-              "inline-flex min-h-6 items-center gap-1.5 rounded-m-chip border border-dashed border-m-strong px-2",
+              "inline-flex min-h-6 items-center gap-1.5 rounded-m-chip border border-dashed border-m-strong px-2 aurora:rounded-full aurora:px-2.5",
               "text-m-meta whitespace-nowrap text-m-ink-2 hover:underline",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
             )}

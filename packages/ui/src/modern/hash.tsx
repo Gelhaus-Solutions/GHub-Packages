@@ -154,6 +154,8 @@ export function Hash({
           className={clsx(
             "inline-flex h-[26px] min-w-0 shrink-0 items-center gap-2 rounded-m-chip px-2",
             "border border-m-control bg-m-inset font-mono text-m-meta text-m-ink-2 tabular-nums",
+            // Aurora: a pill in the well, edged by a hairline, mono at 12.
+            "aurora:rounded-full aurora:border-m-hairline aurora:bg-a-well aurora:px-2.5 aurora:text-[12px]",
             "hover:text-m-ink",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
           )}

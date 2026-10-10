@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS } from "./aurora.js";
 
 /**
  * A block that opens where the reader is, under the verb they pressed.
@@ -64,9 +65,27 @@ export function Disclosure({ label, open, onOpenChange, children, className }: D
         onClick={() => {
           onOpenChange(!open);
         }}
-        className="text-m-label text-m-accent-text"
+        className={cn(
+          "text-m-label text-m-accent-text",
+          // Aurora: a secondary pill with a chevron that turns when open.
+          "aurora:inline-flex aurora:h-[34px] aurora:items-center aurora:gap-1.5 aurora:self-start aurora:rounded-full aurora:border aurora:border-a-edge-button aurora:px-3.5 aurora:text-[13.5px] aurora:font-normal aurora:text-m-ink aurora:hover:bg-m-hover",
+        )}
       >
         {label}
+        <svg
+          aria-hidden="true"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={cn("hidden aurora:block", open ? "rotate-180" : "")}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </button>
       {/*
        * `hidden` rather than conditional rendering. The DOM node stays, so an
@@ -77,7 +96,11 @@ export function Disclosure({ label, open, onOpenChange, children, className }: D
         ref={panel}
         id={panelId}
         hidden={!open}
-        className="rounded-m-panel bg-m-plate p-6 shadow-m-plate"
+        className={cn(
+          "rounded-m-panel bg-m-plate p-6 shadow-m-plate",
+          AURORA_GLASS,
+          "aurora:px-5 aurora:py-[18px]",
+        )}
       >
         {children}
       </div>

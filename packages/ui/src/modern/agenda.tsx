@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS, AURORA_IN_SECTION, AURORA_LIST_IN_SECTION } from "./aurora.js";
 
 /** One dated row: a day block beside what happens then. */
 export interface AgendaItem {
@@ -49,11 +50,20 @@ export function Agenda({ items, label, empty, className }: AgendaProps) {
   }
 
   return (
-    <ol role="list" aria-label={label} className={cn("flex flex-col gap-2", className)}>
+    <ol
+      role="list"
+      aria-label={label}
+      data-m-flush=""
+      className={cn("flex flex-col gap-2", AURORA_LIST_IN_SECTION, className)}
+    >
       {items.map((item, index) => (
         <li
           key={`${item.at}:${String(index)}`}
-          className="grid grid-cols-[104px_minmax(0,1fr)] gap-4 rounded-m-panel bg-m-plate px-[18px] py-4 shadow-m-plate"
+          className={cn(
+            "grid grid-cols-[104px_minmax(0,1fr)] gap-4 rounded-m-panel bg-m-plate px-[18px] py-4 shadow-m-plate",
+            AURORA_GLASS,
+            AURORA_IN_SECTION,
+          )}
         >
           <div>
             <time dateTime={item.at} className="block">

@@ -84,6 +84,7 @@ export function CopyChip({ value, label, className }: CopyChipProps) {
         "border border-(--gc-border-hairline) bg-inset px-[9px] text-3xs text-fg-secondary",
         "transition-colors hover:border-(--gc-border-subtle) hover:text-fg",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--gc-ring)",
+        "aurora:rounded-full aurora:border-m-hairline aurora:bg-a-well aurora:px-2.5 aurora:text-[12px] aurora:text-m-ink-2 aurora:hover:text-m-ink aurora:focus-visible:outline-m-ring",
         className,
       )}
     >

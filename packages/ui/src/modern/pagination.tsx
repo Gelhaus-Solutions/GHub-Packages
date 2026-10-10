@@ -47,8 +47,8 @@ export function Pagination({
         "h-9 rounded-m-control px-3 text-m-label",
         onPress === undefined
           ? // No border, no plate, no shadow. Nothing raised is left.
-            "text-m-ink-off"
-          : "border border-m-control bg-m-plate text-m-ink shadow-m-quiet",
+            "text-m-ink-off aurora:rounded-full"
+          : "border border-m-control bg-m-plate text-m-ink shadow-m-quiet aurora:rounded-full aurora:border-a-edge-button aurora:bg-transparent aurora:shadow-none aurora:hover:bg-m-hover",
       )}
     >
       {label}

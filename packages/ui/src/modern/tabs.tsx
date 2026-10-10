@@ -63,9 +63,12 @@ export function Tabs({ tabs, renderLink, label, className }: TabsProps) {
                */
               className: cn(
                 "-mb-px inline-block border-b-2 pb-3 text-m-body whitespace-nowrap",
+                // Aurora: 40 high at 14, and the current tab's rule is a 2px
+                // bar of light rather than a border, so it can glow.
+                "aurora:relative aurora:inline-flex aurora:h-10 aurora:items-center aurora:border-b-0 aurora:pb-0 aurora:text-[14px] aurora:leading-none",
                 tab.current === true
-                  ? "border-m-accent text-m-ink"
-                  : "border-transparent text-m-ink-3",
+                  ? "border-m-accent text-m-ink aurora:font-medium aurora:after:absolute aurora:after:inset-x-0 aurora:after:-bottom-px aurora:after:h-0.5 aurora:after:rounded-[2px] aurora:after:bg-m-accent aurora:after:shadow-[0_0_10px_var(--gm-accent)]"
+                  : "border-transparent text-m-ink-3 aurora:text-m-ink-2 aurora:hover:text-m-ink",
               ),
               "aria-current": tab.current === true ? "page" : undefined,
               children: tab.label,

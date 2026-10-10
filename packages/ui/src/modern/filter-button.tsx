@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "../cn.js";
+import { AURORA_MENU } from "./aurora.js";
 import { Input } from "./input.js";
 
 /** One value of a facet. `hint` is a quiet figure beside it, usually a count. */
@@ -285,9 +286,13 @@ export function FilterButton({
           // 36 at a desk, 44 on a phone, where it is the target a thumb hits.
           "inline-flex h-9 items-center gap-1.5 rounded-m-control border pr-2.5 pl-3 whitespace-nowrap shadow-m-quiet max-sm:min-h-11",
           "text-m-label text-m-ink",
+          // Aurora: a 30px pill chip, dashed until it is set.
+          "aurora:h-[30px] aurora:rounded-full aurora:pr-2.5 aurora:pl-3 aurora:text-[13px] aurora:shadow-none",
           HOVER_FILM,
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
-          set ? "border-m-accent/55 bg-m-selected" : "border-m-control bg-m-plate",
+          set
+            ? "border-m-accent/55 bg-m-selected aurora:bg-m-accent-wash"
+            : "border-m-control bg-m-plate aurora:border-dashed aurora:border-a-edge-dashed aurora:bg-transparent aurora:hover:border-solid aurora:hover:border-m-strong",
         )}
       >
         <span>{`${label}:`}</span>
@@ -308,6 +313,7 @@ export function FilterButton({
           className={cn(
             "absolute top-full z-50 mt-1 w-[260px] max-w-[calc(100vw-2rem)] min-w-full",
             "rounded-m-panel border border-m-subtle bg-m-overlay p-1.5 shadow-m-overlay",
+            AURORA_MENU,
             alignEnd ? "right-0" : "left-0",
           )}
         >
@@ -377,7 +383,7 @@ export function FilterButton({
                     if (active !== index) setActive(index);
                   }}
                   className={cn(
-                    "flex min-h-9 cursor-pointer items-center justify-between gap-3 rounded-m-chip px-2.5 py-2",
+                    "flex min-h-9 cursor-pointer items-center justify-between gap-3 rounded-m-chip px-2.5 py-2 aurora:rounded-a-item aurora:text-[13.5px]",
                     "text-m-label font-normal text-m-ink",
                     selected ? "bg-m-selected" : "",
                     index === active ? "outline-2 -outline-offset-2 outline-m-ring" : "",

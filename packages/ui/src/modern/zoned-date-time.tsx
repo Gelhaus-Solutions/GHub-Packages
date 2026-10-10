@@ -380,7 +380,7 @@ export function ZonedDateTimeInput(props: ZonedDateTimeInputProps) {
             htmlFor={`${dateId} ${timeId}`}
             aria-live="off"
             className={cn(
-              "inline-flex shrink-0 items-center rounded-m-control bg-m-sunken px-3",
+              "inline-flex shrink-0 items-center rounded-m-control bg-m-sunken px-3 aurora:rounded-a-field aurora:bg-a-well",
               "font-mono text-m-label text-m-ink-2 tabular-nums",
               height === 44 ? "h-11" : "h-9",
             )}

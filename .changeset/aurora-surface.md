@@ -1,0 +1,8 @@
+---
+"@ghub/tokens": minor
+"@ghub/ui": minor
+---
+
+Aurora, an opt-in surface of the modern language: dark only, denser type, frosted glass. `@ghub/tokens` adds `aurora.css`, which declares an `aurora:` variant keyed to `data-aurora` on the root, forces modern's dark values, sets Aurora's type steps, and defines the glass (`a-glass`, `a-glass-rail`, `a-glass-menu`), the `a-` colours, shadows, radii and type steps, paper colours for a printed page, the rise and drift motion with an `a-stagger` utility, and solid plates under `prefers-reduced-transparency`. `modern.css` moves its type and radius steps from `@theme inline` to `@theme`, so they compile to variables a surface can redeclare; the computed values are unchanged.
+
+Every `@ghub/ui/modern` component, and `SegmentedControl`, `Combobox`, `CodeInput`, `CopyChip`, `Popover`, `Menu`, `Sheet` and `StateBand`, carries `aurora:` classes beside its own: glass sections with their head inside, tables, lists and panels that go flat inside a section, pill buttons with the primary's glow, 12px fields with an accent focus ring, pill statuses, lit banners and refusals, glowing tab rules, glass menus. An app that does not import `aurora.css` has no `aurora` variant and compiles none of them, so it renders exactly as before. New in modern: `GlassPanel` (a pane of glass for facts, forms, asides and cards; modern's plate off Aurora), `Badge` (the one count pill, with a visually hidden word), the `AURORA_*` class recipes, and two optional `PageHead` props, `status` (a chip beside the title) and `meta` (a quiet line under the lede). `Status` takes `large` for that chip.

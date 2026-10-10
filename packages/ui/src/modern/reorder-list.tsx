@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS } from "./aurora.js";
 
 /** One row. The caller's own fields ride along and come back typed in `onChange`. */
 export interface ReorderListItem {
@@ -91,11 +92,12 @@ export interface ReorderListProps<Item extends ReorderListItem = ReorderListItem
  * is a ring that is not there when somebody is tabbing fast.
  */
 const ARROW_BASE =
-  "inline-grid size-8 shrink-0 place-items-center rounded-m-chip border " +
+  "inline-grid size-8 shrink-0 place-items-center rounded-m-chip border aurora:rounded-full " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring";
 
 /** A disabled arrow loses its material as well as its ink, the modern rule for inactive. */
-const ARROW_ON = "border-m-control bg-m-plate text-m-ink shadow-m-quiet";
+const ARROW_ON =
+  "border-m-control bg-m-plate text-m-ink shadow-m-quiet aurora:border-a-edge-button aurora:bg-transparent aurora:shadow-none";
 const ARROW_OFF = "border-transparent text-m-ink-off";
 
 export function ReorderList<Item extends ReorderListItem = ReorderListItem>({
@@ -194,8 +196,8 @@ export function ReorderList<Item extends ReorderListItem = ReorderListItem>({
                 // A transparent edge on the resting row, so the marked row's
                 // real edge does not shift the list by two pixels.
                 marked
-                  ? "border-m-accent/40 bg-m-selected"
-                  : "border-transparent bg-m-plate shadow-m-plate",
+                  ? "border-m-accent/40 bg-m-selected aurora:rounded-a-choice"
+                  : `border-transparent bg-m-plate shadow-m-plate ${AURORA_GLASS} aurora:rounded-a-choice`,
               )}
             >
               {handle ? (

@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../cn.js";
 import { focusablesIn } from "../focus.js";
+import { AURORA_MENU } from "./aurora.js";
 import { Input } from "./input.js";
 
 /** One thing Go to can open: a product, a sign-up, a document, a version, a campaign. */
@@ -219,7 +220,7 @@ export function GoTo({
         if (active !== at) setActive(at);
       },
       className: cn(
-        "cursor-pointer rounded-m-chip px-2.5 py-2 text-m-ink",
+        "cursor-pointer rounded-m-chip px-2.5 py-2 text-m-ink aurora:rounded-a-item",
         // The film says which option Enter opens; the ring says it without colour.
         isActive ? "bg-m-selected outline-2 -outline-offset-2 outline-m-ring" : "",
       ),
@@ -246,7 +247,11 @@ export function GoTo({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-[560px] overflow-hidden rounded-m-card border border-m-subtle bg-m-overlay shadow-m-overlay"
+        className={cn(
+          "w-full max-w-[560px] overflow-hidden rounded-m-card border border-m-subtle bg-m-overlay shadow-m-overlay",
+          AURORA_MENU,
+          "aurora:rounded-a-glass",
+        )}
       >
         <div ref={field} className="p-2.5">
           <Input
@@ -360,9 +365,14 @@ export function GoToButton({
       className={cn(
         "flex h-9 items-center gap-2 rounded-m-control border border-m-control bg-m-inset pr-2 pl-2.5 shadow-m-inset",
         "text-m-label font-normal text-m-ink-3",
+        // Aurora: a pill in the inset film, edged in ink at 14 per cent.
+        "aurora:h-[34px] aurora:rounded-full aurora:border-a-edge-pill aurora:bg-a-field aurora:pr-1.5 aurora:pl-3 aurora:text-[13.5px] aurora:shadow-none",
         HOVER_FILM,
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
-        compact ? "max-sm:size-11 max-sm:justify-center max-sm:p-0" : "",
+        // Restated under the variant, which would otherwise outrank the phone size.
+        compact
+          ? "max-sm:size-11 max-sm:justify-center max-sm:p-0 aurora:max-sm:size-11 aurora:max-sm:p-0"
+          : "",
         className,
       )}
     >
@@ -373,7 +383,8 @@ export function GoToButton({
           aria-hidden="true"
           className={cn(
             "rounded-[4px] border border-m-hairline px-[5px] font-mono text-m-micro font-normal text-m-ink-3",
-            compact ? "max-sm:hidden" : "",
+            "aurora:inline-flex aurora:h-[22px] aurora:items-center aurora:rounded-full aurora:border-0 aurora:bg-m-hover aurora:px-[7px] aurora:text-[10.5px] aurora:leading-none",
+            compact ? "max-sm:hidden aurora:max-sm:hidden" : "",
           )}
         >
           {shortcut}

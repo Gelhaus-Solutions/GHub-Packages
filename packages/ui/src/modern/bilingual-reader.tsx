@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "../cn.js";
 import { SegmentedControl } from "../segmented-control.js";
+import { AURORA_GLASS, AURORA_IN_SECTION } from "./aurora.js";
 
 /** One of the two texts, with what identifies the file it came from. */
 export interface BilingualText {
@@ -165,8 +166,11 @@ export function BilingualReader({
       )}
 
       <div
+        data-m-flush=""
         className={cn(
           "grid rounded-m-panel bg-m-plate shadow-m-plate",
+          AURORA_GLASS,
+          AURORA_IN_SECTION,
           mode === "pair"
             ? "grid-cols-2"
             : mode === "single"

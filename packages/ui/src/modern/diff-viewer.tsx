@@ -3,6 +3,7 @@
 import { ChevronsUpDown } from "lucide-react";
 import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS, AURORA_IN_SECTION } from "./aurora.js";
 
 /** One run of text inside a paragraph: unchanged, or a word mark. */
 export interface DiffPart {
@@ -302,7 +303,13 @@ export function DiffViewer({
       aria-label={label}
       aria-describedby={describedBy}
       lang={lang}
-      className={cn("overflow-hidden rounded-m-panel bg-m-plate shadow-m-plate", className)}
+      data-m-flush=""
+      className={cn(
+        "overflow-hidden rounded-m-panel bg-m-plate shadow-m-plate",
+        AURORA_GLASS,
+        AURORA_IN_SECTION,
+        className,
+      )}
     >
       {blocks.map((block, index) => {
         // A hairline between blocks, none above the first, so the plate's own
@@ -327,7 +334,7 @@ export function DiffViewer({
                   open(index);
                 }}
                 className={cn(
-                  "flex min-h-9 w-full items-center gap-2 border-b border-m-hairline bg-m-sunken px-4 py-1.5",
+                  "flex min-h-9 w-full items-center gap-2 border-b border-m-hairline bg-m-sunken px-4 py-1.5 aurora:bg-a-well",
                   "text-left text-m-meta font-medium text-m-accent-text hover:underline",
                   "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-m-ring",
                 )}

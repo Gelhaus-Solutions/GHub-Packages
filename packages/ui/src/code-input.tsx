@@ -21,6 +21,7 @@ import {
   writeAt,
 } from "./code-entry.js";
 import { fieldBorderTone, isRefused } from "./field-state.js";
+import { AURORA_FIELD } from "./modern/aurora.js";
 
 /**
  * One code, one box per character.
@@ -188,7 +189,9 @@ export function CodeInput({
       aria-describedby={described}
     >
       {label === undefined ? null : (
-        <legend className="p-0 mb-2 text-xs font-medium text-fg-secondary">{label}</legend>
+        <legend className="p-0 mb-2 text-xs font-medium text-fg-secondary aurora:mb-[7px] aurora:text-[13.5px] aurora:text-m-ink">
+          {label}
+        </legend>
       )}
 
       <div className="flex gap-1.5">
@@ -225,6 +228,8 @@ export function CodeInput({
               "hover:border-(--gc-border-strong)",
               "focus:outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--gc-accent-wash)]",
               "disabled:opacity-45 disabled:cursor-not-allowed",
+              AURORA_FIELD,
+              "aurora:h-12 aurora:hover:border-m-strong",
               // Through the shared rule rather than the copy of the crit border
               // that used to be spelled out here. Two spellings of one border is
               // how the boxes and the text fields end up disagreeing about what
@@ -241,11 +246,18 @@ export function CodeInput({
       {error !== undefined ? (
         // One message about the code. `alert` rather than a polite region
         // because it replaces something the reader has just submitted.
-        <p id={messageId} role="alert" className="mt-1.5 text-2xs text-crit-ink">
+        <p
+          id={messageId}
+          role="alert"
+          className="mt-1.5 text-2xs text-crit-ink aurora:text-[12.5px] aurora:text-m-crit-ink"
+        >
           {error}
         </p>
       ) : hint !== undefined ? (
-        <p id={messageId} className="mt-1.5 text-2xs text-fg-tertiary">
+        <p
+          id={messageId}
+          className="mt-1.5 text-2xs text-fg-tertiary aurora:text-[12.5px] aurora:text-m-ink-3"
+        >
           {hint}
         </p>
       ) : null}

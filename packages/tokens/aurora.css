@@ -1,0 +1,455 @@
+/*
+ * Aurora: modern's dark column, forced, with a layer of glass over it.
+ *
+ * A SURFACE OF MODERN rather than a third language. It keeps every modern
+ * value (the inks, the accent, the status ramp, the focus ring) and changes
+ * three things: there is no light theme, the type runs one step denser, and
+ * the surfaces are frosted glass over slow coloured light instead of flat
+ * plates. Pills replace the 10px control radius, and the one primary control
+ * and the worst state on a screen glow.
+ *
+ * WHO USES IT: the GPlatform Legal staff console. Nothing else, and nothing
+ * else changes because this file exists.
+ *
+ * OPT-IN TWICE, AND BOTH HALVES ARE NEEDED:
+ *   1. `@import "@ghub/tokens/aurora.css";` after modern.css. That declares the
+ *      `aurora:` variant, the `a-` utilities and their values.
+ *   2. `data-aurora` on `<html>`. That switches them on.
+ *
+ * The components in `@ghub/ui/modern` carry `aurora:` classes beside their
+ * own. An app that never imports this file has no `aurora` variant, and
+ * Tailwind emits nothing for a class whose variant it does not know, so such
+ * an app compiles the CSS it compiled before, byte for byte. An app that
+ * imports it without the attribute compiles the rules and matches none.
+ *
+ * Every value below is lifted from the design's own declarations (the Legal
+ * Phase 1 sheets and the Compliance handoff drawn in them: "Shell and page
+ * anatomy", "Building blocks", "Design tokens"). Nothing was chosen by eye.
+ */
+
+/*
+ * The switch. Matches the stamped element and everything under it, the shape
+ * Tailwind documents for a class-driven dark mode, and `:where` keeps it at
+ * zero specificity so an aurora class competes with the class it refines on
+ * source order alone, which Tailwind settles by emitting variants last.
+ */
+@custom-variant aurora (&:where([data-aurora], [data-aurora] *));
+
+/* --------------------------------------------------------------------------
+ * Dark, forced. Modern's dark column, restated.
+ *
+ * Restated rather than referenced, because the point is to win over both of
+ * modern's light blocks: the pinned `[data-theme="light"]` one and the one
+ * that answers the OS. `html:root[data-aurora]` outranks both on specificity,
+ * so it holds whatever order the files are imported in and whatever the OS
+ * prefers. The values are modern's to the digit; a test compares them.
+ * -------------------------------------------------------------------------- */
+html:root[data-aurora] {
+  color-scheme: dark;
+
+  --gm-ground: oklch(0.185 0.008 258);
+  --gm-sunken: oklch(0.155 0.007 258);
+  --gm-plate: oklch(0.225 0.009 258);
+  --gm-overlay: oklch(0.265 0.01 258);
+  --gm-inset: oklch(0.16 0.007 258);
+  --gm-hover: oklch(1 0 0 / 0.05);
+  --gm-active: oklch(1 0 0 / 0.08);
+  --gm-selected: oklch(0.72 0.12 200 / 0.12);
+  --gm-hairline: oklch(1 0 0 / 0.11);
+  --gm-subtle: oklch(1 0 0 / 0.16);
+  --gm-control: oklch(1 0 0 / 0.36);
+  --gm-strong: oklch(1 0 0 / 0.46);
+  --gm-ink: oklch(0.975 0.003 255);
+  --gm-ink-2: oklch(0.8 0.009 255);
+  --gm-ink-3: oklch(0.645 0.012 258);
+  --gm-ink-off: oklch(0.45 0.012 258);
+  --gm-accent: oklch(0.72 0.12 200);
+  --gm-accent-hover: oklch(0.78 0.12 198);
+  --gm-accent-press: oklch(0.66 0.13 202);
+  --gm-accent-on: oklch(0.15 0.02 215);
+  --gm-accent-text: oklch(0.78 0.11 200);
+  --gm-accent-wash: oklch(0.72 0.12 200 / 0.13);
+  --gm-ok: oklch(0.72 0.16 152);
+  --gm-ok-ink: oklch(0.76 0.15 152);
+  --gm-ok-wash: oklch(0.72 0.16 152 / 0.13);
+  --gm-warn: oklch(0.79 0.15 80);
+  --gm-warn-ink: oklch(0.82 0.14 82);
+  --gm-warn-wash: oklch(0.79 0.15 80 / 0.13);
+  --gm-crit: oklch(0.65 0.21 24);
+  --gm-crit-ink: oklch(0.72 0.18 25);
+  --gm-crit-wash: oklch(0.65 0.21 24 / 0.13);
+  --gm-info: oklch(0.7 0.13 255);
+  --gm-info-ink: oklch(0.75 0.12 250);
+  --gm-info-wash: oklch(0.7 0.13 255 / 0.13);
+  --gm-idle: oklch(0.58 0.012 255);
+  --gm-idle-ink: oklch(0.7 0.011 255);
+  --gm-crit-fill: oklch(0.5 0.2 22);
+  --gm-ring: oklch(0.82 0.11 196);
+  --gm-shadow-plate: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.28);
+  --gm-shadow-card: inset 0 1px 0 oklch(1 0 0 / 0.05), 0 1px 3px oklch(0 0 0 / 0.22);
+  --gm-shadow-quiet: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  --gm-shadow-inset: inset 0 1px 2px oklch(0 0 0 / 0.32);
+  --gm-shadow-overlay: 0 24px 48px -12px oklch(0 0 0 / 0.6), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  --gm-diff-add: oklch(0.72 0.16 152 / 0.09);
+  --gm-diff-add-word: oklch(0.72 0.16 152 / 0.26);
+  --gm-diff-del: oklch(0.975 0.003 255 / 0.05);
+  --gm-diff-del-word: oklch(0.975 0.003 255 / 0.15);
+  --gm-diff-band: oklch(0.975 0.003 255 / 0.04);
+}
+
+/* --------------------------------------------------------------------------
+ * Density. Aurora's type runs a step below modern's, because a staff console
+ * read for an hour wants more on a screen than a page somebody opens twice a
+ * year. Modern's type steps are non-inline for this reason, so redeclaring
+ * them here restyles every component and every page that uses them at once.
+ *
+ *     step      modern     aurora
+ *     title     26/34      32/38   (the page's h1, tracked -0.03em)
+ *     heading   20/28      18/24   (a heading between blocks)
+ *     lede      17/27      14.5/22
+ *     body      15/24      14/21
+ *     label     14/20      13.5/19
+ *     meta      13/20      12.5/18
+ *     micro     11.5/16    12/16   (untracked; it is a count or a time here)
+ * -------------------------------------------------------------------------- */
+html:root[data-aurora] {
+  --text-m-title: 2rem;
+  --text-m-title--line-height: 2.375rem;
+  --text-m-title--letter-spacing: -0.03em;
+  --text-m-heading: 1.125rem;
+  --text-m-heading--line-height: 1.5rem;
+  --text-m-lede: 0.90625rem;
+  --text-m-lede--line-height: 1.375rem;
+  --text-m-lede--letter-spacing: 0em;
+  --text-m-body: 0.875rem;
+  --text-m-body--line-height: 1.3125rem;
+  --text-m-label: 0.84375rem;
+  --text-m-label--line-height: 1.1875rem;
+  --text-m-meta: 0.78125rem;
+  --text-m-meta--line-height: 1.125rem;
+  --text-m-micro: 0.75rem;
+  --text-m-micro--line-height: 1rem;
+  --text-m-micro--letter-spacing: 0em;
+}
+
+/* --------------------------------------------------------------------------
+ * The glass. Each is a film of a modern surface or ink, so it follows the
+ * palette rather than carrying a colour of its own.
+ * -------------------------------------------------------------------------- */
+:root {
+  /*
+   * Five materials. A section and a tile are the plate at 62 per cent under a
+   * 20px blur; the rail floats a little thinner (58, 22px) because it sits on
+   * the brightest light. Raised is the current item in a list or a segmented
+   * control: nearly solid, and lifted by its shadow rather than by a colour.
+   */
+  --ga-glass: color-mix(in oklch, var(--gm-plate) 62%, transparent);
+  --ga-glass-rail: color-mix(in oklch, var(--gm-plate) 58%, transparent);
+  --ga-raised: color-mix(in oklch, var(--gm-plate) 88%, transparent);
+  --ga-raised-strong: color-mix(in oklch, var(--gm-plate) 92%, transparent);
+  --ga-field: color-mix(in oklch, var(--gm-inset) 70%, transparent);
+  --ga-well: color-mix(in oklch, var(--gm-inset) 60%, transparent);
+  --ga-track: color-mix(in oklch, var(--gm-ink) 6%, transparent);
+  --ga-menu: color-mix(in oklch, var(--gm-plate) 82%, transparent);
+
+  /*
+   * The frost behind each film. A variable rather than a literal so that one
+   * media query can take every pane's blur away at once (below).
+   */
+  --ga-frost: blur(20px) saturate(150%);
+  --ga-frost-rail: blur(22px) saturate(150%);
+  --ga-frost-menu: blur(24px) saturate(160%);
+
+  /*
+   * Edges, all ink films. Decorative ones (glass 10, track 8, chip 12) owe
+   * nothing; a field keeps modern's `control` edge, which owes 3:1.
+   */
+  --ga-edge: color-mix(in oklch, var(--gm-ink) 10%, transparent);
+  --ga-edge-track: color-mix(in oklch, var(--gm-ink) 8%, transparent);
+  --ga-edge-chip: color-mix(in oklch, var(--gm-ink) 12%, transparent);
+  --ga-edge-pill: color-mix(in oklch, var(--gm-ink) 14%, transparent);
+  --ga-edge-button: color-mix(in oklch, var(--gm-ink) 16%, transparent);
+  --ga-edge-dashed: color-mix(in oklch, var(--gm-ink) 22%, transparent);
+
+  /*
+   * Shadows. Every glass surface has a 1px top highlight, which is what reads
+   * as an edge catching light, and a long soft drop that only shows on the
+   * auroras behind it.
+   */
+  --ga-shadow-glass:
+    inset 0 1px 0 color-mix(in oklch, oklch(1 0 0) 12%, transparent),
+    0 20px 40px -28px oklch(0 0 0 / 0.6);
+  --ga-shadow-rail:
+    inset 0 1px 0 color-mix(in oklch, oklch(1 0 0) 14%, transparent),
+    0 24px 48px -30px oklch(0 0 0 / 0.6);
+  --ga-shadow-highlight: inset 0 1px 0 color-mix(in oklch, oklch(1 0 0) 12%, transparent);
+  --ga-shadow-raised:
+    inset 0 1px 0 color-mix(in oklch, oklch(1 0 0) 16%, transparent),
+    0 4px 12px -6px oklch(0 0 0 / 0.45);
+  --ga-shadow-raised-strong:
+    inset 0 1px 0 color-mix(in oklch, oklch(1 0 0) 18%, transparent),
+    0 4px 12px -6px oklch(0 0 0 / 0.5);
+
+  /*
+   * Glows. The primary control glows in the accent; a block that carries the
+   * worst news on the screen glows in its level. Never more than one of each
+   * kind in view, which is the design's rule rather than this file's.
+   */
+  --ga-shadow-primary:
+    inset 0 1px 0 oklch(1 0 0 / 0.3),
+    0 0 18px -6px color-mix(in oklch, var(--gm-accent) 70%, transparent);
+  --ga-shadow-start:
+    inset 0 1px 0 oklch(1 0 0 / 0.3),
+    0 0 18px -4px color-mix(in oklch, var(--gm-accent) 70%, transparent);
+  --ga-glow-accent: 0 18px 40px -24px color-mix(in oklch, var(--gm-accent) 70%, transparent);
+  --ga-glow-ok: 0 18px 40px -24px color-mix(in oklch, var(--gm-ok) 70%, transparent);
+  --ga-glow-info: 0 18px 40px -24px color-mix(in oklch, var(--gm-info) 70%, transparent);
+  --ga-glow-warn: 0 18px 40px -24px color-mix(in oklch, var(--gm-warn) 70%, transparent);
+  --ga-glow-crit: 0 18px 40px -24px color-mix(in oklch, var(--gm-crit) 70%, transparent);
+  --ga-shadow-primary-large:
+    inset 0 1px 0 oklch(1 0 0 / 0.3),
+    0 10px 28px -10px color-mix(in oklch, var(--gm-accent) 90%, transparent);
+  --ga-shadow-menu:
+    inset 0 1px 0 color-mix(in oklch, oklch(1 0 0) 16%, transparent),
+    0 24px 48px -16px oklch(0 0 0 / 0.7);
+
+  /*
+   * Paper: a document as it prints, the one light thing on an Aurora screen.
+   * Its inks are the printed page's, not the console's, so they are stated
+   * here rather than borrowed from modern's light column. Added and removed
+   * text on paper are the printed marks a reviewer would make by hand.
+   */
+  --ga-paper: oklch(0.97 0.003 255);
+  --ga-paper-title: #13161b;
+  --ga-paper-text: #26292e;
+  --ga-paper-muted: #52565b;
+  --ga-paper-eyebrow: #606369;
+  --ga-paper-added: oklch(0.9 0.08 152);
+  --ga-paper-removed: oklch(0.92 0.06 24);
+  --ga-shadow-paper: 0 10px 30px -10px oklch(0 0 0 / 0.6);
+
+  /*
+   * The three auroras behind the content: the accent high on the left, info
+   * at the right, and a fainter accent further down. Positions belong to the
+   * shell that draws them; the light belongs here.
+   */
+  --ga-aurora-accent: radial-gradient(
+    closest-side,
+    color-mix(in oklch, var(--gm-accent) 20%, transparent),
+    transparent
+  );
+  --ga-aurora-info: radial-gradient(
+    closest-side,
+    color-mix(in oklch, var(--gm-info) 14%, transparent),
+    transparent
+  );
+  --ga-aurora-low: radial-gradient(
+    closest-side,
+    color-mix(in oklch, var(--gm-accent) 10%, transparent),
+    transparent
+  );
+}
+
+/* --------------------------------------------------------------------------
+ * Tailwind mapping, prefixed `a-` for the reason modern is prefixed `m-`: an
+ * app reading `bg-a-glass` knows which surface it is on.
+ * -------------------------------------------------------------------------- */
+@theme inline {
+  --color-a-glass: var(--ga-glass);
+  --color-a-glass-rail: var(--ga-glass-rail);
+  --color-a-raised: var(--ga-raised);
+  --color-a-raised-strong: var(--ga-raised-strong);
+  --color-a-field: var(--ga-field);
+  --color-a-well: var(--ga-well);
+  --color-a-track: var(--ga-track);
+  --color-a-menu: var(--ga-menu);
+  --color-a-paper: var(--ga-paper);
+  --color-a-paper-title: var(--ga-paper-title);
+  --color-a-paper-text: var(--ga-paper-text);
+  --color-a-paper-muted: var(--ga-paper-muted);
+  --color-a-paper-eyebrow: var(--ga-paper-eyebrow);
+  --color-a-paper-added: var(--ga-paper-added);
+  --color-a-paper-removed: var(--ga-paper-removed);
+
+  --color-a-edge: var(--ga-edge);
+  --color-a-edge-track: var(--ga-edge-track);
+  --color-a-edge-chip: var(--ga-edge-chip);
+  --color-a-edge-pill: var(--ga-edge-pill);
+  --color-a-edge-button: var(--ga-edge-button);
+  --color-a-edge-dashed: var(--ga-edge-dashed);
+
+  --shadow-a-glass: var(--ga-shadow-glass);
+  --shadow-a-rail: var(--ga-shadow-rail);
+  --shadow-a-highlight: var(--ga-shadow-highlight);
+  --shadow-a-raised: var(--ga-shadow-raised);
+  --shadow-a-raised-strong: var(--ga-shadow-raised-strong);
+  --shadow-a-primary: var(--ga-shadow-primary);
+  --shadow-a-start: var(--ga-shadow-start);
+  --shadow-a-glow-accent: var(--ga-glow-accent);
+  --shadow-a-glow-ok: var(--ga-glow-ok);
+  --shadow-a-glow-info: var(--ga-glow-info);
+  --shadow-a-glow-warn: var(--ga-glow-warn);
+  --shadow-a-glow-crit: var(--ga-glow-crit);
+  --shadow-a-primary-large: var(--ga-shadow-primary-large);
+  --shadow-a-menu: var(--ga-shadow-menu);
+  --shadow-a-paper: var(--ga-shadow-paper);
+}
+
+@theme {
+  /*
+   * Radii, largest first. Aurora is rounder than modern on purpose: a pane of
+   * glass with a 10px corner reads as a card, and the design wants it to read
+   * as something floating. Pills (`rounded-full`) are every button, chip and
+   * status here, and they need no token.
+   */
+  --radius-a-rail: 20px;
+  --radius-a-glass: 18px;
+  --radius-a-banner: 16px;
+  --radius-a-choice: 14px;
+  --radius-a-field: 12px;
+  --radius-a-item: 10px;
+  --radius-a-sub: 9px;
+  --radius-a-check: 7px;
+
+  /* The steps Aurora has and modern does not. */
+  --text-a-h2: 0.9375rem;
+  --text-a-h2--line-height: 1.25rem;
+  --text-a-h2--font-weight: 600;
+  --text-a-step: 1.375rem;
+  --text-a-step--line-height: 1.875rem;
+  --text-a-step--letter-spacing: -0.015em;
+  --text-a-step--font-weight: 600;
+  --text-a-tile: 1.875rem;
+  --text-a-tile--line-height: 2.125rem;
+  --text-a-tile--letter-spacing: -0.03em;
+  --text-a-tile--font-weight: 600;
+  --text-a-clock: 1.625rem;
+  --text-a-clock--line-height: 2rem;
+  --text-a-public: 1.6875rem;
+  --text-a-public--line-height: 2rem;
+  --text-a-public--letter-spacing: -0.025em;
+  --text-a-public--font-weight: 600;
+
+  /*
+   * Motion. Content rises 10px into place over 480ms on modern's one curve,
+   * fifty milliseconds apart; the auroras drift over 16 to 24 seconds. Not
+   * inline, so the reduced-motion block below can switch all of it off by
+   * redeclaring the variables rather than by fighting each class.
+   */
+  --animate-a-rise: a-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-a-drift-1: a-drift 16s ease-in-out infinite alternate;
+  --animate-a-drift-2: a-drift 20s ease-in-out infinite alternate-reverse;
+  --animate-a-drift-3: a-drift 24s ease-in-out infinite alternate;
+
+  @keyframes a-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  /*
+   * Each aurora sets its own sideways reach in --a-drift-x (50 to 60px, either
+   * way) and they all sink 30px, so the three never move in step.
+   */
+  @keyframes a-drift {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(var(--a-drift-x, 56px), 30px, 0);
+    }
+  }
+}
+
+/*
+ * The glass itself: the film and the frost, as one class, because a film
+ * without its blur is a grey box and a blur without its film is a hole. The
+ * edge, the radius and the shadow stay separate utilities so a component can
+ * keep its own.
+ */
+@utility a-glass {
+  background-color: var(--ga-glass);
+  -webkit-backdrop-filter: var(--ga-frost);
+  backdrop-filter: var(--ga-frost);
+}
+
+@utility a-glass-rail {
+  background-color: var(--ga-glass-rail);
+  -webkit-backdrop-filter: var(--ga-frost-rail);
+  backdrop-filter: var(--ga-frost-rail);
+}
+
+@utility a-glass-menu {
+  background-color: var(--ga-menu);
+  -webkit-backdrop-filter: var(--ga-frost-menu);
+  backdrop-filter: var(--ga-frost-menu);
+}
+
+/*
+ * The stagger: a page's blocks rise one after another, 50ms apart, the first
+ * ten of them. Past ten the rest arrive with the tenth, because a long page
+ * that is still animating a second later is a page that feels slow.
+ */
+@utility a-stagger {
+  & > * {
+    animation: var(--animate-a-rise);
+  }
+  & > :nth-child(2) {
+    animation-delay: 50ms;
+  }
+  & > :nth-child(3) {
+    animation-delay: 100ms;
+  }
+  & > :nth-child(4) {
+    animation-delay: 150ms;
+  }
+  & > :nth-child(5) {
+    animation-delay: 200ms;
+  }
+  & > :nth-child(6) {
+    animation-delay: 250ms;
+  }
+  & > :nth-child(7) {
+    animation-delay: 300ms;
+  }
+  & > :nth-child(8) {
+    animation-delay: 350ms;
+  }
+  & > :nth-child(9) {
+    animation-delay: 400ms;
+  }
+  & > :nth-child(n + 10) {
+    animation-delay: 450ms;
+  }
+}
+
+/*
+ * Somebody who asked for less transparency gets solid plates: the same plate
+ * modern draws, with no blur. The glass was never carrying information, so
+ * nothing is lost but the light.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --ga-glass: var(--gm-plate);
+    --ga-glass-rail: var(--gm-plate);
+    --ga-menu: var(--gm-overlay);
+    --ga-frost: none;
+    --ga-frost-rail: none;
+    --ga-frost-menu: none;
+  }
+}
+
+/*
+ * Nothing moves for somebody who asked for nothing to move: no rise, no drift.
+ * Content is simply there, at full opacity, which `none` gives because the
+ * rise's `both` fill is never applied.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --animate-a-rise: none;
+    --animate-a-drift-1: none;
+    --animate-a-drift-2: none;
+    --animate-a-drift-3: none;
+  }
+}

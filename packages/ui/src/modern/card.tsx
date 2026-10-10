@@ -2,6 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS } from "./aurora.js";
 
 /** True inside a card, which is how a nested one knows to flatten. */
 const InsideCard = createContext(false);
@@ -46,7 +47,8 @@ export function Card({ children, roomy = false, className }: CardProps) {
       <div
         className={cn(
           "rounded-m-card border border-m-subtle bg-m-plate shadow-m-card",
-          roomy ? "p-10" : "p-6",
+          AURORA_GLASS,
+          roomy ? "p-10 aurora:p-8" : "p-6 aurora:px-5 aurora:py-[18px]",
           className,
         )}
       >

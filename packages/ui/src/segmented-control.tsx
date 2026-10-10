@@ -3,6 +3,12 @@
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import { choiceTabStop, nextChoice } from "./choice-roving.js";
 import { cn } from "./cn.js";
+import {
+  AURORA_TRACK,
+  AURORA_TRACK_ITEM,
+  AURORA_TRACK_OFF,
+  AURORA_TRACK_ON,
+} from "./modern/aurora.js";
 
 /**
  * Two to four exclusive options in one row, which is not navigation.
@@ -87,6 +93,7 @@ export function SegmentedControl<K extends string = string>({
       className={cn(
         "inline-flex items-center gap-0.5 rounded-(--radius-md) border p-0.5",
         "border-(--gc-border-hairline) bg-inset",
+        AURORA_TRACK,
         className,
       )}
     >
@@ -103,6 +110,8 @@ export function SegmentedControl<K extends string = string>({
             onClick={() => onChange(option.key)}
             className={cn(
               "h-7 min-w-16 rounded-(--radius-sm) px-2.5 text-xs font-medium",
+              AURORA_TRACK_ITEM,
+              "aurora:min-w-0 aurora:focus-visible:outline-m-ring",
               "transition-colors duration-(--duration-instant)",
               "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--gc-ring)",
               picked
@@ -110,8 +119,8 @@ export function SegmentedControl<K extends string = string>({
                   // accent means "this can be acted on", and in a group where
                   // every segment can be pressed it would mark the one that
                   // cannot do anything new.
-                  "bg-raised text-fg shadow-(--shadow-sm)"
-                : "text-fg-secondary hover:text-fg",
+                  `bg-raised text-fg shadow-(--shadow-sm) ${AURORA_TRACK_ON}`
+                : `text-fg-secondary hover:text-fg ${AURORA_TRACK_OFF}`,
             )}
           >
             {option.label}

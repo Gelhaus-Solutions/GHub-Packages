@@ -59,6 +59,26 @@ const bandInk: Record<StateBandProps["status"], string> = {
   locked: "text-locked-ink",
 };
 
+/*
+ * Aurora draws the band as a banner at the top of the content column: glass
+ * lit from the corner in its level at 18 per cent, an edge at 45, and the
+ * level's glow under it, because it is the worst news on every screen.
+ */
+const auroraBand: Record<StateBandProps["status"], string> = {
+  warn: "aurora:border-m-warn/45 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-warn)_18%,transparent),transparent_60%)] aurora:shadow-[0_14px_32px_-18px_color-mix(in_oklch,var(--gm-warn)_70%,transparent)]",
+  crit: "aurora:border-m-crit/45 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-crit)_18%,transparent),transparent_60%)] aurora:shadow-[0_14px_32px_-18px_color-mix(in_oklch,var(--gm-crit)_70%,transparent)]",
+  info: "aurora:border-m-info/45 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-info)_18%,transparent),transparent_60%)] aurora:shadow-[0_14px_32px_-18px_color-mix(in_oklch,var(--gm-info)_70%,transparent)]",
+  locked:
+    "aurora:border-m-idle/45 aurora:bg-[linear-gradient(140deg,color-mix(in_oklch,var(--gm-idle)_18%,transparent),transparent_60%)]",
+};
+
+const auroraInk: Record<StateBandProps["status"], string> = {
+  warn: "aurora:text-m-warn-ink",
+  crit: "aurora:text-m-crit-ink",
+  info: "aurora:text-m-info-ink",
+  locked: "aurora:text-m-idle-ink",
+};
+
 const frameRing: Record<StateBandProps["status"], string> = {
   warn: "border-[color-mix(in_oklch,var(--gc-warn)_45%,transparent)]",
   crit: "border-[color-mix(in_oklch,var(--gc-crit)_45%,transparent)]",
@@ -77,7 +97,16 @@ export function StateBand({
 }: StateBandProps) {
   return (
     <>
-      <div role="status" className={cn("border-b px-8 py-3", bandSurface[status], className)}>
+      <div
+        role="status"
+        className={cn(
+          "border-b px-8 py-3",
+          bandSurface[status],
+          "aurora:a-glass aurora:rounded-a-banner aurora:border aurora:px-[18px] aurora:py-3.5",
+          auroraBand[status],
+          className,
+        )}
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <div className="min-w-0">
             {/*
@@ -86,7 +115,14 @@ export function StateBand({
              * in the palette, and this is the one place it carries a word
              * somebody has to read rather than a dot beside one.
              */}
-            <span className={cn("text-lg font-semibold tracking-[-0.02em]", bandInk[status])}>
+            <span
+              className={cn(
+                "text-lg font-semibold tracking-[-0.02em]",
+                bandInk[status],
+                "aurora:text-[14.5px] aurora:leading-[21px] aurora:font-medium aurora:tracking-normal",
+                auroraInk[status],
+              )}
+            >
               {label}
             </span>
             {children === undefined ? null : (
@@ -94,10 +130,14 @@ export function StateBand({
               // being read, and reading a paragraph in a status colour is
               // harder than reading it in the text colour beside a coloured
               // heading that already said which kind of state this is.
-              <p className="mt-1 max-w-[88ch] text-xs text-fg">{children}</p>
+              <p className="mt-1 max-w-[88ch] text-xs text-fg aurora:mt-0.5 aurora:max-w-[760px] aurora:text-[13.5px] aurora:leading-5 aurora:text-m-ink-2">
+                {children}
+              </p>
             )}
             {meta === undefined ? null : (
-              <p className="numeric mt-1.5 text-2xs text-fg-secondary">{meta}</p>
+              <p className="numeric mt-1.5 text-2xs text-fg-secondary aurora:mt-1 aurora:font-mono aurora:text-[12.5px] aurora:text-m-ink-3">
+                {meta}
+              </p>
             )}
           </div>
           {action === undefined ? null : <div className="shrink-0">{action}</div>}

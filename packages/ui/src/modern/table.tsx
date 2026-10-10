@@ -1,5 +1,16 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn.js";
+import { AURORA_GLASS } from "./aurora.js";
+
+/*
+ * Aurora: a table alone is its own pane of glass. Inside a glass section it
+ * goes flat and runs to the pane's edges, so the section's head sits directly
+ * over its header row as one object. Spelled out rather than composed,
+ * because Tailwind reads class names from the source and cannot see one
+ * built from two strings.
+ */
+const AURORA_IN_SECTION =
+  "aurora:in-data-m-body:-mx-[18px] aurora:in-data-m-body:rounded-none aurora:in-data-m-body:border-0 aurora:in-data-m-body:bg-transparent aurora:in-data-m-body:shadow-none aurora:in-data-m-body:backdrop-filter-none";
 
 export interface Column<Row> {
   /** Stable identity for the column, used as the React key. */
@@ -56,7 +67,15 @@ export function Table<Row>({ columns, rows, rowKey, caption, className }: TableP
   return (
     // The one place `sunken` appears on a signed-in screen: the well the table
     // sits in. Clipped corners so the hairlines do not cross the radius.
-    <div className={cn("overflow-x-auto rounded-m-card bg-m-sunken", className)}>
+    <div
+      data-m-flush=""
+      className={cn(
+        "overflow-x-auto rounded-m-card bg-m-sunken",
+        AURORA_GLASS,
+        AURORA_IN_SECTION,
+        className,
+      )}
+    >
       <table className="w-full border-collapse text-left">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -68,6 +87,7 @@ export function Table<Row>({ columns, rows, rowKey, caption, className }: TableP
                 aria-sort={column.sort === undefined ? undefined : column.sort}
                 className={cn(
                   "h-[42px] border-b border-m-subtle px-5 text-m-label text-m-ink-2",
+                  "aurora:h-9 aurora:border-b-0 aurora:px-4 aurora:text-[12px] aurora:leading-4 aurora:font-normal aurora:text-m-ink-3",
                   column.numeric === true ? "text-right" : "",
                 )}
               >
@@ -90,6 +110,10 @@ export function Table<Row>({ columns, rows, rowKey, caption, className }: TableP
                   key={column.key}
                   className={cn(
                     "h-11 border-b border-m-hairline px-5 text-m-meta text-m-ink",
+                    // Aurora rows are taller and ruled above, so the header
+                    // row is separated from the first one and the last row
+                    // ends on the pane's own edge.
+                    "aurora:h-[52px] aurora:border-t aurora:border-b-0 aurora:px-4 aurora:py-2 aurora:text-[13.5px] aurora:leading-[19px]",
                     column.numeric === true ? "text-right font-mono tabular-nums" : "",
                   )}
                 >

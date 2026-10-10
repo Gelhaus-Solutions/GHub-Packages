@@ -139,8 +139,8 @@ describe("TypedConfirmation at rest", () => {
     expect(html).toContain("Typed again to confirm.");
     expect(html).not.toContain("Matches");
     expect(html).not.toContain("This does not match");
-    expect(html).not.toContain("aria-invalid");
-    expect(attr(html, "input", "class")).not.toContain("border-m-crit");
+    expect(html).not.toMatch(/\saria-invalid=/);
+    expect((attr(html, "input", "class") ?? "").split(" ")).not.toContain("border-m-crit");
   });
 
   it("mounts an empty status region, visually hidden, before anything matches", () => {
@@ -159,7 +159,7 @@ describe("TypedConfirmation once it matches", () => {
     const region = /<div role="status"[^>]*>(.*?)<\/div>/s.exec(html)?.[1] ?? "";
     expect(region).toContain("Matches");
     expect(html).not.toContain("Typed again to confirm.");
-    expect(html).not.toContain("aria-invalid");
+    expect(html).not.toMatch(/\saria-invalid=/);
   });
 
   it("says it in a word beside the dot, never the dot alone", () => {

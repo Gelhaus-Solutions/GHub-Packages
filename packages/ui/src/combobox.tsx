@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "./cn.js";
 import { FieldShell } from "./input.js";
+import { AURORA_FIELD, AURORA_MENU } from "./modern/aurora.js";
 
 /**
  * A searchable select, hand-rolled, with a hidden named input behind it.
@@ -246,6 +247,8 @@ export function Combobox({
             "hover:border-(--gc-border-strong)",
             "focus:outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--gc-accent-wash)]",
             "disabled:opacity-45 disabled:cursor-not-allowed",
+            AURORA_FIELD,
+            "aurora:h-10 aurora:px-3 aurora:pr-8 aurora:text-[14px] aurora:placeholder:text-m-ink-3 aurora:hover:border-m-strong aurora:max-sm:h-11",
             error !== undefined &&
               "border-crit focus:border-crit focus:shadow-[0_0_0_3px_var(--gc-crit-wash)]",
           )}
@@ -253,7 +256,7 @@ export function Combobox({
 
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary"
+          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary aurora:right-3 aurora:text-m-ink-3"
         >
           <svg
             width="12"
@@ -277,12 +280,16 @@ export function Combobox({
             className={cn(
               "absolute z-50 mt-1 max-h-64 w-full overflow-y-auto py-1",
               "rounded-(--radius-md) border border-(--gc-border-subtle) bg-overlay shadow-md",
+              AURORA_MENU,
+              "aurora:p-1.5",
             )}
           >
             {matches.length === 0 ? (
               // Not a disabled option and not an empty list. A list with nothing
               // in it reads as a component that failed to load.
-              <li className="px-2.5 py-2 text-2xs text-fg-tertiary">{emptyLabel}</li>
+              <li className="px-2.5 py-2 text-2xs text-fg-tertiary aurora:text-[12.5px] aurora:text-m-ink-3">
+                {emptyLabel}
+              </li>
             ) : (
               matches.map((option, index) => {
                 const isActive = index === active;
@@ -306,16 +313,20 @@ export function Combobox({
                     }}
                     className={cn(
                       "cursor-pointer px-2.5 py-1.5 text-sm",
-                      option.disabled === true && "cursor-not-allowed text-fg-disabled",
-                      isActive && option.disabled !== true && "bg-hover",
-                      selected && "bg-selected",
+                      "aurora:flex aurora:min-h-9 aurora:flex-col aurora:justify-center aurora:rounded-a-item aurora:px-3 aurora:text-[13.5px]",
+                      option.disabled === true &&
+                        "cursor-not-allowed text-fg-disabled aurora:text-m-ink-off",
+                      isActive && option.disabled !== true && "bg-hover aurora:bg-m-hover",
+                      selected && "bg-selected aurora:bg-m-selected",
                     )}
                   >
                     {renderOption === undefined ? (
                       <>
-                        <span className="block truncate text-fg-secondary">{option.label}</span>
+                        <span className="block truncate text-fg-secondary aurora:text-m-ink">
+                          {option.label}
+                        </span>
                         {option.hint === undefined ? null : (
-                          <span className="block truncate text-2xs text-fg-tertiary">
+                          <span className="block truncate text-2xs text-fg-tertiary aurora:text-[12px] aurora:text-m-ink-3">
                             {option.hint}
                           </span>
                         )}

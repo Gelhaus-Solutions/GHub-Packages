@@ -467,6 +467,38 @@
   --shadow-m-overlay: var(--gm-shadow-overlay);
 
   /*
+   * The density rule, as values rather than as a comment on a mockup. A rail
+   * that is 264 on one screen and 260 on the next is the kind of drift nothing
+   * catches, because each screen looks right on its own.
+   */
+  --container-m-rail: 264px;
+  --container-m-content: 1080px;
+  --container-m-prose: 680px;
+
+  /*
+   * One curve, out only. Nothing eases in, nothing bounces, nothing springs,
+   * and console's four durations collapse to three. The focus ring is exempt
+   * and takes none of them: it is instant in both directions, because a 90ms
+   * ring is a ring that is not there when somebody is tabbing fast.
+   */
+  --ease-m: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-m-quick: 90ms;
+  --duration-m-disclosure: 160ms;
+  --duration-m-overlay: 180ms;
+}
+
+/* --------------------------------------------------------------------------
+ * Type and radius, NOT inline, and that is what lets a surface restyle them.
+ *
+ * These are literal values, so inlining bought nothing: a non-inline step
+ * compiles to `font-size: var(--text-m-body)` and declares the value once on
+ * the root, which renders exactly the same pixels. What it adds is that a
+ * later stylesheet can redeclare the variable for a subtree. `aurora.css` does
+ * that for the one surface drawn denser than modern, and an app that does not
+ * import it is unchanged to the computed value.
+ * -------------------------------------------------------------------------- */
+@theme {
+  /*
    * Eight steps, two more than console and none shared below 17. Console runs
    * body 13 with six steps and a flat weight; modern runs body 15 with eight
    * and lets weight 600 carry titles.
@@ -535,24 +567,4 @@
   --radius-m-panel: 12px;
   --radius-m-control: 10px;
   --radius-m-chip: 8px;
-
-  /*
-   * The density rule, as values rather than as a comment on a mockup. A rail
-   * that is 264 on one screen and 260 on the next is the kind of drift nothing
-   * catches, because each screen looks right on its own.
-   */
-  --container-m-rail: 264px;
-  --container-m-content: 1080px;
-  --container-m-prose: 680px;
-
-  /*
-   * One curve, out only. Nothing eases in, nothing bounces, nothing springs,
-   * and console's four durations collapse to three. The focus ring is exempt
-   * and takes none of them: it is instant in both directions, because a 90ms
-   * ring is a ring that is not there when somebody is tabbing fast.
-   */
-  --ease-m: cubic-bezier(0.22, 1, 0.36, 1);
-  --duration-m-quick: 90ms;
-  --duration-m-disclosure: 160ms;
-  --duration-m-overlay: 180ms;
 }
