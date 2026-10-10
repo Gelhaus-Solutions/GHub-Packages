@@ -110,7 +110,9 @@ export type Reason =
   | "response_wrong_channel"
   | "response_stale"
   | "response_seal_failed"
-  | "response_scope_exceeded";
+  | "response_scope_exceeded"
+  | "response_wrong_key"
+  | "response_untrusted_certificate";
 
 export type Verdict<T> = { ok: true; value: T } | { ok: false; reason: Reason };
 
@@ -123,8 +125,8 @@ export function publicCode(reason: Reason): Code {
 
 // ---------------------------------------------------------------- field rules
 
-const ISS = /^gmint:\/\/[a-z0-9][a-z0-9-]{0,62}(\/[a-z0-9][a-z0-9-]{0,62}){1,4}$/;
-const AUD = /^gmint:[a-z0-9][a-z0-9-]{0,62}$/;
+export const ISS = /^gmint:\/\/[a-z0-9][a-z0-9-]{0,62}(\/[a-z0-9][a-z0-9-]{0,62}){1,4}$/;
+export const AUD = /^gmint:[a-z0-9][a-z0-9-]{0,62}$/;
 const GRANT = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const TENANT = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const PERMISSION = /^[a-z][a-z_]{0,63}$/;
@@ -143,11 +145,11 @@ function hasControlCharacter(text: string): boolean {
   return false;
 }
 
-function isPosInt(v: JsonValue | undefined): v is number {
+export function isPosInt(v: JsonValue | undefined): v is number {
   return typeof v === "number" && Number.isSafeInteger(v) && v > 0;
 }
 
-function bytesField(v: JsonValue | undefined, length: number): Uint8Array | null {
+export function bytesField(v: JsonValue | undefined, length: number): Uint8Array | null {
   if (typeof v !== "string") return null;
   const b = b64uDecode(v);
   return b && b.length === length ? b : null;
@@ -338,7 +340,7 @@ function sealAad(clientKid: string, serverKid: string, reqHash: Uint8Array): Uin
   );
 }
 
-function nowSeconds(now?: number): number {
+export function nowSeconds(now?: number): number {
   return now ?? Math.floor(Date.now() / 1000);
 }
 

@@ -13,6 +13,9 @@ What it gives you:
 - **Responses** signed by GMint and bound to the request's hash and the same connection, with the
   credential sealed by HPKE (RFC 9180) to a key the client generated for that one request, so
   nothing between the two ends ever sees it.
+- **Certificate renewal**: a signed, channel-bound request carrying a CSR made with the TLS key
+  (written and read here, Ed25519 only), answered with a signed chain the caller checks against its
+  own key and the GMint root it pins.
 - **Strict parsing**: no duplicate keys, no prototype keys, no unsafe integers, no second spelling
   of the same bytes. The payload is parsed only after its signature verified.
 - **No dependencies.** Everything is `node:crypto`, checked against the RFC 8037 and RFC 9180
