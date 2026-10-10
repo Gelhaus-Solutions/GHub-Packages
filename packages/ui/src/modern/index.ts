@@ -66,8 +66,8 @@ export { Card, type CardProps } from "./card.js";
 export { Section, type SectionProps } from "./section.js";
 export { Status, type StatusLevel, type StatusProps } from "./status.js";
 export { Refusal, type RefusalProps, type RefusalSeverity } from "./refusal.js";
-export { Tabs, type Tab, type TabsProps } from "./tabs.js";
-export { Table, type Column, type TableProps } from "./table.js";
+export { Tabs, type Tab, type TabsProps, type TabsVariant } from "./tabs.js";
+export { Table, type Column, type TableProps, type TableSelection } from "./table.js";
 export { Input, type InputHeight, type InputProps } from "./input.js";
 export { Consequence, type ConsequenceLine, type ConsequenceProps } from "./consequence.js";
 export { Pagination, type PaginationProps } from "./pagination.js";
@@ -152,11 +152,58 @@ export {
 export { Agenda, type AgendaItem, type AgendaProps } from "./agenda.js";
 export { DayStepper, type DayStepperProps } from "./day-stepper.js";
 export { GlassPanel, type GlassPanelProps, type GlassTone } from "./glass-panel.js";
+export { ClockLine, type Clock, type ClockLineProps } from "./clock-line.js";
+export {
+  CaseTimeline,
+  type CaseTimelineProps,
+  type TimelineEntry,
+  type TimelineKind,
+  type TimelineOrder,
+  type TimelineShow,
+} from "./case-timeline.js";
+export {
+  LifecycleStepper,
+  type LifecycleStep,
+  type LifecycleStepperProps,
+  type StepState,
+} from "./lifecycle-stepper.js";
+export {
+  NextStep,
+  type NextStepClock,
+  type NextStepProps,
+  type NextStepTone,
+} from "./next-step.js";
+export {
+  LINK_PAGE_PRIMARY,
+  LINK_PAGE_SECONDARY,
+  LinkPage,
+  type LinkPageLanguage,
+  type LinkPageOutcome,
+  type LinkPageProps,
+} from "./link-page.js";
 export { Badge, type BadgeProps, type BadgeTone } from "./badge.js";
+export { Checkbox, type CheckboxProps } from "./checkbox.js";
+export { BULK_PRIMARY, BULK_SECONDARY, BulkBar, type BulkBarProps } from "./bulk-bar.js";
+export { SavedViews, type SavedView, type SavedViewsProps } from "./saved-views.js";
+export { Pager, pagerPages, type PagerProps } from "./pager.js";
+export {
+  StatTile,
+  StatTiles,
+  type StatLevel,
+  type StatTileProps,
+  type StatTilesProps,
+} from "./stat-tile.js";
+export {
+  DistributionBar,
+  type DistributionBarProps,
+  type DistributionSegment,
+} from "./distribution-bar.js";
 export {
   AURORA_FIELD,
   AURORA_FLAT,
   AURORA_GLASS,
+  AURORA_IN_SECTION,
+  AURORA_LIST_IN_SECTION,
   AURORA_MENU,
   AURORA_TRACK,
   AURORA_TRACK_ITEM,

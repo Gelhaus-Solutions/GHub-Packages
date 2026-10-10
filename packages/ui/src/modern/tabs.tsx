@@ -1,11 +1,32 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn.js";
+import { Badge, type BadgeTone } from "./badge.js";
 
 export interface Tab {
   href: string;
   label: ReactNode;
   current?: boolean;
+  /**
+   * How many the tab holds. Mono after the label on the underline tabs; a
+   * badge on the segmented ones (a hover-filled pill on the current tab,
+   * plain on the others, unless `countTone` says otherwise).
+   */
+  count?: ReactNode;
+  /** The count's meaning when it is not a plain total (a solid accent "needs you"). */
+  countTone?: BadgeTone;
+  /**
+   * Something on that tab needs doing: a 6px warn dot after the label, and
+   * these words for a screen reader ("needs attention").
+   */
+  flag?: string;
 }
+
+/**
+ * `underline` is a record's own tabs (an agreement's Overview, Document,
+ * Activity); `segmented` is an area's lists (Agreements, Parties, Templates),
+ * a pill track with the current list raised. Both are routes.
+ */
+export type TabsVariant = "underline" | "segmented";
 
 /**
  * Tabs change the content under them, and each one is a route.
@@ -40,10 +61,58 @@ export interface TabsProps {
   }) => ReactNode;
   /** Names the set for somebody moving by landmark. */
   label: string;
+  variant?: TabsVariant;
   className?: string;
 }
 
-export function Tabs({ tabs, renderLink, label, className }: TabsProps) {
+function Flag({ words }: { words: string }) {
+  return (
+    <>
+      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-m-warn" />
+      <span className="sr-only">, {words}</span>
+    </>
+  );
+}
+
+export function Tabs({ tabs, renderLink, label, variant = "underline", className }: TabsProps) {
+  if (variant === "segmented") {
+    return (
+      <nav
+        aria-label={label}
+        className={cn(
+          "flex w-max max-w-full gap-0.5 overflow-x-auto rounded-full border border-m-ink/8 bg-m-ink/6 p-[3px] [scrollbar-width:none]",
+          className,
+        )}
+      >
+        {tabs.map((tab) => (
+          <span key={tab.href} className="shrink-0">
+            {renderLink({
+              href: tab.href,
+              className: cn(
+                "inline-flex h-[30px] items-center gap-2 rounded-full pr-2 pl-3.5 text-[13.5px] leading-none whitespace-nowrap max-sm:h-11",
+                tab.current === true
+                  ? "bg-m-plate font-medium text-m-ink shadow-m-plate aurora:bg-a-raised-strong aurora:shadow-a-raised-strong"
+                  : "text-m-ink-2 hover:text-m-ink",
+                tab.count === undefined ? "pr-3.5" : "",
+              ),
+              "aria-current": tab.current === true ? "page" : undefined,
+              children: (
+                <>
+                  {tab.label}
+                  {tab.count === undefined ? null : (
+                    <Badge tone={tab.countTone ?? (tab.current === true ? "quiet" : "plain")}>
+                      {tab.count}
+                    </Badge>
+                  )}
+                  {tab.flag === undefined ? null : <Flag words={tab.flag} />}
+                </>
+              ),
+            })}
+          </span>
+        ))}
+      </nav>
+    );
+  }
   return (
     <nav aria-label={label} className={cn("border-b border-m-hairline", className)}>
       {/*
@@ -71,7 +140,20 @@ export function Tabs({ tabs, renderLink, label, className }: TabsProps) {
                   : "border-transparent text-m-ink-3 aurora:text-m-ink-2 aurora:hover:text-m-ink",
               ),
               "aria-current": tab.current === true ? "page" : undefined,
-              children: tab.label,
+              children:
+                tab.count === undefined && tab.flag === undefined ? (
+                  tab.label
+                ) : (
+                  <span className="inline-flex items-center gap-[7px]">
+                    {tab.label}
+                    {tab.count === undefined ? null : (
+                      <span className="font-mono text-[12px] font-normal text-m-ink-3">
+                        {tab.count}
+                      </span>
+                    )}
+                    {tab.flag === undefined ? null : <Flag words={tab.flag} />}
+                  </span>
+                ),
             })}
           </li>
         ))}

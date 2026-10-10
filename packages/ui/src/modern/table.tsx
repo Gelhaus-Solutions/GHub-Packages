@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "../cn.js";
 import { AURORA_GLASS } from "./aurora.js";
+import { Checkbox } from "./checkbox.js";
 
 /*
  * Aurora: a table alone is its own pane of glass. Inside a glass section it
@@ -60,10 +61,52 @@ export interface TableProps<Row> {
    * a list of three is no help at all.
    */
   caption: ReactNode;
+  /**
+   * Row selection, for a list with bulk verbs: a checkbox column leads, with
+   * "select all on this page" in the header, and while anything is selected
+   * `bar` (a `BulkBar`) takes the header row's place. The header cells stay
+   * for a screen reader, out of sight. Selected rows take the accent wash.
+   * Selecting all means this page, never the whole result.
+   */
+  selection?: TableSelection<Row>;
+  /**
+   * The width under which the table scrolls sideways rather than squeezing
+   * its columns, so a reference is never broken across lines.
+   */
+  minWidth?: number;
   className?: string;
 }
 
-export function Table<Row>({ columns, rows, rowKey, caption, className }: TableProps<Row>) {
+export interface TableSelection<Row> {
+  selected: ReadonlySet<string>;
+  onChange: (next: ReadonlySet<string>) => void;
+  /** Names a row's checkbox: its reference. */
+  rowLabel: (row: Row) => string;
+  /** "Select all on this page". */
+  allLabel?: string;
+  bar?: ReactNode;
+}
+
+export function Table<Row>({
+  columns,
+  rows,
+  rowKey,
+  caption,
+  selection,
+  minWidth,
+  className,
+}: TableProps<Row>) {
+  const keys = rows.map(rowKey);
+  const chosen =
+    selection === undefined ? 0 : keys.filter((key) => selection.selected.has(key)).length;
+  const barred = selection?.bar !== undefined && selection.selected.size > 0;
+  const toggle = (key: string, on: boolean): void => {
+    if (selection === undefined) return;
+    const next = new Set(selection.selected);
+    if (on) next.add(key);
+    else next.delete(key);
+    selection.onChange(next);
+  };
   return (
     // The one place `sunken` appears on a signed-in screen: the well the table
     // sits in. Clipped corners so the hairlines do not cross the radius.
@@ -76,10 +119,33 @@ export function Table<Row>({ columns, rows, rowKey, caption, className }: TableP
         className,
       )}
     >
-      <table className="w-full border-collapse text-left">
+      {barred ? selection.bar : null}
+      <table
+        className="w-full border-collapse text-left"
+        style={minWidth === undefined ? undefined : { minWidth: `${String(minWidth)}px` }}
+      >
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr>
+          <tr className={barred ? "[&>th]:sr-only" : undefined}>
+            {selection === undefined ? null : (
+              <th
+                scope="col"
+                className="h-[42px] w-10 border-b border-m-subtle pr-0 pl-5 aurora:h-9 aurora:border-b-0 aurora:pl-4"
+              >
+                <Checkbox
+                  checked={chosen === 0 ? false : chosen === keys.length ? true : "mixed"}
+                  label={selection.allLabel ?? "Select all on this page"}
+                  onCheckedChange={(on) => {
+                    const next = new Set(selection.selected);
+                    for (const key of keys) {
+                      if (on) next.add(key);
+                      else next.delete(key);
+                    }
+                    selection.onChange(next);
+                  }}
+                />
+              </th>
+            )}
             {columns.map((column) => (
               <th
                 key={column.key}
@@ -103,25 +169,38 @@ export function Table<Row>({ columns, rows, rowKey, caption, className }: TableP
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={rowKey(row)}>
-              {columns.map((column) => (
-                <td
-                  key={column.key}
-                  className={cn(
-                    "h-11 border-b border-m-hairline px-5 text-m-meta text-m-ink",
-                    // Aurora rows are taller and ruled above, so the header
-                    // row is separated from the first one and the last row
-                    // ends on the pane's own edge.
-                    "aurora:h-[52px] aurora:border-t aurora:border-b-0 aurora:px-4 aurora:py-2 aurora:text-[13.5px] aurora:leading-[19px]",
-                    column.numeric === true ? "text-right font-mono tabular-nums" : "",
-                  )}
-                >
-                  {column.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const key = rowKey(row);
+            const on = selection?.selected.has(key) === true;
+            return (
+              <tr key={key} className={on ? "bg-m-accent-wash" : undefined}>
+                {selection === undefined ? null : (
+                  <td className="h-11 w-10 border-b border-m-hairline pr-0 pl-5 aurora:h-[52px] aurora:border-t aurora:border-b-0 aurora:pl-4">
+                    <Checkbox
+                      checked={on}
+                      label={selection.rowLabel(row)}
+                      onCheckedChange={(next) => toggle(key, next)}
+                    />
+                  </td>
+                )}
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={cn(
+                      "h-11 border-b border-m-hairline px-5 text-m-meta text-m-ink",
+                      // Aurora rows are taller and ruled above, so the header
+                      // row is separated from the first one and the last row
+                      // ends on the pane's own edge.
+                      "aurora:h-[52px] aurora:border-t aurora:border-b-0 aurora:px-4 aurora:py-2 aurora:text-[13.5px] aurora:leading-[19px]",
+                      column.numeric === true ? "text-right font-mono tabular-nums" : "",
+                    )}
+                  >
+                    {column.cell(row)}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
