@@ -33,8 +33,10 @@ import { nextSequence } from "./sequence";
 import { GmintToken } from "./token";
 
 export interface GmintClientOptions {
-  /** GMint's client listener, e.g. `https://mint.example.org:8443`. */
+  /** GMint's client listener, e.g. `https://mint.example.org:8443`. Its origin is the signed target. */
   url: string;
+  /** Dial this address instead of the URL's host (split DNS, tunnels, tests). TLS still checks the URL's name. */
+  connectTo?: { host: string; port: number };
   /** GMint's instance name; the request audience is `gmint:<instance>`. */
   instance: string;
   /** This client's id, `gmint://<namespace>/<workload>`. */
@@ -125,8 +127,8 @@ export class GmintClient {
   private connect(): Promise<TLSSocket> {
     return new Promise((resolve, reject) => {
       const s = connect({
-        host: this.host,
-        port: this.port,
+        host: this.o.connectTo?.host ?? this.host,
+        port: this.o.connectTo?.port ?? this.port,
         servername: this.host,
         ca: this.ca,
         cert: this.cert,
