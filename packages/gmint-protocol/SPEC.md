@@ -35,19 +35,19 @@ reproducible (`src/vectors.test.ts` is its generator), for implementations in ot
 `gmint-req+jws`, signed with the client's request-signing key. Payload (strict JSON, exactly these
 members):
 
-| Member | Type    | Rule                                                                           |
-| ------ | ------- | ------------------------------------------------------------------------------ |
-| `v`    | integer | `1`                                                                            |
-| `iss`  | string  | The client id, `gmint://<namespace>/<workload>`; must equal the owner of `kid` |
-| `aud`  | string  | `gmint:<instance>`; must equal the server's instance                           |
-| `htm`  | string  | `POST`                                                                         |
-| `htu`  | string  | The exact URL, `https://`, at most 256 characters                              |
-| `iat`  | integer | Seconds since the epoch; within 60 s of the server's clock                     |
-| `jti`  | string  | b64url of 16 random bytes; never seen before by the server                     |
-| `seq`  | integer | At least 1; per client, unseen and within the server's sequence window         |
-| `cb`   | string  | b64url tls-exporter of the connection the request is sent on                   |
-| `enc`  | string  | b64url X25519 public key (32 bytes), fresh per request, for the answer         |
-| `req`  | object  | What is asked for, below                                                       |
+| Member | Type    | Rule                                                                                                                                                         |
+| ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `v`    | integer | `1`                                                                                                                                                          |
+| `iss`  | string  | The client id, `gmint://` and two to five `/`-separated parts of `[a-z0-9][a-z0-9-]{0,62}` (`gmint://<namespace>/<workload>`); must equal the owner of `kid` |
+| `aud`  | string  | `gmint:<instance>`, the instance `[a-z0-9][a-z0-9-]{0,62}`; must equal the server's instance                                                                 |
+| `htm`  | string  | `POST`                                                                                                                                                       |
+| `htu`  | string  | The exact URL, `https://`, at most 256 characters                                                                                                            |
+| `iat`  | integer | Seconds since the epoch; within 60 s of the server's clock                                                                                                   |
+| `jti`  | string  | b64url of 16 random bytes; never seen before by the server                                                                                                   |
+| `seq`  | integer | At least 1; per client, unseen and within the server's sequence window                                                                                       |
+| `cb`   | string  | b64url tls-exporter of the connection the request is sent on                                                                                                 |
+| `enc`  | string  | b64url X25519 public key (32 bytes), fresh per request, for the answer                                                                                       |
+| `req`  | object  | What is asked for, below                                                                                                                                     |
 
 `req`: exactly `provider`, `grant`, `scope`, optionally `tenant` and `purpose`.
 
@@ -59,7 +59,7 @@ members):
 | `scope.repository_ids`  | 1 to 500 positive integers, strictly ascending                                 |
 | `scope.permissions`     | 1 to 64 members, names `[a-z][a-z_]{0,63}`, values `read`, `write` or `admin`  |
 | `tenant`                | `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`, the tenant a multi-tenant client acts for |
-| `purpose`               | 1 to 200 characters, no control characters                                     |
+| `purpose`               | 1 to 200 UTF-16 code units, none below U+0020 and no U+007F                    |
 
 ## 4. Server checks, in order
 
@@ -89,7 +89,7 @@ GMint's response key (held in OpenBao). Payload (strict JSON):
 | `status`     | `issued`, `pending` or `refused`                                                                     |
 | `code`       | Absent when `issued`; `approval_required` when `pending`; any other code of section 6 when `refused` |
 | `request_id` | Only when `pending`: b64url of 16 bytes                                                              |
-| `seal`       | Only when `issued`: `{ "enc": <b64url 32 bytes>, "ct": <b64url> }`                                   |
+| `seal`       | Only when `issued`: `{ "enc": <b64url 32 bytes>, "ct": <b64url, 17 to 8192 bytes> }`                 |
 
 ### 5.1 Seal
 
@@ -102,12 +102,12 @@ the request's `enc` key:
 
 Plaintext (strict JSON, exactly these members):
 
-| Member       | Rule                                                                              |
-| ------------ | --------------------------------------------------------------------------------- |
-| `credential` | 1 to 4096 printable ASCII characters (opaque; GitHub's token format is variable)  |
-| `expires_at` | RFC 3339 UTC timestamp                                                            |
-| `scope`      | The scope granted, same shape as the request's                                    |
-| `hashed`     | b64url SHA-256 of `credential`, the value GitHub's audit log calls `hashed_token` |
+| Member       | Rule                                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `credential` | 1 to 4096 characters from U+0021 to U+007E: printable ASCII without the space (opaque; GitHub's token format is variable) |
+| `expires_at` | RFC 3339 UTC timestamp, `YYYY-MM-DDTHH:MM:SS` with an optional fraction of 1 to 9 digits, then `Z` (checked by form)      |
+| `scope`      | The scope granted, same shape as the request's                                                                            |
+| `hashed`     | b64url SHA-256 of `credential`, the value GitHub's audit log calls `hashed_token`                                         |
 
 ### 5.2 Client checks, in order
 
@@ -140,26 +140,29 @@ nodes on the node listener), `Content-Type: application/gmint-renew+jws`, body a
 `typ` `gmint-renew+jws`, signed with the caller's request-signing key. Payload (strict JSON, exactly
 these members):
 
-| Member | Rule                                                                                            |
-| ------ | ----------------------------------------------------------------------------------------------- |
-| `v`    | `1`                                                                                             |
-| `iss`  | The caller's id: a client id as in section 3, or a node id `node://<name>`; the owner of `kid`  |
-| `aud`  | As in section 3                                                                                 |
-| `htm`  | `POST`                                                                                          |
-| `htu`  | The exact renewal URL, `https://`, at most 256 characters                                       |
-| `iat`  | As in section 3                                                                                 |
-| `jti`  | As in section 3                                                                                 |
-| `cb`   | b64url tls-exporter of the connection the request is sent on                                    |
-| `csr`  | b64url of a DER PKCS #10 request (RFC 2986), at most 1024 bytes, made with the connection's key |
+| Member | Rule                                                                                                                                   |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `v`    | `1`                                                                                                                                    |
+| `iss`  | The caller's id: a client id as in section 3, or a node id `node://<name>` with the name `[a-z0-9][a-z0-9-]{0,62}`; the owner of `kid` |
+| `aud`  | As in section 3                                                                                                                        |
+| `htm`  | `POST`                                                                                                                                 |
+| `htu`  | The exact renewal URL, `https://`, at most 256 characters                                                                              |
+| `iat`  | As in section 3                                                                                                                        |
+| `jti`  | As in section 3                                                                                                                        |
+| `cb`   | b64url tls-exporter of the connection the request is sent on                                                                           |
+| `csr`  | b64url of a DER PKCS #10 request (RFC 2986), at most 1024 bytes, made with the connection's key                                        |
 
 The CSR:
 
 - DER only: definite lengths in their shortest form, nothing after the outer element.
 - Ed25519 key (`1.3.101.112`) and Ed25519 signature, the signature verifying over the
   `CertificationRequestInfo` with the CSR's own key (proof of possession).
-- Exactly one URI subjectAltName, in an `extensionRequest` attribute, equal to `iss`. The subject is
-  a CN derived from `iss` (every run of characters outside `[A-Za-z0-9._-]` becomes `-`, at most
-  64 characters) and carries no authority: identity comes from the pinned key, never from a name.
+- Exactly one URI subjectAltName, in an `extensionRequest` attribute, equal to `iss`; a URI name is
+  1 to 255 characters from U+0021 to U+007E. Names of other kinds are ignored by the parser and
+  refused by the issuing role. The subject is a CN derived from `iss` (every run of characters
+  outside `[A-Za-z0-9._-]` becomes `-`, at most 64 characters), set by the builder and not checked
+  by the verifier: it carries no authority, because identity comes from the pinned key, never from
+  a name.
 
 ### 7.2 Server checks, in order
 
@@ -182,15 +185,15 @@ what came back is for the connection's key before answering.
 `Content-Type: application/gmint-renew-res+jws`, a compact JWS with `typ` `gmint-renew-res+jws`,
 signed with GMint's response key. Payload (strict JSON):
 
-| Member     | Rule                                                                                    |
-| ---------- | --------------------------------------------------------------------------------------- |
-| `v`        | `1`                                                                                     |
-| `req_hash` | b64url SHA-256 of the request JWS bytes exactly as received                             |
-| `cb`       | The request's `cb`                                                                      |
-| `iat`      | Within 60 s of the caller's clock                                                       |
-| `status`   | `issued` or `refused`                                                                   |
-| `code`     | Only when `refused`: a code of section 6 other than `approval_required`                 |
-| `chain`    | Only when `issued`: 1 to 4 b64url DER certificates, leaf first, each at most 2048 bytes |
+| Member     | Rule                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------- |
+| `v`        | `1`                                                                                   |
+| `req_hash` | b64url SHA-256 of the request JWS bytes exactly as received                           |
+| `cb`       | The request's `cb`                                                                    |
+| `iat`      | Within 60 s of the caller's clock                                                     |
+| `status`   | `issued` or `refused`                                                                 |
+| `code`     | Only when `refused`: a code of section 6 other than `approval_required`               |
+| `chain`    | Only when `issued`: 1 to 4 b64url DER certificates, leaf first, each 64 to 2048 bytes |
 
 Certificates are public, so nothing is sealed.
 
@@ -202,5 +205,6 @@ Certificates are public, so nothing is sealed.
    within 60 s.
 4. For `issued`: the leaf's public key is the caller's own TLS key; the leaf is not a CA; each
    certificate is signed by the next, which is a CA; the last is a pinned root or is signed by
-   one; every certificate is valid now. Only then is the chain written where the caller keeps its
-   certificate, replacing the old one in one step.
+   one; every certificate is valid now, a start up to 60 s in the future counting as valid. Only
+   then is the chain written where the caller keeps its certificate, replacing the old one in one
+   step.
