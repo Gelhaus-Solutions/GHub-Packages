@@ -4,7 +4,10 @@
  *
  * GLockdown is one source of an app's stage beside the app's own env floor and setting; the app
  * enforces the strictest (L35). The stages are GAdvisory's: `off`, `signups`, `members`,
- * `admins`, `full`, and the agent writes `full` for every rung above it.
+ * `admins`, `full`, and the agent writes `full` for every rung above it. From AAL phase 1 the app
+ * also refuses every credential, existing sessions and API keys included
+ * (`refusesEveryCredential`); its public pages stay up, and only GLockdown cuts those, at AAL
+ * phase 2.
  *
  * Reading never throws and never lowers on a fault:
  * - no file, and none ever read: `off`. The agent is not installed yet, and sign-in stays as it
@@ -27,7 +30,7 @@ export type StageSource = "file" | "absent" | "held" | "unreadable";
 
 export interface StageReading {
   stage: Stage;
-  /** The GLockdown rung behind it (`aal`, `sil` and `ail` all read as `full`), when known. */
+  /** The GLockdown rung behind it (`aal` and above all read as `full`), when known. */
   rung: string | null;
   /** When the agent wrote it (unix seconds), when known. */
   at: number | null;
@@ -42,13 +45,24 @@ export function isStage(v: unknown): v is Stage {
   return typeof v === "string" && (STAGES as readonly string[]).includes(v);
 }
 
+const EVERY_CREDENTIAL = new Set(["aal", "aal2", "sil", "ail"]);
+
+/**
+ * Whether the app refuses every credential, existing sessions and API keys included, and not only
+ * new sign-ins: from AAL phase 1. A reading with no rung (no file, or a broken one before any good
+ * read) says no; its `full` already refuses every sign-in.
+ */
+export function refusesEveryCredential(reading: StageReading): boolean {
+  return reading.rung !== null && EVERY_CREDENTIAL.has(reading.rung);
+}
+
 /** The strictest of several stages; `off` for none. */
 export function strictest(...stages: Stage[]): Stage {
   return stages.reduce<Stage>((a, b) => (stageRank(b) > stageRank(a) ? b : a), "off");
 }
 
 const APP = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
-const RUNG = /^(off|signups|members|admins|full|aal|sil|ail)$/;
+const RUNG = /^(off|signups|members|admins|full|aal|aal2|sil|ail)$/;
 
 function parse(text: string, app: string): StageReading | null {
   let v: unknown;
@@ -91,6 +105,11 @@ export class GlockdownStage {
   /** The stage now. Cheap enough for every request: the file is read at most once a second. */
   current(): Stage {
     return this.reading().stage;
+  }
+
+  /** Whether every credential is refused now, sessions and API keys included (AAL and above). */
+  refusesEveryCredential(): boolean {
+    return refusesEveryCredential(this.reading());
   }
 
   reading(): StageReading {

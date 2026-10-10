@@ -39,6 +39,24 @@ describe("GlockdownStage", () => {
     expect(s.reading()).toMatchObject({ stage: "full", rung: "sil", source: "file" });
   });
 
+  it("refuses every credential from AAL phase 1, sessions included, and not at SAL full", () => {
+    let now = 0;
+    const s = new GlockdownStage({ app: "gadvisory", dir, nowMs: () => now });
+    for (const [rung, every] of [
+      ["full", false],
+      ["aal", true],
+      ["aal2", true],
+      ["ail", true],
+    ] as const) {
+      write("gadvisory", file("full", rung));
+      now += 1000;
+      expect(s.reading()).toMatchObject({ stage: "full", rung, source: "file" });
+      expect(s.refusesEveryCredential()).toBe(every);
+    }
+    write("gnew", "not json");
+    expect(new GlockdownStage({ app: "gnew", dir }).refusesEveryCredential()).toBe(false);
+  });
+
   it("holds the last good stage through any fault, the file gone included", () => {
     let now = 0;
     const s = new GlockdownStage({ app: "gadvisory", dir, nowMs: () => now });

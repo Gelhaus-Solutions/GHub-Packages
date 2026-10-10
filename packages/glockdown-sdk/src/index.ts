@@ -3,6 +3,7 @@ export {
   GlockdownStage,
   STAGES,
   isStage,
+  refusesEveryCredential,
   stageRank,
   strictest,
   type GlockdownStageOptions,

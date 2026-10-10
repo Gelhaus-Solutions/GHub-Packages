@@ -6,7 +6,10 @@ whole estate; an app takes part in two ways:
 - **It reads its stage.** The GLockdown agent on the app's host writes the stage GLockdown has set
   for the app to `/run/glockdown/apps/<app>.json`. `GlockdownStage` reads it, at most once a
   second, and the app enforces the strictest of it and its own sources (an env floor, its own
-  setting). The stages are `off`, `signups`, `members`, `admins` and `full`.
+  setting). The stages are `off`, `signups`, `members`, `admins` and `full`. From AAL phase 1
+  `refusesEveryCredential()` is true: the app then refuses every credential, existing sessions
+  and API keys included, not only new sign-ins. Its public pages stay up; GLockdown cuts those
+  itself, at AAL phase 2.
 - **It can raise itself.** `escalate()` asks GLockdown to raise this app one rung, up to AAL, over
   TLS pinned both ways: the app presents the key the operator's trust document pins for it, and
   talks only to an edge whose key it was given. Identity and Control name the apps they manage.
