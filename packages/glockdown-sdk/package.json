@@ -1,7 +1,6 @@
 {
   "name": "@ghub/glockdown-sdk",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "GLockdown for apps: the stage this app's GLockdown agent has set, read from the file the agent writes, and the call that raises this app one rung over pinned TLS. Hand-written on node: built-ins, no dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
