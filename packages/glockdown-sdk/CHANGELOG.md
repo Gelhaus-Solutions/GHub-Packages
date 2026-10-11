@@ -1,5 +1,11 @@
 # @ghub/glockdown-sdk
 
+## 0.2.0
+
+### Minor Changes
+
+- The edge as a second source of the stage: `GlockdownStage` takes an optional `edge` (the app's pinned TLS identity and the edge's pins), asks `GET /v1/stage` in the background at most every `edgeEveryMs` (15 s), and holds the stricter of the agent's file and the edge's last good answer, so a file deleted, blocked or rewritten on the host no longer lowers the stage and a silent edge keeps its last answer. `askStage` asks directly.
+
 ## 0.1.0
 
 ### Minor Changes
