@@ -208,6 +208,79 @@ describe("escalate", () => {
   });
 });
 
+describe("GlockdownStage with the edge as a second source", () => {
+  it.runIf(hasEd25519Openssl())(
+    "holds the stricter of the file and the edge, and the edge's last answer while it is silent",
+    async () => {
+      const edge = identity("edge2");
+      const app = identity("gadvisory2");
+      let answer: unknown = file("full", "aal");
+      let up = true;
+      const server = createServer(
+        {
+          cert: edge.cert,
+          key: edge.key,
+          requestCert: true,
+          rejectUnauthorized: false,
+          minVersion: "TLSv1.3",
+        },
+        (req, res) => {
+          if (!up) return void req.socket.destroy();
+          const peer = (req.socket as TLSSocket).getPeerX509Certificate();
+          if (
+            req.method !== "GET" ||
+            req.url !== "/v1/stage" ||
+            !peer ||
+            spkiPin(peer.toString()) !== spkiPin(app.cert)
+          ) {
+            return void res.writeHead(404).end(JSON.stringify({ code: "not_found" }));
+          }
+          res.writeHead(200).end(JSON.stringify(answer));
+        },
+      );
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const url = `https://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      let now = 0;
+      try {
+        // The file says off (rewritten, say); the edge says AAL phase 1: the edge wins.
+        write("gadvisory", file("off"));
+        const s = new GlockdownStage({
+          app: "gadvisory",
+          dir,
+          nowMs: () => now,
+          edge: { url, edgePins: [spkiPin(edge.cert)], ...app },
+        });
+        expect(s.current()).toBe("off"); // before the first answer: the file alone
+        await s.askEdge();
+        expect(s.reading()).toMatchObject({ stage: "full", rung: "aal", source: "edge" });
+        expect(s.refusesEveryCredential()).toBe(true);
+
+        // The edge goes silent: its last answer holds.
+        up = false;
+        now += 60_000;
+        await s.askEdge();
+        expect(s.refusesEveryCredential()).toBe(true);
+
+        // An answer for another app, or a broken one, changes nothing.
+        up = true;
+        answer = { ...file("off"), app: "gcontrol" };
+        now += 60_000;
+        await s.askEdge();
+        expect(s.current()).toBe("full");
+
+        // The file stricter than the edge: the file wins.
+        answer = file("signups");
+        write("gadvisory", file("admins"));
+        now += 60_000;
+        await s.askEdge();
+        expect(s.reading()).toMatchObject({ stage: "admins", source: "file" });
+      } finally {
+        server.close();
+      }
+    },
+  );
+});
+
 describe("Honeytokens", () => {
   const sha = (k: string) => createHash("sha256").update(k).digest("hex");
 

@@ -12,6 +12,7 @@ export {
   type StageSource,
 } from "./stage";
 export {
+  askStage,
   escalate,
   signal,
   spkiPin,

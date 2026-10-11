@@ -100,21 +100,40 @@ export function signal(o: SignalOptions): Promise<EscalateResult> {
   return post(o, "/v1/signal", { signal: o.signal, detail: o.detail.slice(0, 200) });
 }
 
-async function post(o: EdgeConnection, path: string, payload: object): Promise<EscalateResult> {
+/**
+ * This app's stage as GLockdown's edge computes it from the verified ladder: the second source
+ * beside the agent's file (`GlockdownStage`'s `edge`). Never throws.
+ */
+export function askStage(o: EdgeConnection): Promise<EscalateResult> {
+  return call(o, "GET", "/v1/stage", null);
+}
+
+function post(o: EdgeConnection, path: string, payload: object): Promise<EscalateResult> {
+  return call(o, "POST", path, payload);
+}
+
+async function call(
+  o: EdgeConnection,
+  method: "GET" | "POST",
+  path: string,
+  payload: object | null,
+): Promise<EscalateResult> {
   const timeoutMs = o.timeoutMs ?? 10_000;
   try {
     const url = new URL(path, o.url);
     if (url.protocol !== "https:") throw new Error("https only");
-    const body = Buffer.from(JSON.stringify(payload));
+    const body = payload === null ? null : Buffer.from(JSON.stringify(payload));
     const socket = await connectPinned(o, url, timeoutMs);
     return await new Promise<EscalateResult>((resolve) => {
       const req = request(
         {
-          method: "POST",
+          method,
           path: url.pathname,
           host: url.host,
           createConnection: () => socket,
-          headers: { "content-type": "application/json", "content-length": String(body.length) },
+          headers: body
+            ? { "content-type": "application/json", "content-length": String(body.length) }
+            : {},
           timeout: timeoutMs,
         },
         (res) => {
@@ -144,7 +163,7 @@ async function post(o: EdgeConnection, path: string, payload: object): Promise<E
         socket.destroy();
         resolve({ ok: false, status: 0, code: "unavailable", detail: e.message });
       });
-      req.end(body);
+      req.end(body ?? undefined);
     });
   } catch (e) {
     return { ok: false, status: 0, code: "unavailable", detail: (e as Error).message };

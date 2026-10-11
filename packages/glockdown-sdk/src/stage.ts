@@ -9,6 +9,11 @@
  * (`refusesEveryCredential`); its public pages stay up, and only GLockdown cuts those, at AAL
  * phase 2.
  *
+ * A second source can stand beside the file: GLockdown's edge, asked over this app's pinned TLS
+ * identity (`edge`). The stricter of the two holds, and the edge's last good answer holds while it
+ * is silent, so neither a file deleted, blocked or rewritten on this host nor a blocked edge lowers
+ * the stage.
+ *
  * Reading never throws and never lowers on a fault:
  * - no file, and none ever read: `off`. The agent is not installed yet, and sign-in stays as it
  *   was (L35).
@@ -20,13 +25,14 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { askStage, type EdgeConnection } from "./escalate";
 
 export const STAGES = ["off", "signups", "members", "admins", "full"] as const;
 export type Stage = (typeof STAGES)[number];
 
 export const DEFAULT_STAGE_DIR = "/run/glockdown/apps";
 
-export type StageSource = "file" | "absent" | "held" | "unreadable";
+export type StageSource = "file" | "absent" | "held" | "unreadable" | "edge";
 
 export interface StageReading {
   stage: Stage;
@@ -63,14 +69,28 @@ export function strictest(...stages: Stage[]): Stage {
 
 const APP = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
 const RUNG = /^(off|signups|members|admins|full|aal|aal2|sil|ail)$/;
+const RUNGS = ["off", "signups", "members", "admins", "full", "aal", "aal2", "sil", "ail"];
+
+/** A rung's place on the ladder; an unknown rung (no file yet) counts below every rung. */
+function rungRank(rung: string | null): number {
+  return rung === null ? -1 : RUNGS.indexOf(rung);
+}
+
+/** The stricter of two readings: the higher stage, and at the same stage the higher rung. */
+function stricter(a: StageReading, b: StageReading): StageReading {
+  const d = stageRank(b.stage) - stageRank(a.stage);
+  return d > 0 || (d === 0 && rungRank(b.rung) > rungRank(a.rung)) ? b : a;
+}
 
 function parse(text: string, app: string): StageReading | null {
-  let v: unknown;
   try {
-    v = JSON.parse(text);
+    return parseValue(JSON.parse(text), app);
   } catch {
     return null;
   }
+}
+
+function parseValue(v: unknown, app: string): StageReading | null {
   if (typeof v !== "object" || v === null || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   const keys = Object.keys(o).sort().join(",");
@@ -89,6 +109,12 @@ export interface GlockdownStageOptions {
   refreshMs?: number;
   /** Milliseconds, for tests. */
   nowMs?: () => number;
+  /**
+   * GLockdown's edge as a second source, asked over this app's pinned TLS identity at most every
+   * `edgeEveryMs` (default 15 000 ms), in the background: a reading never waits for it.
+   */
+  edge?: EdgeConnection;
+  edgeEveryMs?: number;
 }
 
 export class GlockdownStage {
@@ -96,6 +122,9 @@ export class GlockdownStage {
   private last: StageReading | null = null;
   private good: StageReading | null = null;
   private readAt = -Infinity;
+  private edgeGood: StageReading | null = null;
+  private edgeAskedAt = -Infinity;
+  private asking: Promise<void> | null = null;
 
   constructor(private readonly o: GlockdownStageOptions) {
     if (!APP.test(o.app)) throw new TypeError("not an app name");
@@ -112,12 +141,36 @@ export class GlockdownStage {
     return refusesEveryCredential(this.reading());
   }
 
+  /** The stricter of the file and the edge's last good answer. */
   reading(): StageReading {
     const now = (this.o.nowMs ?? Date.now)();
-    if (this.last && now - this.readAt < (this.o.refreshMs ?? 1000)) return this.last;
-    this.readAt = now;
-    this.last = this.read();
-    return this.last;
+    if (now - this.edgeAskedAt >= (this.o.edgeEveryMs ?? 15_000)) void this.askEdge();
+    if (!this.last || now - this.readAt >= (this.o.refreshMs ?? 1000)) {
+      this.readAt = now;
+      this.last = this.read();
+    }
+    return this.edgeGood ? stricter(this.last, this.edgeGood) : this.last;
+  }
+
+  /**
+   * Asks the edge now (once at a time) and takes a valid answer for this app as its last good one;
+   * any fault leaves the last good answer as it was. Resolves when the answer is in; never throws.
+   */
+  askEdge(): Promise<void> {
+    const edge = this.o.edge;
+    if (!edge) return Promise.resolve();
+    if (this.asking) return this.asking;
+    this.edgeAskedAt = (this.o.nowMs ?? Date.now)();
+    this.asking = askStage(edge)
+      .then((r) => {
+        const v = r.ok ? parseValue(r.body, this.o.app) : null;
+        if (v) this.edgeGood = { ...v, source: "edge" };
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.asking = null;
+      });
+    return this.asking;
   }
 
   private read(): StageReading {
