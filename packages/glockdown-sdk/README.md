@@ -14,18 +14,36 @@ whole estate; an app takes part in two ways:
   TLS pinned both ways: the app presents the key the operator's trust document pins for it, and
   talks only to an edge whose key it was given. Identity and Control name the apps they manage.
   Nothing an app does can lower a stage.
+- **It keeps honeytokens** (L97). A decoy admin account and a decoy API key sit in the app's
+  database like real ones and are used by nobody. `Honeytokens` knows the decoy's sign-in names
+  and the SHA-256 of the decoy key; `isDecoyLogin()` and `isDecoyKey()` say whether a presented
+  name or key is a decoy and, when it is, tell GLockdown through `signal()` (at most once a minute
+  each), which raises AAL phase 1 for the app and whatever shares its host and database. The app
+  refuses the attempt exactly as a wrong password or an unknown key, so whoever tried learns
+  nothing. The decoy key itself is planted where an intruder would look, never in the app's
+  configuration.
 
 Reading never throws and never lowers on a fault. No file and none ever read is `off` (the agent
 is not installed yet, so sign-in stays as it was). A file that cannot be read or parsed before any
 good read is `full`. After a good read, any fault keeps the last good stage.
 
 ```ts
-import { GlockdownStage, escalate, strictest } from "@ghub/glockdown-sdk";
+import { GlockdownStage, Honeytokens, escalate, signal, strictest } from "@ghub/glockdown-sdk";
 
 const glockdown = new GlockdownStage({ app: "gadvisory" });
 const stage = strictest(envFloor(), instanceSetting(), glockdown.current());
 
-await escalate({ url, edgePins, cert, key, reason: "decoy admin account used" });
+await escalate({ url, edgePins, cert, key, reason: "suspicious sign-ins" });
+
+const edge = { url, edgePins, cert, key };
+const honey = new Honeytokens({
+  logins: [process.env.GLOCKDOWN_DECOY_LOGIN!],
+  keySha256: [process.env.GLOCKDOWN_DECOY_KEY_SHA256!],
+  trip: (s) => signal({ ...edge, ...s }),
+});
+// In sign-in, before the password is checked; in API auth, before the key is looked up:
+if (honey.isDecoyLogin(email, `from ${ip}`)) return refuseAsWrongPassword();
+if (honey.isDecoyKey(presentedKey, `${method} ${path}`)) return refuseAsUnknownKey();
 ```
 
 No dependencies: `node:` built-ins only.

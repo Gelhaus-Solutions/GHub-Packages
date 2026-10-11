@@ -1,16 +1,19 @@
 /**
- * Raising this app one rung (GLockdown L8, L10): a POST to the edge's apps listener over TLS
- * pinned both ways. The app presents its own key, which the operator's trust document pins as this
- * app, and accepts the edge only when the edge's key is one of the pins it was given; nothing is
- * sent to anything else. An app raises only itself, one rung per call, up to AAL; Identity and
- * Control name the apps they manage. Nobody can lower anything this way.
+ * Raising this app one rung (GLockdown L8, L10), and telling GLockdown a honeytoken of this app was
+ * used (L97): a POST to the edge's apps listener over TLS pinned both ways. The app presents its
+ * own key, which the operator's trust document pins as this app, and accepts the edge only when the
+ * edge's key is one of the pins it was given; nothing is sent to anything else. An app raises only
+ * itself, one rung per call, up to AAL; Identity and Control name the apps they manage. A signal
+ * names only what tripped; GLockdown's own configuration decides what it raises. Nobody can lower
+ * anything this way.
  */
 
 import { X509Certificate, constants, createHash } from "node:crypto";
 import { request } from "node:http";
 import { connect, type TLSSocket } from "node:tls";
 
-export interface EscalateOptions {
+/** Where the edge is and who this app is: the same for every call. */
+export interface EdgeConnection {
   /** The edge's apps listener, e.g. `https://glockdown.example:8444`. */
   url: string;
   /** SHA-256 SPKI pins of the edge's TLS key, base64url, as the trust document lists them. */
@@ -18,10 +21,20 @@ export interface EscalateOptions {
   /** This app's TLS certificate and key (PEM), pinned as the app in the trust document. */
   cert: string;
   key: string;
+  timeoutMs?: number;
+}
+
+export interface EscalateOptions extends EdgeConnection {
   reason: string;
   /** Identity and Control only: the apps to raise. An app leaves it out. */
   apps?: readonly string[];
-  timeoutMs?: number;
+}
+
+export interface SignalOptions extends EdgeConnection {
+  /** What tripped: `decoy_admin` or `decoy_api_key` (L97). */
+  signal: string;
+  /** One line on what happened, without any credential: never the password or key presented. */
+  detail: string;
 }
 
 export type EscalateResult =
@@ -40,7 +53,7 @@ export function spkiPin(certPem: string): string {
   return createHash("sha256").update(der).digest("base64url");
 }
 
-function connectPinned(o: EscalateOptions, url: URL, timeoutMs: number): Promise<TLSSocket> {
+function connectPinned(o: EdgeConnection, url: URL, timeoutMs: number): Promise<TLSSocket> {
   return new Promise((resolve, reject) => {
     const host = url.hostname.replace(/^\[|\]$/g, "");
     const socket = connect({
@@ -74,14 +87,25 @@ function connectPinned(o: EscalateOptions, url: URL, timeoutMs: number): Promise
 }
 
 /** Asks GLockdown to raise this app (or, for a manager, these apps) one rung. Never throws. */
-export async function escalate(o: EscalateOptions): Promise<EscalateResult> {
+export function escalate(o: EscalateOptions): Promise<EscalateResult> {
+  return post(o, "/v1/escalate", { apps: o.apps ? [...o.apps] : null, reason: o.reason });
+}
+
+/**
+ * Tells GLockdown this app's decoy admin or decoy API key was used (L97): GLockdown raises AAL
+ * phase 1 for the app and whatever shares its host and database, as its configuration says for
+ * this app and signal. Never throws.
+ */
+export function signal(o: SignalOptions): Promise<EscalateResult> {
+  return post(o, "/v1/signal", { signal: o.signal, detail: o.detail.slice(0, 200) });
+}
+
+async function post(o: EdgeConnection, path: string, payload: object): Promise<EscalateResult> {
   const timeoutMs = o.timeoutMs ?? 10_000;
   try {
-    const url = new URL("/v1/escalate", o.url);
+    const url = new URL(path, o.url);
     if (url.protocol !== "https:") throw new Error("https only");
-    const body = Buffer.from(
-      JSON.stringify({ apps: o.apps ? [...o.apps] : null, reason: o.reason }),
-    );
+    const body = Buffer.from(JSON.stringify(payload));
     const socket = await connectPinned(o, url, timeoutMs);
     return await new Promise<EscalateResult>((resolve) => {
       const req = request(

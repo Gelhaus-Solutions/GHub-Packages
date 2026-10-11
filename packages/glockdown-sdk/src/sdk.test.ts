@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:https";
 import type { AddressInfo } from "node:net";
@@ -6,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TLSSocket } from "node:tls";
 import { afterAll, describe, expect, it } from "vitest";
-import { GlockdownStage, escalate, spkiPin, strictest } from "./index";
+import { GlockdownStage, Honeytokens, escalate, signal, spkiPin, strictest } from "./index";
 
 const dir = mkdtempSync(join(tmpdir(), "glockdown-sdk-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -188,8 +189,64 @@ describe("escalate", () => {
         detail: "the edge's key is not pinned",
       });
       expect(seen).toHaveLength(2);
+      const told = await signal({
+        url,
+        edgePins: [spkiPin(edge.cert)],
+        ...app,
+        signal: "decoy_admin",
+        detail: "sign-in as the decoy admin",
+      });
+      expect(told).toMatchObject({ ok: true });
+      expect(seen[2]).toEqual({
+        path: "/v1/signal",
+        pin: spkiPin(app.cert),
+        body: { signal: "decoy_admin", detail: "sign-in as the decoy admin" },
+      });
     } finally {
       server.close();
     }
+  });
+});
+
+describe("Honeytokens", () => {
+  const sha = (k: string) => createHash("sha256").update(k).digest("hex");
+
+  it("knows the decoy admin and key, tells GLockdown at most once a minute each, never the key", () => {
+    let now = 0;
+    const told: { signal: string; detail: string }[] = [];
+    const h = new Honeytokens({
+      logins: ["Admin@GAdvisory.org", "root-admin"],
+      keySha256: [sha("gadv_live_decoy")],
+      trip: (s) => void told.push(s),
+      now: () => now,
+    });
+    expect(h.isDecoyLogin("someone@gadvisory.org")).toBe(false);
+    expect(h.isDecoyKey("gadv_live_real")).toBe(false);
+    expect(told).toEqual([]);
+    expect(h.isDecoyLogin(" admin@gadvisory.org", "from 203.0.113.9")).toBe(true);
+    expect(h.isDecoyLogin("ROOT-ADMIN")).toBe(true); // still refused; told once a minute
+    expect(h.isDecoyKey("gadv_live_decoy", "GET /api/v1/advisories")).toBe(true);
+    now += 60_000;
+    expect(h.isDecoyLogin("root-admin")).toBe(true);
+    expect(told).toEqual([
+      { signal: "decoy_admin", detail: "sign-in as the decoy admin: from 203.0.113.9" },
+      { signal: "decoy_api_key", detail: "the decoy API key used: GET /api/v1/advisories" },
+      { signal: "decoy_admin", detail: "sign-in as the decoy admin" },
+    ]);
+    expect(JSON.stringify(told)).not.toContain("gadv_live_decoy");
+  });
+
+  it("refuses a hash that is not SHA-256, and survives a trip that throws", () => {
+    expect(() => new Honeytokens({ logins: [], keySha256: ["abc"], trip: () => {} })).toThrow(
+      /64 hex/,
+    );
+    const h = new Honeytokens({
+      logins: ["admin"],
+      keySha256: [],
+      trip: () => {
+        throw new Error("edge down");
+      },
+    });
+    expect(h.isDecoyLogin("admin")).toBe(true);
   });
 });
