@@ -61,6 +61,19 @@ export class Honeytokens {
     return true;
   }
 
+  /**
+   * What this app holds of its decoys, as hashes only (L120): the SHA-256 of each decoy key and of
+   * each decoy login (trimmed, lower case), hex, for `reportDecoys`. GLockdown keeps the same
+   * hashes in its inventory and checks that each is still held here: a decoy the app no longer
+   * checks would trip nothing.
+   */
+  fingerprints(): { keys: string[]; logins: string[] } {
+    return {
+      keys: this.keys.map((k) => k.toString("hex")),
+      logins: [...this.logins].map((l) => createHash("sha256").update(l, "utf8").digest("hex")),
+    };
+  }
+
   private tell(signal: HoneytokenSignal, detail: string): void {
     const now = (this.o.now ?? Date.now)();
     const last = this.last.get(signal);

@@ -7,7 +7,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TLSSocket } from "node:tls";
 import { afterAll, describe, expect, it } from "vitest";
-import { GlockdownStage, Honeytokens, escalate, signal, spkiPin, strictest } from "./index";
+import {
+  GlockdownStage,
+  Honeytokens,
+  escalate,
+  reportDecoys,
+  signal,
+  spkiPin,
+  strictest,
+} from "./index";
 
 const dir = mkdtempSync(join(tmpdir(), "glockdown-sdk-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -202,6 +210,24 @@ describe("escalate", () => {
         pin: spkiPin(app.cert),
         body: { signal: "decoy_admin", detail: "sign-in as the decoy admin" },
       });
+      const decoys = new Honeytokens({
+        logins: ["Admin@GAdvisory.org"],
+        keySha256: [createHash("sha256").update("gadv_live_decoy").digest("hex")],
+        trip: () => {},
+      });
+      expect(
+        await reportDecoys({
+          url,
+          edgePins: [spkiPin(edge.cert)],
+          ...app,
+          ...decoys.fingerprints(),
+        }),
+      ).toMatchObject({ ok: true });
+      expect(seen[3]).toEqual({
+        path: "/v1/decoyset",
+        pin: spkiPin(app.cert),
+        body: decoys.fingerprints(),
+      });
     } finally {
       server.close();
     }
@@ -307,6 +333,20 @@ describe("Honeytokens", () => {
       { signal: "decoy_admin", detail: "sign-in as the decoy admin" },
     ]);
     expect(JSON.stringify(told)).not.toContain("gadv_live_decoy");
+  });
+
+  it("gives what it holds as hashes only, the login as it compares it (L120)", () => {
+    const h = new Honeytokens({
+      logins: [" Admin@GAdvisory.org "],
+      keySha256: [sha("gadv_live_decoy").toUpperCase()],
+      trip: () => {},
+    });
+    expect(h.fingerprints()).toEqual({
+      keys: [sha("gadv_live_decoy")],
+      logins: [sha("admin@gadvisory.org")],
+    });
+    expect(JSON.stringify(h.fingerprints())).not.toContain("gadv_live_decoy");
+    expect(JSON.stringify(h.fingerprints())).not.toContain("admin");
   });
 
   it("refuses a hash that is not SHA-256, and survives a trip that throws", () => {

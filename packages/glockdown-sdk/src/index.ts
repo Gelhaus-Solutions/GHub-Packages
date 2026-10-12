@@ -14,8 +14,10 @@ export {
 export {
   askStage,
   escalate,
+  reportDecoys,
   signal,
   spkiPin,
+  type DecoySetOptions,
   type EdgeConnection,
   type EscalateOptions,
   type EscalateResult,

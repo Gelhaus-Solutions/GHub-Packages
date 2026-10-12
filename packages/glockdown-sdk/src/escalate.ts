@@ -37,6 +37,12 @@ export interface SignalOptions extends EdgeConnection {
   detail: string;
 }
 
+export interface DecoySetOptions extends EdgeConnection {
+  /** The SHA-256 of each decoy key and decoy login, hex, as `Honeytokens.fingerprints()` gives them. */
+  keys: readonly string[];
+  logins: readonly string[];
+}
+
 export type EscalateResult =
   { ok: true; body: unknown } | { ok: false; status: number; code: string; detail?: string };
 
@@ -98,6 +104,16 @@ export function escalate(o: EscalateOptions): Promise<EscalateResult> {
  */
 export function signal(o: SignalOptions): Promise<EscalateResult> {
   return post(o, "/v1/signal", { signal: o.signal, detail: o.detail.slice(0, 200) });
+}
+
+/**
+ * Tells GLockdown which decoys this app holds (L120), as hashes only, so that it can check that
+ * each decoy in its inventory is still checked here; at start and once a day. The answer says how
+ * many of the app's decoys GLockdown judged and how many it holds that GLockdown does not list.
+ * Never a raise.
+ */
+export function reportDecoys(o: DecoySetOptions): Promise<EscalateResult> {
+  return post(o, "/v1/decoyset", { keys: [...o.keys], logins: [...o.logins] });
 }
 
 /**
