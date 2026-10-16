@@ -4,17 +4,18 @@ The packages the Gelhaus Solutions products share. A package lives here when it 
 published and more than one product depends on it. A package only one product uses
 stays in that product's repository.
 
-| Package                                           | What it is                                                                            |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [`@ghub/ui`](packages/ui)                         | The design system: hand-rolled, accessible React components                           |
-| [`@ghub/tokens`](packages/tokens)                 | The design tokens behind it, as a Tailwind v4 theme                                   |
-| [`@ghub/totp`](packages/totp)                     | TOTP (RFC 6238) for sign-in, with no runtime dependencies                             |
-| [`@ghub/terms-rules`](packages/terms-rules)       | The consent rules: where an account stands with its terms, from a signed snapshot     |
-| [`@ghub/terms-client`](packages/terms-client)     | A product's client for GPlatform Terms: standings, acceptances, an outbox             |
-| [`@ghub/gmint-protocol`](packages/gmint-protocol) | GMint's wire protocol: signed, channel-bound requests, HPKE-sealed responses          |
-| [`@ghub/gmint-sdk`](packages/gmint-sdk)           | The GMint client: short-lived, narrowly scoped GitHub App tokens, verified end to end |
-| [`@ghub/sshsig`](packages/sshsig)                 | SSHSIG verification for hardware-key signatures, shared by GMint and GLockdown        |
-| [`@ghub/glockdown-sdk`](packages/glockdown-sdk)   | GLockdown for apps: the stage the agent set for the app, and raising the app one rung |
+| Package                                             | What it is                                                                                   |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`@ghub/ui`](packages/ui)                           | The design system: hand-rolled, accessible React components                                  |
+| [`@ghub/tokens`](packages/tokens)                   | The design tokens behind it, as a Tailwind v4 theme                                          |
+| [`@ghub/totp`](packages/totp)                       | TOTP (RFC 6238) for sign-in, with no runtime dependencies                                    |
+| [`@ghub/terms-rules`](packages/terms-rules)         | The consent rules: where an account stands with its terms, from a signed snapshot            |
+| [`@ghub/terms-client`](packages/terms-client)       | A product's client for GPlatform Terms: standings, acceptances, an outbox                    |
+| [`@ghub/gmint-protocol`](packages/gmint-protocol)   | GMint's wire protocol: signed, channel-bound requests, HPKE-sealed responses                 |
+| [`@ghub/gmint-sdk`](packages/gmint-sdk)             | The GMint client: short-lived, narrowly scoped GitHub App tokens, verified end to end        |
+| [`@ghub/sshsig`](packages/sshsig)                   | SSHSIG verification for hardware-key signatures, shared by GMint and GLockdown               |
+| [`@ghub/glockdown-sdk`](packages/glockdown-sdk)     | GLockdown for apps: the stage the agent set for the app, and raising the app one rung        |
+| [`@ghub/identity-chrome`](packages/identity-chrome) | The shared header controls: the apps picker and the account popup, browser and server halves |
 
 ## Working on it
 
