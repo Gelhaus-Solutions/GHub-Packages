@@ -54,4 +54,36 @@ describe("Dialog", () => {
 
     expect(closed).toEqual(["GMint"]);
   });
+
+  it("becomes a full height sheet below 600 with its footer pinned only when asked", () => {
+    const sheetClasses = ["max-[600px]:h-dvh", "max-[600px]:flex-col", "max-[600px]:rounded-none"];
+    const { unmount } = render(
+      createElement(Dialog, {
+        open: true,
+        title: "Crop your picture",
+        onClose: () => undefined,
+        sheet: true,
+        footer: createElement("button", { type: "button" }, "Save picture"),
+        children: createElement("p", null, "The crop"),
+      }),
+    );
+    const panel = screen.getByRole("dialog", { name: "Crop your picture" });
+    expect(panel.className.split(" ")).toEqual(expect.arrayContaining(sheetClasses));
+    // The body scrolls on its own, so the footer after it stays at the bottom.
+    expect(screen.getByText("The crop").parentElement?.className).toContain(
+      "max-[600px]:overflow-y-auto",
+    );
+    unmount();
+
+    render(
+      createElement(Dialog, {
+        open: true,
+        title: "Add a product",
+        onClose: () => undefined,
+        children: createElement("p", null, "A form"),
+      }),
+    );
+    const floating = screen.getByRole("dialog", { name: "Add a product" });
+    expect(floating.className).not.toContain("max-[600px]");
+  });
 });

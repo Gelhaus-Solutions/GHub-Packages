@@ -31,6 +31,12 @@ import { focusablesIn } from "./focus.js";
  * Rendered through a portal so no ancestor's overflow or stacking context can
  * clip it. A dialog opened from inside a scrolling table is exactly the case
  * that breaks otherwise.
+ *
+ * `sheet` makes it a full height sheet below 600 wide (sheet 34, C4): the body
+ * takes the width and scrolls on its own, and the footer stays pinned at the
+ * bottom where the keyboard and the thumb can reach it. For a dialog whose body
+ * is a surface to work on, such as a crop, which a floating panel on a phone
+ * leaves too small to use.
  */
 
 export interface DialogProps {
@@ -44,6 +50,8 @@ export interface DialogProps {
   footer?: ReactNode;
   /** Widen for content that is genuinely wide, such as a table. */
   size?: "md" | "lg";
+  /** Below 600 wide, a full height sheet with the footer pinned rather than a floating panel. */
+  sheet?: boolean;
   /**
    * Props rather than literals: every user-visible string in this product goes
    * through next-intl, and a design-system component has no locale of its own.
@@ -60,6 +68,7 @@ export function Dialog({
   children,
   footer,
   size = "md",
+  sheet = false,
   closeLabel = "Close",
 }: DialogProps) {
   // Stable across renders and unique per dialog, so two open at once cannot
@@ -128,7 +137,10 @@ export function Dialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8"
+      className={cn(
+        "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8",
+        sheet && "max-[600px]:items-stretch max-[600px]:p-0",
+      )}
       onMouseDown={(event) => {
         overlayPressed.current = event.target === event.currentTarget;
       }}
@@ -152,6 +164,8 @@ export function Dialog({
           "relative w-full rounded-(--radius-panel) border border-(--gc-border-hairline)",
           "bg-raised shadow-2xl outline-none",
           size === "lg" ? "max-w-[880px]" : "max-w-[620px]",
+          sheet &&
+            "max-[600px]:flex max-[600px]:h-dvh max-[600px]:max-w-none max-[600px]:flex-col max-[600px]:rounded-none max-[600px]:border-0",
         )}
       >
         <div className="flex items-start justify-between gap-4 border-b border-(--gc-border-hairline) px-4 py-3">
@@ -187,10 +201,23 @@ export function Dialog({
           </button>
         </div>
 
-        <div className="px-4 py-4">{children}</div>
+        <div
+          className={cn(
+            "px-4 py-4",
+            sheet && "max-[600px]:min-h-0 max-[600px]:flex-1 max-[600px]:overflow-y-auto",
+          )}
+        >
+          {children}
+        </div>
 
         {footer === undefined ? null : (
-          <div className="flex items-center justify-end gap-2 rounded-b-(--radius-panel) border-t border-(--gc-border-hairline) bg-inset px-4 py-2.5">
+          <div
+            className={cn(
+              "flex items-center justify-end gap-2 rounded-b-(--radius-panel) border-t border-(--gc-border-hairline) bg-inset px-4 py-2.5",
+              sheet &&
+                "max-[600px]:rounded-none max-[600px]:pb-[max(0.625rem,env(safe-area-inset-bottom))]",
+            )}
+          >
             {footer}
           </div>
         )}
