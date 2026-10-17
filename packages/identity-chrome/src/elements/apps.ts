@@ -35,6 +35,7 @@
 import type { ChromeCore, ChromeState } from "../core.js";
 import type { ChromeTile } from "../types.js";
 import { CONTRACT_CSS } from "./contract.js";
+import { SVG_NS, crossMark, element } from "./dom.js";
 
 export interface AppsLabels {
   /** The trigger's name and the popup's heading. */
@@ -197,8 +198,6 @@ export const APPS_CSS = `${CONTRACT_CSS}
   }
 `;
 
-const SVG_NS = "http://www.w3.org/2000/svg";
-
 /** The nine dots, in the host's own ink. */
 function nineDots(): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
@@ -230,32 +229,6 @@ function plusMark(): SVGSVGElement {
   path.setAttribute("stroke-width", "1.5");
   svg.append(path);
   return svg;
-}
-
-function crossMark(): SVGSVGElement {
-  const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("width", "14");
-  svg.setAttribute("height", "14");
-  svg.setAttribute("viewBox", "0 0 14 14");
-  svg.setAttribute("aria-hidden", "true");
-  const path = document.createElementNS(SVG_NS, "path");
-  path.setAttribute("d", "M2 2l10 10M12 2L2 12");
-  path.setAttribute("stroke", "currentColor");
-  path.setAttribute("stroke-width", "1.6");
-  path.setAttribute("stroke-linecap", "round");
-  svg.append(path);
-  return svg;
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  attributes: Record<string, string> = {},
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const made = document.createElement(tag);
-  for (const [name, value] of Object.entries(attributes)) made.setAttribute(name, value);
-  if (text !== undefined) made.textContent = text;
-  return made;
 }
 
 /**

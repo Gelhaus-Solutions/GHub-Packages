@@ -1,10 +1,10 @@
 # @ghub/identity-chrome
 
 The shared header controls of the Gelhaus Solutions products: the apps picker and the
-account popup. This version is the part with no markup in it: the browser half (what the
-controls know, what they keep, what they do when Identity cannot be reached) and the server
-half (a product's own server asking GPlatform Identity). The Web Component and the React
-wrapper come with the design.
+account popup. Two custom elements with shadow DOM (`<gp-apps>`, `<gp-account>`) and React
+wrappers for them; the browser half under both (what the controls know, what they keep, what
+they do when Identity cannot be reached); and the server half (a product's own server asking
+GPlatform Identity).
 
 Nothing here depends on a product signing in through Identity. A product that has not
 adopted it uses the same package the same way.
@@ -61,6 +61,75 @@ is never in anything this package throws or answers.
 A one-off push of a product's users (`chrome.seed(emails)`) is refused unless staff have
 opened a window for it on Identity's product screen, and `chrome.remove(emails)` says people
 no longer have access.
+
+## The two controls
+
+```ts
+import { createChromeCore, defineChromeElements } from "@ghub/identity-chrome";
+
+defineChromeElements(); // <gp-apps> and <gp-account>, each once; a no-op on a server
+
+const apps = document.querySelector("gp-apps")!;
+apps.core = chrome; // the core above: one fetch and one cache behind both
+
+const account = document.querySelector("gp-account")!;
+account.core = chrome;
+account.product = "GAdvisory"; // your own name, from your catalogue entry
+account.person = { name: user.name, email: user.email, id: user.id, avatarUrl: user.picture };
+account.organisations = [{ id: "org_1", name: "Hafen Labs", role: "admin", active: true }];
+account.onSwitch = async (id) => switchOrganisation(id); // reject when it did not switch
+account.onSignOut = async () => {
+  await signOut(); // reject when it failed: the popup says they are still signed in
+  location.assign("/"); // you navigate; as this resolves the element forgets the kept list
+};
+```
+
+Everything is a property, because a core, a person and a callback are objects. Each can be
+set before the element is defined. Neither control renders anything while the core is off,
+and the account popup renders nothing without a person.
+
+**The account popup shows mostly what the product passes**: the name and address from your
+session, your organisations with their roles (Owner, Admin or Member) and your two actions.
+Identity adds the picture, the colour of the initial, the links to its own account and set up
+screens and the footer, so the popup still signs somebody out while Identity is down. The
+picture is Identity's if the person has one, else yours, else a coloured initial whose tint
+Identity picks from its own id; for somebody with no Identity, pass your own stable user id as
+`id` and the same hash (`avatarTint`) picks it. Set `viaIdentity` once you sign in through
+Identity, and Sign out says it ends both. Sign out leaves this product only.
+
+Every word can be replaced through `labels`; the rest stay English.
+
+### In React
+
+```tsx
+import { GpAccount, GpApps } from "@ghub/identity-chrome/react";
+
+<GpApps core={chrome} />
+<GpAccount core={chrome} product="GAdvisory" person={person} organisations={orgs} onSwitch={switchTo} onSignOut={signOut} />
+```
+
+The wrappers define the elements and set the properties after mounting, so they render on a
+server as the bare tags. React 19 or newer, as an optional peer.
+
+### The host contract
+
+Shadow DOM: nothing reaches in and nothing leaks out but the custom properties a page
+declares on its root, which inherit into the shadow. The controls read the published
+`@ghub/tokens` names, so a page on `@ghub/tokens` is styled with no setup, and Aurora's frosted
+menu where the page is on Aurora:
+
+| Reads                                                                                                                                                                                                | For                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `--ga-menu`, else `--gm-overlay`; `--ga-frost-menu`; `--ga-shadow-menu`, else `--gm-shadow-overlay`                                                                                                  | the picker's surface, its frost and its shadow |
+| `--ga-menu`, else `--gm-sunken`                                                                                                                                                                      | the account popup's tinted ground              |
+| `--ga-track`, else `--gm-overlay`                                                                                                                                                                    | the account popup's panels                     |
+| `--gm-plate`, `--gm-ink`, `--gm-ink-2`, `--gm-ink-3`, `--gm-hairline`, `--gm-control`, `--gm-hover`, `--gm-active`, `--gm-selected`, `--gm-accent`, `--gm-accent-text`, `--gm-ring`, `--gm-crit-ink` | everything else                                |
+| `--font-sans`                                                                                                                                                                                        | the face                                       |
+
+A page that declares none of them gets modern light, or modern dark under
+`prefers-color-scheme: dark`. There is no second accent: the controls take the page's. Both
+follow reduced motion, reduced transparency and forced colours, and below 600 wide each is a
+modal bottom sheet. `part="trigger"` and `part="popup"` are there for placement only.
 
 ## A product's own name and mark
 

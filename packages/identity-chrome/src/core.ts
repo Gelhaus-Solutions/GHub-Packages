@@ -74,7 +74,7 @@ export interface ChromeCore {
   dispose(): void;
 }
 
-const NO_PERSON = { hasIdentity: false, avatarUrl: null } as const;
+const NO_PERSON = { hasIdentity: false, avatarUrl: null, tint: null } as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -216,7 +216,15 @@ export function createChromeCore(options: ChromeCoreOptions = {}): ChromeCore {
       void publicCall
         .then((pub) => {
           if (pub !== null && state.status === "loading" && state.view === null) {
-            set({ view: { person: NO_PERSON, yours: [], more: pub.more, legal: pub.legal } });
+            set({
+              view: {
+                person: NO_PERSON,
+                yours: [],
+                identity: null,
+                more: pub.more,
+                legal: pub.legal,
+              },
+            });
           }
         })
         .catch(() => undefined);
@@ -235,7 +243,7 @@ export function createChromeCore(options: ChromeCoreOptions = {}): ChromeCore {
         // No personal route configured: the public group is the whole answer.
         set({
           status: "ready",
-          view: { person: NO_PERSON, yours: [], ...publicHalf },
+          view: { person: NO_PERSON, yours: [], identity: null, ...publicHalf },
           updatedAt: now(),
           error: null,
         });
@@ -249,7 +257,7 @@ export function createChromeCore(options: ChromeCoreOptions = {}): ChromeCore {
       } else if (publicHalf !== null) {
         set({
           status: "error",
-          view: { person: NO_PERSON, yours: [], ...publicHalf },
+          view: { person: NO_PERSON, yours: [], identity: null, ...publicHalf },
           updatedAt: null,
           error,
         });

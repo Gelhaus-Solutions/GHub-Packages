@@ -21,6 +21,29 @@ export interface ChromeTile {
 export interface ChromePerson {
   hasIdentity: boolean;
   avatarUrl: string | null;
+  /**
+   * Which of the seven avatar tints the Identity's id picks (0 to 6, `avatarTint`),
+   * so the coloured initial is the same in every product. Null without an Identity,
+   * and from an Identity too old to send it.
+   */
+  tint: number | null;
+}
+
+/**
+ * Where the account popup's own links go on Identity: the pill and the pencil.
+ * Identity sends them, like the footer, so its address can move without a
+ * release here. Null when they were not sent or any is not a web address, and
+ * then neither the pill nor the pencil is drawn.
+ */
+export interface ChromeIdentityLinks {
+  /** "Manage your Identity account". */
+  accountUrl: string;
+  /** The pencil on the picture: the profile screen, where the picture is set. */
+  pictureUrl: string;
+  /** "Set up your Identity": registration, saying which product sent them and never carrying an address. */
+  setupUrl: string;
+  /** Identity's own mark for the pill, at an address that always leads to the current file. */
+  iconUrl: string | null;
 }
 
 /**
@@ -33,11 +56,12 @@ export interface ChromeLegal {
   privacyUrl: string;
 }
 
-/** The person, the products they have, the public ones they do not, and the footer. */
+/** The person, the products they have, the public ones they do not, Identity's own links and the footer. */
 export interface ChromeView {
   person: ChromePerson;
   yours: ChromeTile[];
   more: ChromeTile[];
+  identity: ChromeIdentityLinks | null;
   legal: ChromeLegal | null;
 }
 

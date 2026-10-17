@@ -1,7 +1,7 @@
 {
   "name": "@ghub/identity-chrome",
   "version": "0.1.0",
-  "description": "The shared header controls of the Gelhaus Solutions products: the apps picker and the account popup. The browser half (state, cache, the last list held for an outage) and the server half (the token calls and a route handler). No dependencies.",
+  "description": "The shared header controls of the Gelhaus Solutions products: the apps picker and the account popup, as custom elements with shadow DOM and as React wrappers. The browser half (state, cache, the last list held for an outage) and the server half (the token calls and a route handler). No dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
   "license": "SEE LICENSE IN LICENSE",
@@ -20,6 +20,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
     }
   },
   "files": [
@@ -41,6 +45,14 @@
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22.19.7",

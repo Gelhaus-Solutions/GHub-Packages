@@ -14,6 +14,9 @@
  * | its frost | `--ga-frost-menu`, else none | |
  * | its shadow | `--ga-shadow-menu`, else `--gm-shadow-overlay` | |
  * | the solid surface | `--gm-overlay` | reduced transparency, the badge, the fade |
+ * | the account popup's tinted ground | `--ga-menu`, else `--gm-sunken` | the operator's pick (2026-10-17): exact to sheet 32 on a light host; on a dark one a tray a step below the page |
+ * | its solid ground | `--gm-sunken` | reduced transparency |
+ * | the account popup's panels | `--ga-track`, else `--gm-overlay` | Aurora's six per cent ink film, the white wash sheet 32 draws on glass |
  * | everything else | `--gm-plate`, `--gm-ink`, `--gm-ink-2`, `--gm-ink-3`, `--gm-hairline`, `--gm-control`, `--gm-hover`, `--gm-active`, `--gm-selected`, `--gm-accent`, `--gm-accent-text`, `--gm-ring`, `--gm-crit-ink` | |
  * | the face | `--font-sans` | |
  *
@@ -24,6 +27,7 @@
 
 const LIGHT = {
   overlay: "#ffffff",
+  sunken: "oklch(0.955 0.004 258)",
   plate: "oklch(0.97 0.003 258)",
   ink: "oklch(0.19 0.008 258)",
   ink2: "oklch(0.42 0.012 258)",
@@ -43,6 +47,7 @@ const LIGHT = {
 
 const DARK: Record<keyof typeof LIGHT, string> = {
   overlay: "oklch(0.265 0.01 258)",
+  sunken: "oklch(0.155 0.007 258)",
   plate: "oklch(0.235 0.009 258)",
   ink: "oklch(0.975 0.003 255)",
   ink2: "oklch(0.8 0.009 255)",
@@ -67,6 +72,9 @@ function declarations(f: Record<keyof typeof LIGHT, string>): string {
     --_overlay-solid: var(--gm-overlay, ${f.overlay});
     --_backdrop: var(--ga-frost-menu, none);
     --_shadow: var(--ga-shadow-menu, var(--gm-shadow-overlay, ${f.shadow}));
+    --_tint: var(--ga-menu, var(--gm-sunken, ${f.sunken}));
+    --_tint-solid: var(--gm-sunken, ${f.sunken});
+    --_panel: var(--ga-track, var(--gm-overlay, ${f.overlay}));
     --_plate: var(--gm-plate, ${f.plate});
     --_ink: var(--gm-ink, ${f.ink});
     --_ink-2: var(--gm-ink-2, ${f.ink2});

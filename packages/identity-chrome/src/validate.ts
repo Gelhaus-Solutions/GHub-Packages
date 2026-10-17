@@ -14,6 +14,7 @@
 
 import type {
   CatalogueEntry,
+  ChromeIdentityLinks,
   ChromeLegal,
   ChromePublicView,
   ChromeTile,
@@ -73,6 +74,29 @@ function legalOf(value: unknown): ChromeLegal | null {
   return termsUrl === null || privacyUrl === null ? null : { termsUrl, privacyUrl };
 }
 
+/** All three of Identity's links, or null, the same way as the footer. */
+function identityOf(value: unknown): ChromeIdentityLinks | null {
+  if (!isRecord(value)) return null;
+  const accountUrl = safeUrl(value["accountUrl"]);
+  const pictureUrl = safeUrl(value["pictureUrl"]);
+  const setupUrl = safeUrl(value["setupUrl"]);
+  if (accountUrl === null || pictureUrl === null || setupUrl === null) return null;
+  const icon = value["iconUrl"];
+  return {
+    accountUrl,
+    pictureUrl,
+    setupUrl,
+    iconUrl: icon === null || icon === undefined ? null : safeUrl(icon),
+  };
+}
+
+/** One of the seven tints, or null for anything else. */
+function tintOf(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value < 7
+    ? value
+    : null;
+}
+
 /** A view that can be drawn, or null where the answer is not one. */
 export function parseView(value: unknown): ChromeView | null {
   if (!isRecord(value) || !isRecord(value["person"])) return null;
@@ -86,9 +110,11 @@ export function parseView(value: unknown): ChromeView | null {
     person: {
       hasIdentity: person["hasIdentity"],
       avatarUrl: avatar === null || avatar === undefined ? null : safeUrl(avatar),
+      tint: tintOf(person["tint"]),
     },
     yours,
     more,
+    identity: identityOf(value["identity"]),
     legal: legalOf(value["legal"]),
   };
 }

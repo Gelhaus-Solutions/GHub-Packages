@@ -23,10 +23,18 @@ const LEGAL = {
   privacyUrl: "https://legal.example.test/privacy",
 };
 
+const IDENTITY = {
+  accountUrl: "https://identity.example.test/account",
+  pictureUrl: "https://identity.example.test/account/profile",
+  setupUrl: "https://identity.example.test/register?from=advisory",
+  iconUrl: "https://identity.example.test/api/v1/catalogue/gplatform-identity/icon",
+};
+
 const view = (over: Partial<ChromeView> = {}): ChromeView => ({
-  person: { hasIdentity: true, avatarUrl: "https://identity.example.test/a.png" },
+  person: { hasIdentity: true, avatarUrl: "https://identity.example.test/a.png", tint: 4 },
   yours: [tile("advisory", { current: true }), tile("analytics")],
   more: [tile("registry")],
+  identity: IDENTITY,
   legal: LEGAL,
   ...over,
 });
@@ -292,7 +300,7 @@ describe("what it will draw", () => {
 
   it("drops an avatar that is not a web address", async () => {
     const { fake } = fetchOf(() =>
-      ok(view({ person: { hasIdentity: true, avatarUrl: "javascript:x" } })),
+      ok(view({ person: { hasIdentity: true, avatarUrl: "javascript:x", tint: 4 } })),
     );
     const core = createChromeCore({ enabled: true, endpoint: "/x", fetch: fake });
     expect((await core.load()).view?.person.avatarUrl).toBeNull();
@@ -302,6 +310,39 @@ describe("what it will draw", () => {
     const { fake } = fetchOf(() => ok(view()));
     const core = createChromeCore({ enabled: true, endpoint: "/x", fetch: fake });
     expect((await core.load()).view?.legal).toEqual(LEGAL);
+  });
+
+  it("carries the tint and Identity's own links", async () => {
+    const { fake } = fetchOf(() => ok(view()));
+    const core = createChromeCore({ enabled: true, endpoint: "/x", fetch: fake });
+    const drawn = (await core.load()).view;
+    expect(drawn?.person.tint).toBe(4);
+    expect(drawn?.identity).toEqual(IDENTITY);
+  });
+
+  it("draws no pill when any of Identity's links is not a web address, and no tint out of range", async () => {
+    const { fake } = fetchOf((url) =>
+      url === "/bad"
+        ? ok(
+            view({
+              person: { hasIdentity: true, avatarUrl: null, tint: 7 },
+              identity: { ...IDENTITY, pictureUrl: "javascript:x" },
+            }),
+          )
+        : ok({
+            ...view(),
+            person: { hasIdentity: true, avatarUrl: null, tint: 2.5 },
+            identity: undefined,
+          }),
+    );
+    const bad = createChromeCore({ enabled: true, endpoint: "/bad", fetch: fake });
+    const old = createChromeCore({ enabled: true, endpoint: "/old", fetch: fake });
+
+    for (const core of [bad, old]) {
+      const drawn = (await core.load()).view;
+      expect(drawn?.identity).toBeNull();
+      expect(drawn?.person.tint).toBeNull();
+    }
   });
 
   it("draws no footer when either link is not a web address, or none was sent", async () => {
@@ -446,7 +487,8 @@ describe("the public half", () => {
 
     const state = await core.load();
     expect(state.status).toBe("ready");
-    expect(state.view?.person).toEqual({ hasIdentity: false, avatarUrl: null });
+    expect(state.view?.person).toEqual({ hasIdentity: false, avatarUrl: null, tint: null });
+    expect(state.view?.identity).toBeNull();
     expect(state.view?.legal).toEqual(LEGAL);
   });
 });

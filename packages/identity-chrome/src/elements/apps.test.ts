@@ -29,7 +29,7 @@ const tile = (slug: string, displayName: string, current = false): ChromeTile =>
 });
 
 const VIEW: ChromeView = {
-  person: { hasIdentity: true, avatarUrl: null },
+  person: { hasIdentity: true, avatarUrl: null, tint: null },
   yours: [
     tile("gadvisory", "GAdvisory", true),
     tile("ganalytics", "GAnalytics"),
@@ -38,6 +38,7 @@ const VIEW: ChromeView = {
     tile("danalytics", "DAnalytics"),
   ],
   more: [tile("gopencsr", "GOpenCSR"), tile("gopencdr", "GOpenCDR"), tile("gvet", "GVet")],
+  identity: null,
   legal: null,
 };
 
