@@ -35,6 +35,8 @@
  * **In a sidebar** (`layout="row"`, `placement="top"`): the trigger is a full
  * width row, the picture with the name over the address, and the popup opens
  * upward from it. A product with a sidebar puts `<gp-apps>` at the row's end.
+ * `density="compact"` draws the popup a step smaller (320 wide, tighter rows),
+ * so it does not cover the rail and half the page.
  *
  * **The product's own items** (`items`) sit after the organisations, as a group
  * headed with the product's name. Until the product signs in through Identity,
@@ -331,6 +333,40 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
   .legal a { padding: 2px 6px; border-radius: 6px; color: inherit; text-decoration: none; }
   .legal a:hover { text-decoration: underline; }
   .legal a:focus-visible { outline: 2px solid var(--_ring); outline-offset: 2px; }
+
+  /* density="compact": the same popup a step smaller, for a sidebar, where the
+     full one covers the rail and half the page. Below 600 it is the same sheet. */
+  :host([density="compact"]) .popup:not(.sheet) { width: 320px; padding: 6px 6px 8px; border-radius: 22px; }
+  :host([density="compact"]) .top { min-height: 32px; padding-left: 36px; }
+  :host([density="compact"]) .context { font-size: 12px; line-height: 16px; }
+  :host([density="compact"]) .close { width: 32px; height: 32px; }
+  :host([density="compact"]) .card { padding: 14px 14px 14px; border-radius: 18px; gap: 1px; }
+  :host([density="compact"]) .portrait { width: 52px; height: 52px; margin-bottom: 8px; }
+  :host([density="compact"]) .s72 { width: 52px; height: 52px; font-size: 22px; }
+  :host([density="compact"]) .pencil { width: 24px; height: 24px; right: -5px; bottom: -3px; }
+  :host([density="compact"]) .name { font-size: 16px; line-height: 21px; }
+  :host([density="compact"]) .email { font-size: 13px; line-height: 18px; }
+  :host([density="compact"]) .pill {
+    min-height: 34px; margin-top: 10px; padding: 0 14px 0 10px; gap: 8px; font-size: 13px; line-height: 18px;
+  }
+  :host([density="compact"]) .pill img { width: 18px; height: 18px; }
+  :host([density="compact"]) .section { margin-top: 4px; }
+  :host([density="compact"]) .heading { padding: 6px 12px 2px; font-size: 12px; line-height: 16px; }
+  :host([density="compact"]) .heading img { width: 14px; height: 14px; }
+  :host([density="compact"]) .stack > :first-child { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+  :host([density="compact"]) .stack > :last-child { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+  :host([density="compact"]) .item { min-height: 38px; padding: 0 12px; gap: 10px; font-size: 13px; line-height: 18px; }
+  :host([density="compact"]) .item svg, :host([density="compact"]) .signout svg { width: 16px; height: 16px; }
+  :host([density="compact"]) .org { min-height: 44px; padding: 5px 12px; gap: 10px; }
+  :host([density="compact"]) .wrap > .radios:last-child > .org:last-child { border-radius: 4px 4px 14px 14px; }
+  :host([density="compact"]) .org-mark { width: 28px; height: 28px; border-radius: 8px; font-size: 12.5px; }
+  :host([density="compact"]) .org-name { font-size: 13px; line-height: 18px; }
+  :host([density="compact"]) .org-role { font-size: 11.5px; line-height: 15px; }
+  :host([density="compact"]) .active { font-size: 12px; gap: 5px; }
+  :host([density="compact"]) .more { min-height: 38px; padding: 0 12px; font-size: 13px; border-radius: 4px 4px 14px 14px; }
+  :host([density="compact"]) .signout { min-height: 40px; padding: 0 12px; gap: 10px; font-size: 13px; }
+  :host([density="compact"]) .error { padding: 4px 12px 2px; font-size: 12px; line-height: 17px; }
+  :host([density="compact"]) .legal { padding: 8px 0 2px; font-size: 11.5px; line-height: 16px; }
 
   @media (prefers-reduced-motion: reduce) {
     .popup, .popup.sheet { animation: none; }

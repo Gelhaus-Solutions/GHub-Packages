@@ -104,7 +104,13 @@ Every word can be replaced through `labels`; the rest stay English.
 
 ```html
 <div style="display: flex; align-items: center">
-  <gp-account layout="row" placement="top" align="start" style="flex: 1"></gp-account>
+  <gp-account
+    layout="row"
+    density="compact"
+    placement="top"
+    align="start"
+    style="flex: 1"
+  ></gp-account>
   <gp-apps placement="top" align="start"></gp-apps>
 </div>
 ```
@@ -114,13 +120,14 @@ account.labels = { organisations: "Groups" };
 account.items = [
   { id: "profile", label: "Profile", href: "/settings/profile", icon: userSvg },
   { id: "account", label: "Account", href: "/settings/account", icon: settingsSvg },
-  { id: "replay", label: "Session recording", onSelect: () => openReplayChoice(), icon: videoSvg },
+  { id: "shortcuts", label: "Keyboard shortcuts", onSelect: () => openShortcuts(), icon: keysSvg },
 ];
 ```
 
 `layout="row"` draws the trigger as a full width row, the picture with the name over the
-address; `placement="top"` opens both popups upward. Your items follow the organisations
-under your product's name, as links or as buttons; on a link, `onSelect` may call
+address; `density="compact"` draws the account popup a step smaller (320 wide, tighter rows),
+so it does not cover the rail and half the page; `placement="top"` opens both popups upward.
+Your items follow the organisations under your product's name, as links or as buttons; on a link, `onSelect` may call
 `preventDefault()` and navigate with your own router. An icon is SVG markup on a 24 grid and
 is kept to its shapes. Until you sign in through Identity, Sign out is the last row of your
 items' group; with `viaIdentity` it ends both sessions and stands on its own.

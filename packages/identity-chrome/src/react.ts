@@ -69,6 +69,8 @@ export interface GpAccountProps {
   labels?: Partial<AccountLabels>;
   /** `row` for the bottom of a sidebar: the picture with the name over the address, full width. */
   layout?: "button" | "row";
+  /** `compact` for a sidebar: the popup a step smaller. */
+  density?: "regular" | "compact";
   align?: Align;
   placement?: Placement;
   className?: string;
@@ -86,6 +88,7 @@ export function GpAccount({
   items = null,
   labels,
   layout,
+  density,
   align,
   placement,
   className,
@@ -121,5 +124,5 @@ export function GpAccount({
   useEffect(() => {
     if (ref.current !== null && labels !== undefined) ref.current.labels = labels;
   }, [labels]);
-  return createElement("gp-account", { ref, className, layout, align, placement });
+  return createElement("gp-account", { ref, className, layout, density, align, placement });
 }
