@@ -8,6 +8,7 @@
 import type { ChromeCore } from "../core.js";
 import {
   defineAccountElement,
+  type AccountItem,
   type AccountLabels,
   type AccountOrganisation,
   type AccountPerson,
@@ -39,6 +40,8 @@ export interface AccountElement extends HTMLElement {
   viaIdentity: boolean;
   onSignOut: SignOutHandler | null;
   onSwitch: SwitchHandler | null;
+  get items(): AccountItem[];
+  set items(next: AccountItem[] | null);
   get labels(): AccountLabels;
   set labels(next: Partial<AccountLabels>);
   readonly open: boolean;
@@ -63,10 +66,11 @@ export {
   ACCOUNT_LABELS,
   createAccountElementClass,
   defineAccountElement,
+  iconOf,
+  type AccountItem,
   type AccountLabels,
   type AccountOrganisation,
   type AccountPerson,
-  type OrganisationRole,
   type SignOutHandler,
   type SwitchHandler,
 } from "./account.js";

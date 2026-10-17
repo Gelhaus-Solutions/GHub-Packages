@@ -32,6 +32,16 @@
  *   sentence that the person is still signed in, and turns the row into Try
  *   again. It never claims to have signed out.
  *
+ * **In a sidebar** (`layout="row"`, `placement="top"`): the trigger is a full
+ * width row, the picture with the name over the address, and the popup opens
+ * upward from it. A product with a sidebar puts `<gp-apps>` at the row's end.
+ *
+ * **The product's own items** (`items`) sit after the organisations, as a group
+ * headed with the product's name. Until the product signs in through Identity,
+ * Sign out is the last row of that same group, because it is one of the
+ * product's own actions; once it does (`viaIdentity`), signing out ends both
+ * sessions and stands on its own again.
+ *
  * **Hidden for now (D20):** the other accounts and "Add another account" are
  * not drawn until Identity holds several sessions in one browser and products
  * sign in through it, and no product can switch them on.
@@ -44,9 +54,7 @@ import { AVATAR_INK, AVATAR_TINTS, avatarTint } from "../tint.js";
 import type { ChromeView } from "../types.js";
 import { safeUrl } from "../validate.js";
 import { CONTRACT_CSS } from "./contract.js";
-import { crossMark, element, pathIcon } from "./dom.js";
-
-export type OrganisationRole = "owner" | "admin" | "member";
+import { SVG_NS, crossMark, element, pathIcon } from "./dom.js";
 
 /** Who is signed in, from the product's own session. */
 export interface AccountPerson {
@@ -62,8 +70,29 @@ export interface AccountPerson {
 export interface AccountOrganisation {
   id: string;
   name: string;
-  role: OrganisationRole;
+  /**
+   * The product's own role for this person here, already in the person's
+   * language and shown as given. Roles differ per product and can be custom,
+   * so the element has no list of its own. None, and the row has no second line.
+   */
+  role?: string | null;
   active: boolean;
+}
+
+/** One of the product's own items in the popup, such as its profile or its settings. */
+export interface AccountItem {
+  /** Stable across renders, so focus stays on the item when the list is set again. */
+  id: string;
+  label: string;
+  /** A link, so middle click and opening in a new tab work as on any link. Relative to the page. */
+  href?: string;
+  /**
+   * Called when it is chosen. On a link, `event.preventDefault()` hands the
+   * navigation to the product, such as a client side router.
+   */
+  onSelect?: (event: MouseEvent) => void;
+  /** SVG markup on a 24 grid, drawn at 18 in the row's ink. Only shapes are kept. */
+  icon?: string;
 }
 
 /** Signs the person out of this product. Rejecting means they are still signed in. */
@@ -80,7 +109,6 @@ export interface AccountLabels {
   manage: string;
   setUp: string;
   organisations: string;
-  roles: Record<OrganisationRole, string>;
   active: string;
   showAll: (count: number) => string;
   switched: (organisation: string) => string;
@@ -107,7 +135,6 @@ export const ACCOUNT_LABELS: AccountLabels = {
   manage: "Manage your Identity account",
   setUp: "Set up your Identity",
   organisations: "Organisations",
-  roles: { owner: "Owner", admin: "Admin", member: "Member" },
   active: "Active",
   showAll: (count) => `Show all ${String(count)}`,
   switched: (organisation) => `Switched to ${organisation}`,
@@ -131,7 +158,6 @@ const SHOWN = 5;
 const TIP_DELAY_MS = 500;
 /** Long enough to cross from the trigger to its tooltip without losing it. */
 const TIP_LINGER_MS = 150;
-const ROLES: readonly OrganisationRole[] = ["owner", "admin", "member"];
 
 const tintRules = AVATAR_TINTS.map(
   (tint, index) => `.t${String(index)} { background: ${tint}; }`,
@@ -146,7 +172,17 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
   .trigger:active { background: var(--_active); }
   .trigger[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--_accent); }
   .trigger:focus-visible { outline: 2px solid var(--_ring); outline-offset: 2px; }
-  @media (pointer: coarse) { .trigger { box-sizing: content-box; padding: 2px; } }
+  @media (pointer: coarse) { :host(:not([layout="row"])) .trigger { box-sizing: content-box; padding: 2px; } }
+  :host([layout="row"]) { display: block; }
+  :host([layout="row"]) .trigger {
+    box-sizing: border-box; width: 100%; height: auto; min-height: 44px; padding: 6px 8px; border-radius: 10px;
+    display: flex; align-items: center; gap: 10px; text-align: left; font: inherit;
+  }
+  :host([layout="row"]) .trigger[aria-expanded="true"] { background: var(--_hover); box-shadow: inset 0 0 0 1px var(--_accent); }
+  :host([layout="row"]) .trigger:focus-visible { outline-offset: 0; }
+  .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .who-name { font-size: 14px; line-height: 19px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who-mail { font-size: 12px; line-height: 16px; color: var(--_ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .avatar {
     position: relative; display: grid; place-items: center; flex-shrink: 0; overflow: hidden;
@@ -174,6 +210,8 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
     box-shadow: var(--_shadow); color: var(--_ink); animation: rise 120ms ease-out;
   }
   :host([align="start"]) .popup, :host([align="start"]) .tip { right: auto; left: 0; }
+  :host([placement="top"]) .popup:not(.sheet) { top: auto; bottom: calc(100% + 8px); }
+  :host([placement="top"]) .tip { top: auto; bottom: calc(100% + 6px); }
   .popup.sheet {
     position: fixed; top: auto; right: 0; bottom: 0; left: 0; width: 100%; max-width: none;
     max-height: calc(100dvh - 48px); border-radius: 20px 20px 0 0;
@@ -232,6 +270,20 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
 
   .section { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
   .heading { margin: 0; padding: 8px 16px 4px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--_ink-2); }
+  .heading.with-mark { display: flex; align-items: center; gap: 8px; }
+  .heading img { display: block; width: 16px; height: 16px; flex-shrink: 0; }
+  .stack { display: flex; flex-direction: column; gap: 2px; }
+  .stack > * { border-radius: 4px; }
+  .stack > :first-child { border-top-left-radius: 18px; border-top-right-radius: 18px; }
+  .stack > :last-child { border-bottom-left-radius: 18px; border-bottom-right-radius: 18px; }
+  .item {
+    display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 16px;
+    border: 0; color: var(--_ink); font: inherit; font-size: 14px; line-height: 20px; font-weight: 500;
+    text-align: left; text-decoration: none; cursor: pointer;
+  }
+  .item svg { flex-shrink: 0; color: var(--_ink-2); }
+  .item:focus-visible { outline: 2px solid var(--_ring); outline-offset: -2px; }
+  a.item:hover, button.item:hover { background-image: linear-gradient(var(--_hover), var(--_hover)); }
   .wrap, .radios { display: flex; flex-direction: column; gap: 2px; }
   .radios.all {
     max-height: 300px; overflow-y: auto; overscroll-behavior: contain;
@@ -263,7 +315,7 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
   .more:focus-visible, .signout:focus-visible { outline: 2px solid var(--_ring); outline-offset: -2px; }
   .signout {
     display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; min-height: 52px; padding: 0 16px;
-    border: 0; border-radius: 18px; color: var(--_ink); font: inherit; font-size: 14px; font-weight: 500;
+    border: 0; color: var(--_ink); font: inherit; font-size: 14px; font-weight: 500;
     text-align: left; cursor: pointer;
   }
   .signout[aria-busy="true"] { color: var(--_ink-2); cursor: progress; }
@@ -288,7 +340,7 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
     .popup { background: var(--_tint-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
   @media (forced-colors: active) {
-    .popup, .panel, .org { border: 1px solid CanvasText; background: Canvas; }
+    .popup, .panel, .org, .item { border: 1px solid CanvasText; background: Canvas; }
     .org[aria-checked="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
     .avatar, .org-mark { border: 1px solid CanvasText; }
     .pill, .legal a { color: LinkText; }
@@ -364,14 +416,121 @@ function emailLine(email: string): HTMLElement {
   return line;
 }
 
-/** The product's own picture: an absolute or same-site web address, never anything else. */
-function productPicture(value: string | null | undefined): string | null {
+/** An address the product gave, absolute or relative to the page, and only ever http or https. */
+function productAddress(value: string | null | undefined): string | null {
   if (typeof value !== "string" || value === "") return null;
   try {
     return safeUrl(new URL(value, document.baseURI).href);
   } catch {
     return null;
   }
+}
+
+const ICON_TAGS = new Set([
+  "svg",
+  "g",
+  "path",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
+  "rect",
+]);
+const ICON_ATTRIBUTES = new Set([
+  "viewBox",
+  "d",
+  "cx",
+  "cy",
+  "r",
+  "rx",
+  "ry",
+  "x",
+  "y",
+  "x1",
+  "y1",
+  "x2",
+  "y2",
+  "width",
+  "height",
+  "points",
+  "fill",
+  "stroke",
+  "stroke-width",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "fill-rule",
+  "clip-rule",
+  "transform",
+  "opacity",
+]);
+
+/**
+ * A product's icon, kept to shapes: no script, no link, no style and no reference
+ * to anything outside it, because it is drawn inside every page the element is on.
+ */
+export function iconOf(markup: string): SVGSVGElement | null {
+  let parsed: Document;
+  try {
+    parsed = new DOMParser().parseFromString(markup, "image/svg+xml");
+  } catch {
+    return null;
+  }
+  const root = parsed.documentElement;
+  if (root.localName !== "svg" || parsed.getElementsByTagName("parsererror").length > 0)
+    return null;
+  const copy = (source: Element): Element | null => {
+    if (!ICON_TAGS.has(source.localName)) return null;
+    const made = document.createElementNS(SVG_NS, source.localName);
+    for (const attribute of [...source.attributes]) {
+      if (ICON_ATTRIBUTES.has(attribute.name) && !/url\(|javascript:|&/iu.test(attribute.value)) {
+        made.setAttribute(attribute.name, attribute.value);
+      }
+    }
+    for (const child of [...source.children]) {
+      const kept = copy(child);
+      if (kept !== null) made.append(kept);
+    }
+    return made;
+  };
+  const svg = copy(root) as SVGSVGElement | null;
+  if (svg === null) return null;
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  return svg;
+}
+
+interface HeldItem {
+  id: string;
+  label: string;
+  href: string | null;
+  onSelect: ((event: MouseEvent) => void) | null;
+  icon: SVGSVGElement | null;
+}
+
+function itemsOf(value: unknown): HeldItem[] {
+  if (!Array.isArray(value)) return [];
+  const out: HeldItem[] = [];
+  for (const one of value as unknown[]) {
+    if (typeof one !== "object" || one === null) continue;
+    const { id, label, href, onSelect, icon } = one as Record<string, unknown>;
+    if (typeof id !== "string" || id === "" || typeof label !== "string" || label.trim() === "")
+      continue;
+    const link = typeof href === "string" ? productAddress(href) : null;
+    const select =
+      typeof onSelect === "function" ? (onSelect as (event: MouseEvent) => void) : null;
+    if (link === null && select === null) continue;
+    out.push({
+      id,
+      label: label.trim(),
+      href: link,
+      onSelect: select,
+      icon: typeof icon === "string" ? iconOf(icon) : null,
+    });
+  }
+  return out;
 }
 
 function personOf(value: unknown): AccountPerson | null {
@@ -395,8 +554,8 @@ function organisationsOf(value: unknown): AccountOrganisation[] {
     const { id, name, role, active } = one as Record<string, unknown>;
     if (typeof id !== "string" || id === "" || typeof name !== "string" || name.trim() === "")
       continue;
-    if (!ROLES.includes(role as OrganisationRole)) continue;
-    out.push({ id, name: name.trim(), role: role as OrganisationRole, active: active === true });
+    const label = typeof role === "string" && role.trim() !== "" ? role.trim() : null;
+    out.push({ id, name: name.trim(), role: label, active: active === true });
   }
   // The active one first: the row says which one you are acting in.
   const active = out.findIndex((one) => one.active);
@@ -427,6 +586,8 @@ export function createAccountElementClass(): CustomElementConstructor {
     #viaIdentity = false;
     #onSignOut: SignOutHandler | null = null;
     #onSwitch: SwitchHandler | null = null;
+    #items: HeldItem[] = [];
+    #given: AccountItem[] = [];
     #open = false;
     #sheet = false;
     #allShown = false;
@@ -582,17 +743,33 @@ export function createAccountElementClass(): CustomElementConstructor {
       this.#render();
     }
 
+    static get observedAttributes(): string[] {
+      return ["layout"];
+    }
+
+    attributeChangedCallback(): void {
+      this.#face = "";
+      this.#render();
+    }
+
+    get items(): AccountItem[] {
+      return this.#given;
+    }
+
+    /** The product's own items. None, and the group is absent. */
+    set items(next: AccountItem[] | null) {
+      this.#given = Array.isArray(next) ? next : [];
+      this.#items = itemsOf(next);
+      this.#render();
+    }
+
     get labels(): AccountLabels {
       return this.#labels;
     }
 
     /** Any of the words, replaced; the rest stay English. */
     set labels(next: Partial<AccountLabels>) {
-      this.#labels = {
-        ...ACCOUNT_LABELS,
-        ...next,
-        roles: { ...ACCOUNT_LABELS.roles, ...next.roles },
-      };
+      this.#labels = { ...ACCOUNT_LABELS, ...next };
       this.#render();
     }
 
@@ -610,6 +787,7 @@ export function createAccountElementClass(): CustomElementConstructor {
         "viaIdentity",
         "onSignOut",
         "onSwitch",
+        "items",
         "labels",
       ] as const) {
         if (Object.prototype.hasOwnProperty.call(this, key)) {
@@ -825,6 +1003,9 @@ export function createAccountElementClass(): CustomElementConstructor {
           if (id !== undefined) void this.#choose(id);
           break;
         }
+        case "item":
+          this.#chosen(target, event);
+          break;
         default:
           break;
       }
@@ -861,6 +1042,24 @@ export function createAccountElementClass(): CustomElementConstructor {
       if (moved !== undefined) this.#roving = moved.id;
       this.#render();
       if (moved !== undefined) this.#byKey(`org:${moved.id}`)?.focus();
+    }
+
+    /** One of the product's items: its handler runs, a link goes where it goes, and the popup closes. */
+    #chosen(target: HTMLElement, event: MouseEvent): void {
+      const item = this.#items.find((one) => one.id === target.dataset["id"]);
+      if (item === undefined) return;
+      try {
+        item.onSelect?.(event);
+      } catch {
+        // The product's fault, and not a reason to leave the popup open over the page.
+      }
+      this.close(false);
+      // Back to the trigger unless the item took focus somewhere, as a dialog it opened would.
+      setTimeout(() => {
+        if (document.activeElement === document.body || document.activeElement === null) {
+          this.#returnFocus();
+        }
+      }, 0);
     }
 
     async #choose(id: string): Promise<void> {
@@ -914,7 +1113,7 @@ export function createAccountElementClass(): CustomElementConstructor {
     #faceOf(view: ChromeView | null, person: AccountPerson): Face {
       const own = view?.person.hasIdentity === true ? view.person : null;
       return {
-        picture: own?.avatarUrl ?? productPicture(person.avatarUrl),
+        picture: own?.avatarUrl ?? productAddress(person.avatarUrl),
         tint: own?.tint ?? avatarTint(person.id ?? person.email.toLowerCase()),
         initial: initialOf(person.name),
       };
@@ -932,13 +1131,23 @@ export function createAccountElementClass(): CustomElementConstructor {
       const labels = this.#labels;
       const view = state.view;
       const name = labels.trigger(person.name);
-      this.#trigger.setAttribute("aria-label", name);
+      const row = this.getAttribute("layout") === "row";
+      // In a row the address is on screen too, so the name says it as well (2.5.3, label in name).
+      this.#trigger.setAttribute("aria-label", row ? `${name}, ${person.email}` : name);
       this.#tip.textContent = name;
       const face = this.#faceOf(view, person);
-      const signature = `${face.picture ?? ""} ${String(face.tint)} ${face.initial}`;
+      const signature = `${face.picture ?? ""} ${String(face.tint)} ${face.initial} ${row ? `${person.name} ${person.email}` : ""}`;
       if (signature !== this.#face) {
         this.#face = signature;
         this.#trigger.replaceChildren(avatar(face, "s32"));
+        if (row) {
+          const who = element("span", { class: "who", "aria-hidden": "true" });
+          who.append(
+            element("span", { class: "who-name" }, person.name),
+            element("span", { class: "who-mail" }, person.email),
+          );
+          this.#trigger.append(who);
+        }
       }
       if (!this.#open) return;
 
@@ -1030,7 +1239,7 @@ export function createAccountElementClass(): CustomElementConstructor {
       out.append(card);
 
       if (this.#organisations.length > 0) out.append(this.#organisationsSection());
-      if (this.#onSignOut !== null) out.append(this.#signOutSection(product));
+      out.append(...this.#actionSections(view, product));
 
       if (view !== null && view.legal !== null) {
         const footer = element("div", { class: "legal" });
@@ -1063,22 +1272,19 @@ export function createAccountElementClass(): CustomElementConstructor {
       if (this.#onSwitch === null) radios.setAttribute("aria-readonly", "true");
       if (this.#switching !== null) radios.setAttribute("aria-busy", "true");
       for (const one of shown) {
-        const role = labels.roles[one.role];
         const row = element("div", {
           class: "org panel",
           role: "radio",
           "aria-checked": String(one.active),
-          "aria-label": `${one.name}, ${role}`,
+          "aria-label": one.role ? `${one.name}, ${one.role}` : one.name,
           tabindex: one === stop ? "0" : "-1",
           "data-action": "org",
           "data-id": one.id,
           "data-key": `org:${one.id}`,
         });
         const text = element("span", { class: "org-text", "aria-hidden": "true" });
-        text.append(
-          element("span", { class: "org-name", title: one.name }, one.name),
-          element("span", { class: "org-role" }, role),
-        );
+        text.append(element("span", { class: "org-name", title: one.name }, one.name));
+        if (one.role) text.append(element("span", { class: "org-role" }, one.role));
         row.append(
           element(
             "span",
@@ -1114,12 +1320,86 @@ export function createAccountElementClass(): CustomElementConstructor {
       return section;
     }
 
-    #signOutSection(product: string | null): HTMLElement {
+    /**
+     * The product's items and Sign out. Until the product signs in through
+     * Identity, Sign out is the last row of the items' group, one of the
+     * product's own actions; once it does, it ends both sessions and stands apart.
+     */
+    #actionSections(view: ChromeView | null, product: string | null): HTMLElement[] {
       const labels = this.#labels;
       const name = product ?? labels.thisProduct;
+      const sections: HTMLElement[] = [];
+      const joined = !this.#viaIdentity;
+      let stack: HTMLElement | null = null;
+      let section: HTMLElement | null = null;
+
+      if (this.#items.length > 0) {
+        section = element("div", { class: "section" });
+        if (product !== null) {
+          const heading = element("p", { class: "heading with-mark" });
+          const mark = view?.yours.find((tile) => tile.current)?.iconUrl ?? null;
+          if (mark !== null) {
+            heading.append(
+              element("img", {
+                src: mark,
+                alt: "",
+                width: "16",
+                height: "16",
+                referrerpolicy: "no-referrer",
+              }),
+            );
+          }
+          heading.append(product);
+          section.append(heading);
+        }
+        stack = element("div", { class: "stack" });
+        for (const item of this.#items) stack.append(this.#itemRow(item));
+        section.append(stack);
+        sections.push(section);
+      }
+
+      if (this.#onSignOut === null) return sections;
+      const button = this.#signOutButton(name);
+      if (joined && stack !== null && section !== null) {
+        stack.append(button);
+      } else {
+        section = element("div", { class: "section" });
+        stack = element("div", { class: "stack" });
+        stack.append(button);
+        section.append(stack);
+        sections.push(section);
+      }
+      if (this.#signOut === "failed") {
+        button.setAttribute("aria-describedby", "signout-failed");
+        section.append(
+          element(
+            "p",
+            { id: "signout-failed", class: "error", role: "alert" },
+            labels.signOutFailed(name),
+          ),
+        );
+      }
+      return sections;
+    }
+
+    #itemRow(item: HeldItem): HTMLElement {
+      const row =
+        item.href === null
+          ? element("button", { type: "button" })
+          : element("a", { href: item.href });
+      row.className = "item panel";
+      row.dataset["action"] = "item";
+      row.dataset["id"] = item.id;
+      row.dataset["key"] = `item:${item.id}`;
+      if (item.icon !== null) row.append(item.icon.cloneNode(true));
+      row.append(element("span", {}, item.label));
+      return row;
+    }
+
+    #signOutButton(name: string): HTMLButtonElement {
+      const labels = this.#labels;
       const busy = this.#signOut === "busy";
       const failed = this.#signOut === "failed";
-      const section = element("div", { class: "section" });
       const button = element("button", {
         type: "button",
         class: "signout panel",
@@ -1145,18 +1425,7 @@ export function createAccountElementClass(): CustomElementConstructor {
                 : labels.signOut(name),
         ),
       );
-      section.append(button);
-      if (failed) {
-        button.setAttribute("aria-describedby", "signout-failed");
-        section.append(
-          element(
-            "p",
-            { id: "signout-failed", class: "error", role: "alert" },
-            labels.signOutFailed(name),
-          ),
-        );
-      }
-      return section;
+      return button;
     }
   };
 }

@@ -34,12 +34,12 @@ export {
   defineAppsElement,
   defineChromeElements,
   type AccountElement,
+  type AccountItem,
   type AccountLabels,
   type AccountOrganisation,
   type AccountPerson,
   type AppsElement,
   type AppsLabels,
-  type OrganisationRole,
   type SignOutHandler,
   type SwitchHandler,
 } from "./elements/index.js";

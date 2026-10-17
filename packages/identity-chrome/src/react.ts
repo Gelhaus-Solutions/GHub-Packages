@@ -14,6 +14,7 @@ import { createElement, useEffect, useRef, type ReactElement } from "react";
 import type { ChromeCore } from "./core.js";
 import type {
   AccountElement,
+  AccountItem,
   AccountLabels,
   AccountOrganisation,
   AccountPerson,
@@ -26,16 +27,19 @@ import { defineChromeElements } from "./elements/index.js";
 
 /** Which edge of the trigger the popup lines up with. The end, by default. */
 type Align = "start" | "end";
+/** Whether the popup opens below the trigger (a top bar) or above it (the bottom of a sidebar). Below, by default. */
+type Placement = "bottom" | "top";
 
 export interface GpAppsProps {
   core: ChromeCore | null;
   labels?: Partial<AppsLabels>;
   align?: Align;
+  placement?: Placement;
   className?: string;
 }
 
 /** `<gp-apps>`, the apps picker. */
-export function GpApps({ core, labels, align, className }: GpAppsProps): ReactElement {
+export function GpApps({ core, labels, align, placement, className }: GpAppsProps): ReactElement {
   const ref = useRef<AppsElement>(null);
   useEffect(() => {
     defineChromeElements();
@@ -46,7 +50,7 @@ export function GpApps({ core, labels, align, className }: GpAppsProps): ReactEl
   useEffect(() => {
     if (ref.current !== null && labels !== undefined) ref.current.labels = labels;
   }, [labels]);
-  return createElement("gp-apps", { ref, className, align });
+  return createElement("gp-apps", { ref, className, align, placement });
 }
 
 export interface GpAccountProps {
@@ -60,8 +64,13 @@ export interface GpAccountProps {
   viaIdentity?: boolean;
   onSignOut?: SignOutHandler | null;
   onSwitch?: SwitchHandler | null;
+  /** The product's own items, after the organisations. */
+  items?: AccountItem[] | null;
   labels?: Partial<AccountLabels>;
+  /** `row` for the bottom of a sidebar: the picture with the name over the address, full width. */
+  layout?: "button" | "row";
   align?: Align;
+  placement?: Placement;
   className?: string;
 }
 
@@ -74,8 +83,11 @@ export function GpAccount({
   viaIdentity = false,
   onSignOut = null,
   onSwitch = null,
+  items = null,
   labels,
+  layout,
   align,
+  placement,
   className,
 }: GpAccountProps): ReactElement {
   const ref = useRef<AccountElement>(null);
@@ -104,7 +116,10 @@ export function GpAccount({
     if (ref.current !== null) ref.current.onSwitch = onSwitch;
   }, [onSwitch]);
   useEffect(() => {
+    if (ref.current !== null) ref.current.items = items;
+  }, [items]);
+  useEffect(() => {
     if (ref.current !== null && labels !== undefined) ref.current.labels = labels;
   }, [labels]);
-  return createElement("gp-account", { ref, className, align });
+  return createElement("gp-account", { ref, className, layout, align, placement });
 }

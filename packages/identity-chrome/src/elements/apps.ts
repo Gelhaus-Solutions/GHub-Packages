@@ -98,6 +98,7 @@ export const APPS_CSS = `${CONTRACT_CSS}
     animation: rise 120ms ease-out;
   }
   :host([align="start"]) .popup { right: auto; left: 0; }
+  :host([placement="top"]) .popup:not(.sheet) { top: auto; bottom: calc(100% + 8px); }
   .popup[hidden], .scrim[hidden] { display: none; }
   .scroller { overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; }
   .popup.sheet {

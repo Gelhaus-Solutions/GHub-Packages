@@ -14,7 +14,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ChromeCore, ChromeState } from "../core.js";
 import { avatarTint } from "../tint.js";
 import type { ChromeView } from "../types.js";
-import { defineAccountElement, type AccountOrganisation } from "./account.js";
+import {
+  defineAccountElement,
+  iconOf,
+  type AccountItem,
+  type AccountOrganisation,
+} from "./account.js";
 import { defineChromeElements, type AccountElement } from "./index.js";
 
 const IDENTITY = {
@@ -46,9 +51,9 @@ const VIEW: ChromeView = {
 const PERSON = { name: "Mira Kessler", email: "mira.kessler@example.test", id: "usr-42" };
 
 const ORGS: AccountOrganisation[] = [
-  { id: "org_2", name: "Nordlicht Security GmbH", role: "member", active: false },
-  { id: "org_1", name: "Kessler Rechtsanwaelte", role: "owner", active: true },
-  { id: "org_3", name: "Hafen Labs", role: "admin", active: false },
+  { id: "org_2", name: "Nordlicht Security GmbH", role: "Member", active: false },
+  { id: "org_1", name: "Kessler Rechtsanwaelte", role: "Owner", active: true },
+  { id: "org_3", name: "Hafen Labs", role: "Admin", active: false },
 ];
 
 function fakeCore(initial: Partial<ChromeState> = {}) {
@@ -247,6 +252,32 @@ describe("<gp-account>", () => {
     expect(radios[0]?.textContent).toContain("Active");
   });
 
+  it("shows the product's own role label as given, and no second line where there is none", () => {
+    const account = mount({
+      organisations: [
+        { id: "org_1", name: "Kessler Rechtsanwaelte", role: "  Triage lead (EU)  ", active: true },
+        { id: "org_2", name: "Hafen Labs", role: null, active: false },
+        { id: "org_3", name: "Nordlicht Security GmbH", active: false },
+        { id: "org_4", name: "Blank Role AG", role: "   ", active: false },
+      ],
+      onSwitch: vi.fn(),
+    });
+    account.show();
+    const radios = [...root(account).querySelectorAll('[role="radio"]')];
+    expect(radios.map((one) => one.getAttribute("aria-label"))).toEqual([
+      "Kessler Rechtsanwaelte, Triage lead (EU)",
+      "Hafen Labs",
+      "Nordlicht Security GmbH",
+      "Blank Role AG",
+    ]);
+    expect(radios.map((one) => one.querySelector(".org-role")?.textContent ?? null)).toEqual([
+      "Triage lead (EU)",
+      null,
+      null,
+      null,
+    ]);
+  });
+
   it("moves with the arrows without switching, and switches on Enter, closing and saying so", async () => {
     const onSwitch = vi.fn(async () => undefined);
     const account = mount({ organisations: ORGS, onSwitch });
@@ -282,7 +313,7 @@ describe("<gp-account>", () => {
     const many = Array.from({ length: 14 }, (_, i) => ({
       id: `org_${String(i)}`,
       name: `Organisation ${String(i)}`,
-      role: "member" as const,
+      role: "Member",
       active: i === 0,
     }));
     const account = mount({ organisations: many, onSwitch: vi.fn() });
@@ -383,5 +414,94 @@ describe("<gp-account>", () => {
     expect(early.shadowRoot?.querySelector("button.trigger")?.getAttribute("aria-label")).toBe(
       "Account: Mira Kessler",
     );
+  });
+
+  describe("in a sidebar, with the product's own items", () => {
+    const opened: string[] = [];
+    const ITEMS: AccountItem[] = [
+      {
+        id: "profile",
+        label: "Profile",
+        href: "/settings/profile",
+        icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/></svg>',
+      },
+      { id: "account", label: "Account", href: "/settings/account" },
+      { id: "replay", label: "Session recording", onSelect: () => opened.push("replay") },
+      { id: "nowhere", label: "Nowhere" },
+      { id: "script", label: "Script", href: "javascript:alert(1)" },
+    ];
+
+    it("is a row with the name over the address, named with both", () => {
+      const account = mount();
+      account.setAttribute("layout", "row");
+      const button = trigger(account);
+      expect(button.getAttribute("aria-label")).toBe(
+        "Account: Mira Kessler, mira.kessler@example.test",
+      );
+      expect($(account, ".who-name")?.textContent).toBe("Mira Kessler");
+      expect($(account, ".who-mail")?.textContent).toBe("mira.kessler@example.test");
+    });
+
+    it("lists the items after the organisations under the product's name, links as links", () => {
+      const account = mount({
+        organisations: ORGS,
+        onSwitch: vi.fn(),
+        items: ITEMS,
+        onSignOut: vi.fn(),
+      });
+      account.show();
+      const sections = [...root(account).querySelectorAll(".section")];
+      const groups = sections.findIndex((one) => one.querySelector('[role="radiogroup"]') !== null);
+      const own = sections.findIndex((one) => one.querySelector(".item") !== null);
+      expect(groups).toBeGreaterThanOrEqual(0);
+      expect(own).toBeGreaterThan(groups);
+      expect(sections[own]?.querySelector(".heading")?.textContent).toBe("GAdvisory");
+
+      const rows = [...root(account).querySelectorAll<HTMLElement>(".item")];
+      expect(rows.map((one) => one.textContent)).toEqual([
+        "Profile",
+        "Account",
+        "Session recording",
+      ]);
+      expect(rows.map((one) => one.tagName)).toEqual(["A", "A", "BUTTON"]);
+      expect(rows[0]?.getAttribute("href")).toBe(
+        new URL("/settings/profile", document.baseURI).href,
+      );
+      expect(rows[0]?.querySelector("svg circle")).not.toBeNull();
+    });
+
+    it("keeps Sign out in the product's group until the product signs in through Identity", () => {
+      const joined = mount({ items: ITEMS, onSignOut: vi.fn() });
+      joined.show();
+      const together = $(joined, "button.signout")?.parentElement;
+      expect(together?.querySelector(".item")).not.toBeNull();
+      expect(together?.lastElementChild).toBe($(joined, "button.signout"));
+
+      const apart = mount({ items: ITEMS, onSignOut: vi.fn(), viaIdentity: true });
+      apart.show();
+      const alone = $(apart, "button.signout")?.parentElement;
+      expect(alone?.querySelector(".item")).toBeNull();
+      expect(alone?.children).toHaveLength(1);
+      expect(root(apart).querySelectorAll(".item")).toHaveLength(3);
+    });
+
+    it("runs an item's handler and closes", () => {
+      const account = mount({ items: ITEMS });
+      account.show();
+      ($(account, '.item[data-id="replay"]') as HTMLButtonElement).click();
+      expect(opened).toContain("replay");
+      expect(account.open).toBe(false);
+    });
+
+    it("keeps an icon to its shapes", () => {
+      const icon = iconOf(
+        '<svg viewBox="0 0 24 24" onload="steal()"><script>steal()</script><a href="https://x.test"><path d="M1 1"/></a><path d="M0 0" onclick="steal()" fill="url(https://x.test/a)"/></svg>',
+      );
+      expect(icon).not.toBeNull();
+      const markup = icon?.outerHTML ?? "";
+      expect(markup).not.toMatch(/script|onload|onclick|href|url\(/u);
+      expect(icon?.querySelectorAll("path")).toHaveLength(1);
+      expect(iconOf("<div>not an icon</div>")).toBeNull();
+    });
   });
 });
