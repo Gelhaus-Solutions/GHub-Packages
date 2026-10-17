@@ -218,3 +218,15 @@ export {
   type DraftKeeperOptions,
   type RestoredDraft,
 } from "./draft-keeper.js";
+export { Slider, type SliderProps } from "./slider.js";
+export { drawCrop, ImageCrop, type ImageCropProps } from "./image-crop.js";
+export {
+  clampCropPosition,
+  cropArea,
+  cropBaseScale,
+  zoomCropPosition,
+  type CropArea,
+  type CropImage,
+  type CropPosition,
+  type CropView,
+} from "./image-crop-math.js";

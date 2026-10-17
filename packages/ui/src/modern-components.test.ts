@@ -1114,6 +1114,8 @@ describe("the pin covers every modern component", () => {
     "GoTo",
     "GoToButton",
     "Hash",
+    // Rendered in modern-image-crop.test.ts, with its keyboard in the interaction file.
+    "ImageCrop",
     "Input",
     "LifecycleStepper",
     "LinkPage",
@@ -1130,6 +1132,8 @@ describe("the pin covers every modern component", () => {
     "ReorderList",
     "SavedViews",
     "Section",
+    // Rendered in modern-image-crop.test.ts.
+    "Slider",
     "Standing",
     "StatTile",
     "StatTiles",
