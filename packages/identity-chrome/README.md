@@ -184,8 +184,16 @@ const me = await catalogue.entry("gadvisory"); // { displayName, homeUrl, iconUr
 ```
 
 No token is needed. An entry is reused for a minute, and after a failed ask the last good one
-is returned, so an outage leaves the name and mark you last had. A self-hosted install asks
-nobody and ships the copy its release was built with.
+is returned, so an outage leaves the name and mark you last had. A failed ask is held for the
+same minute and readers asking at once share one ask, so an outage costs a page render at most
+one wait a minute. A self-hosted install asks nobody and ships the copy its release was built
+with.
+
+For an icon drawn into a PNG (`next/og`'s `ImageResponse`, which cannot follow a link), read
+the file at `iconUrl` once (that address never changes its file) and pass it as
+`data:image/svg+xml;base64,...` to an `<img>`; satori draws the marks' gradients. The colour
+marks' translucent cards are drawn for a light ground: a home screen or maskable icon puts the
+mark on white rather than a dark tile, and a favicon takes it on no ground at all.
 
 The shapes are kept in step by hand with `ChromeView` and `CatalogueEntry` in GPlatform
 Identity, which this public package cannot depend on.

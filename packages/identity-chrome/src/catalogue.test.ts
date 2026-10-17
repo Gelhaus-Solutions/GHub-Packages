@@ -77,9 +77,51 @@ describe("an entry", () => {
     });
 
     expect(await catalogue.entry("gadvisory")).toBeNull();
+    clock = 61_000;
     expect(await catalogue.entry("gadvisory")).toEqual(ENTRY);
-    clock = 120_000;
+    clock = 122_000;
     expect(await catalogue.entry("gadvisory")).toEqual(ENTRY);
+  });
+
+  it("does not ask again after a failure until the cache time has passed", async () => {
+    let clock = 0;
+    const { fake, calls } = fetchOf([
+      () => {
+        throw new TypeError("fetch failed");
+      },
+      () => ok(ENTRY),
+    ]);
+    const catalogue = createCatalogue({
+      baseUrl: "https://identity.example.test",
+      fetch: fake,
+      now: () => clock,
+    });
+
+    expect(await catalogue.entry("gadvisory")).toBeNull();
+    clock = 30_000;
+    expect(await catalogue.entry("gadvisory")).toBeNull();
+    expect(calls).toHaveLength(1);
+    clock = 61_000;
+    expect(await catalogue.entry("gadvisory")).toEqual(ENTRY);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("asks once for readers who ask at the same moment", async () => {
+    let answer: (response: Response) => void = () => undefined;
+    const { fake, calls } = fetchOf([
+      () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        }),
+    ]);
+    const catalogue = createCatalogue({ baseUrl: "https://identity.example.test", fetch: fake });
+
+    const first = catalogue.entry("gadvisory");
+    const second = catalogue.entry("gadvisory");
+    answer(ok(ENTRY));
+    expect(await first).toEqual(ENTRY);
+    expect(await second).toEqual(ENTRY);
+    expect(calls).toHaveLength(1);
   });
 
   it("is null for a product Identity does not have", async () => {

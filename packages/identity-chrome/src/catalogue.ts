@@ -43,7 +43,10 @@ export interface CatalogueOptions {
 export interface Catalogue {
   /**
    * A product's entry. After a failed ask, the last good answer, however old;
-   * null only when there never was one or the product does not exist.
+   * null only when there never was one or the product does not exist. A failed
+   * ask is not repeated until the cache time has passed, and readers asking at
+   * the same moment share one ask, so an outage costs a page render at most one
+   * wait per cache time rather than one every time.
    */
   entry(slug: string): Promise<CatalogueEntry | null>;
 }
@@ -57,6 +60,7 @@ export function createCatalogue(options: CatalogueOptions): Catalogue {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const ttlMs = (options.cacheSeconds ?? DEFAULT_CACHE_SECONDS) * 1000;
   const held = new Map<string, { entry: CatalogueEntry | null; at: number }>();
+  const asking = new Map<string, Promise<CatalogueEntry | null>>();
 
   async function ask(slug: string): Promise<CatalogueEntry | null> {
     const send = options.fetch ?? globalThis.fetch.bind(globalThis);
@@ -81,18 +85,34 @@ export function createCatalogue(options: CatalogueOptions): Catalogue {
     }
   }
 
+  async function refresh(
+    slug: string,
+    last: CatalogueEntry | null,
+  ): Promise<CatalogueEntry | null> {
+    let entry: CatalogueEntry | null;
+    try {
+      entry = await ask(slug);
+    } catch {
+      // The name and mark it last had, rather than none, held for the cache
+      // time like an answer: retrying on every read is what made each render
+      // during an outage wait out the timeout.
+      entry = last;
+    }
+    held.set(slug, { entry, at: now() });
+    return entry;
+  }
+
   return {
-    async entry(slug) {
+    entry(slug) {
       const last = held.get(slug);
-      if (last !== undefined && now() - last.at < ttlMs) return last.entry;
-      try {
-        const entry = await ask(slug);
-        held.set(slug, { entry, at: now() });
-        return entry;
-      } catch {
-        // The name and mark it last had, rather than none.
-        return last?.entry ?? null;
-      }
+      if (last !== undefined && now() - last.at < ttlMs) return Promise.resolve(last.entry);
+      const pending = asking.get(slug);
+      if (pending !== undefined) return pending;
+      const next = refresh(slug, last?.entry ?? null).finally(() => {
+        asking.delete(slug);
+      });
+      asking.set(slug, next);
+      return next;
     },
   };
 }
