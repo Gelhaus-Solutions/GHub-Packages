@@ -19,19 +19,16 @@ afterEach(cleanup);
 
 function Caller({ closed }: { closed: string[] }) {
   const [name, setName] = useState("");
-  return createElement(
-    Dialog,
-    {
-      open: true,
-      title: "Add a product",
-      onClose: () => closed.push(name),
-    },
-    createElement("input", {
+  return createElement(Dialog, {
+    open: true,
+    title: "Add a product",
+    onClose: () => closed.push(name),
+    children: createElement("input", {
       "aria-label": "Display name",
       value: name,
       onChange: (event: { target: { value: string } }) => setName(event.target.value),
     }),
-  );
+  });
 }
 
 describe("Dialog", () => {
