@@ -12,7 +12,7 @@
  * storage anybody on the device can write.
  */
 
-import type { ChromePublicView, ChromeTile, ChromeView } from "./types.js";
+import type { ChromeLegal, ChromePublicView, ChromeTile, ChromeView } from "./types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -56,6 +56,17 @@ function tilesOf(value: unknown): ChromeTile[] | null {
   return value.map(tileOf).filter((tile): tile is ChromeTile => tile !== null);
 }
 
+/**
+ * Both footer links, or null. Missing is not a broken answer: an older Identity or
+ * an older cached copy has none, and the popup draws no footer rather than nothing.
+ */
+function legalOf(value: unknown): ChromeLegal | null {
+  if (!isRecord(value)) return null;
+  const termsUrl = safeUrl(value["termsUrl"]);
+  const privacyUrl = safeUrl(value["privacyUrl"]);
+  return termsUrl === null || privacyUrl === null ? null : { termsUrl, privacyUrl };
+}
+
 /** A view that can be drawn, or null where the answer is not one. */
 export function parseView(value: unknown): ChromeView | null {
   if (!isRecord(value) || !isRecord(value["person"])) return null;
@@ -72,11 +83,12 @@ export function parseView(value: unknown): ChromeView | null {
     },
     yours,
     more,
+    legal: legalOf(value["legal"]),
   };
 }
 
 export function parsePublicView(value: unknown): ChromePublicView | null {
   if (!isRecord(value)) return null;
   const more = tilesOf(value["more"]);
-  return more === null ? null : { more };
+  return more === null ? null : { more, legal: legalOf(value["legal"]) };
 }

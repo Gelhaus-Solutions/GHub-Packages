@@ -17,5 +17,11 @@ export {
   type ChromeStatus,
   type StorageLike,
 } from "./core.js";
-export type { ChromePerson, ChromePublicView, ChromeTile, ChromeView } from "./types.js";
+export type {
+  ChromeLegal,
+  ChromePerson,
+  ChromePublicView,
+  ChromeTile,
+  ChromeView,
+} from "./types.js";
 export { safeUrl } from "./validate.js";

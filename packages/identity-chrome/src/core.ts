@@ -216,13 +216,13 @@ export function createChromeCore(options: ChromeCoreOptions = {}): ChromeCore {
       void publicCall
         .then((pub) => {
           if (pub !== null && state.status === "loading" && state.view === null) {
-            set({ view: { person: NO_PERSON, yours: [], more: pub.more } });
+            set({ view: { person: NO_PERSON, yours: [], more: pub.more, legal: pub.legal } });
           }
         })
         .catch(() => undefined);
 
       const [personal, pub] = await Promise.allSettled([personalCall, publicCall]);
-      const publicMore = pub.status === "fulfilled" && pub.value !== null ? pub.value.more : null;
+      const publicHalf = pub.status === "fulfilled" ? pub.value : null;
 
       if (personal.status === "fulfilled" && personal.value !== null) {
         const at = now();
@@ -231,11 +231,11 @@ export function createChromeCore(options: ChromeCoreOptions = {}): ChromeCore {
         return state;
       }
 
-      if (personal.status === "fulfilled" && publicMore !== null) {
+      if (personal.status === "fulfilled" && publicHalf !== null) {
         // No personal route configured: the public group is the whole answer.
         set({
           status: "ready",
-          view: { person: NO_PERSON, yours: [], more: publicMore },
+          view: { person: NO_PERSON, yours: [], ...publicHalf },
           updatedAt: now(),
           error: null,
         });
@@ -246,10 +246,10 @@ export function createChromeCore(options: ChromeCoreOptions = {}): ChromeCore {
         personal.status === "rejected" ? reasonOf(personal.reason, timedOut) : "not configured";
       if (cached !== null) {
         set({ status: "stale", view: cached.view, updatedAt: cached.savedAt, error });
-      } else if (publicMore !== null) {
+      } else if (publicHalf !== null) {
         set({
           status: "error",
-          view: { person: NO_PERSON, yours: [], more: publicMore },
+          view: { person: NO_PERSON, yours: [], ...publicHalf },
           updatedAt: null,
           error,
         });

@@ -52,7 +52,9 @@ export const GET = chrome.handler(async (request) => {
 ```
 
 The route says only who is signed in, by an address the product has verified, and Identity
-answers with the products that person has and the public ones they do not. An unverified
+answers with the products that person has and the public ones they do not, and the two
+footer links of the account popup (the terms and the privacy policy, the same in every
+product, so a moved address needs no new release here). An unverified
 address is a way to ask about somebody else. Answers are reused for a minute, and the token
 is never in anything this package throws or answers.
 

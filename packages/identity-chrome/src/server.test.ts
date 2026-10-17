@@ -22,6 +22,10 @@ const view = {
     },
   ],
   more: [],
+  legal: {
+    termsUrl: "https://legal.example.test/terms",
+    privacyUrl: "https://legal.example.test/privacy",
+  },
 };
 
 type Call = { url: string; init: RequestInit };

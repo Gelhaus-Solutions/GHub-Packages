@@ -18,10 +18,16 @@ const tile = (slug: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+const LEGAL = {
+  termsUrl: "https://legal.example.test/terms",
+  privacyUrl: "https://legal.example.test/privacy",
+};
+
 const view = (over: Partial<ChromeView> = {}): ChromeView => ({
   person: { hasIdentity: true, avatarUrl: "https://identity.example.test/a.png" },
   yours: [tile("advisory", { current: true }), tile("analytics")],
   more: [tile("registry")],
+  legal: LEGAL,
   ...over,
 });
 
@@ -292,6 +298,25 @@ describe("what it will draw", () => {
     expect((await core.load()).view?.person.avatarUrl).toBeNull();
   });
 
+  it("carries the footer links Identity sent", async () => {
+    const { fake } = fetchOf(() => ok(view()));
+    const core = createChromeCore({ enabled: true, endpoint: "/x", fetch: fake });
+    expect((await core.load()).view?.legal).toEqual(LEGAL);
+  });
+
+  it("draws no footer when either link is not a web address, or none was sent", async () => {
+    const { fake } = fetchOf((url) =>
+      url === "/bad"
+        ? ok(view({ legal: { termsUrl: "javascript:x", privacyUrl: LEGAL.privacyUrl } }))
+        : ok({ ...view(), legal: undefined }),
+    );
+    const bad = createChromeCore({ enabled: true, endpoint: "/bad", fetch: fake });
+    const none = createChromeCore({ enabled: true, endpoint: "/none", fetch: fake });
+
+    expect(await bad.load()).toMatchObject({ status: "ready", view: { legal: null } });
+    expect(await none.load()).toMatchObject({ status: "ready", view: { legal: null } });
+  });
+
   it("refuses an answer that is not a view", async () => {
     const { fake } = fetchOf(() => ok({ hello: "world" }));
     const core = createChromeCore({ enabled: true, endpoint: "/x", fetch: fake });
@@ -345,7 +370,7 @@ describe("a call that does not come back", () => {
 });
 
 describe("the public half", () => {
-  const publicOnly = { more: [tile("registry"), tile("lab")] };
+  const publicOnly = { more: [tile("registry"), tile("lab")], legal: LEGAL };
 
   it("is asked for with the key and no cookie, from Identity", async () => {
     const { fake, calls } = fetchOf((url) =>
@@ -422,5 +447,6 @@ describe("the public half", () => {
     const state = await core.load();
     expect(state.status).toBe("ready");
     expect(state.view?.person).toEqual({ hasIdentity: false, avatarUrl: null });
+    expect(state.view?.legal).toEqual(LEGAL);
   });
 });

@@ -23,14 +23,26 @@ export interface ChromePerson {
   avatarUrl: string | null;
 }
 
-/** The person, the products they have, and the public ones they do not. */
+/**
+ * The account popup's two footer links, the same in every product. Identity sends
+ * them, so a moved address needs no new release of this package. Null when they
+ * were not sent or either is not a web address, and then the footer is not drawn.
+ */
+export interface ChromeLegal {
+  termsUrl: string;
+  privacyUrl: string;
+}
+
+/** The person, the products they have, the public ones they do not, and the footer. */
 export interface ChromeView {
   person: ChromePerson;
   yours: ChromeTile[];
   more: ChromeTile[];
+  legal: ChromeLegal | null;
 }
 
 /** The public half alone, for painting the lower group before the personal one arrives. */
 export interface ChromePublicView {
   more: ChromeTile[];
+  legal: ChromeLegal | null;
 }
