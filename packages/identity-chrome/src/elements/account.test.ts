@@ -278,6 +278,47 @@ describe("<gp-account>", () => {
     ]);
   });
 
+  it("draws an organisation's own picture in place of its initial, and the initial where it has none or it fails", () => {
+    const account = mount({
+      organisations: [
+        {
+          id: "org_1",
+          name: "Kessler Rechtsanwaelte",
+          iconUrl: "/groups/org_1/avatar",
+          active: true,
+        },
+        {
+          id: "org_2",
+          name: "Hafen Labs",
+          iconUrl: "https://cdn.example.test/hafen.png",
+          active: false,
+        },
+        {
+          id: "org_3",
+          name: "Nordlicht Security GmbH",
+          iconUrl: "javascript:alert(1)",
+          active: false,
+        },
+        { id: "org_4", name: "Blank AG", active: false },
+      ],
+      onSwitch: vi.fn(),
+    });
+    account.show();
+    const marks = [...root(account).querySelectorAll(".org-mark")];
+    expect(
+      marks.map((one) => one.querySelector("img")?.getAttribute("src") ?? one.textContent),
+    ).toEqual([
+      new URL("/groups/org_1/avatar", document.baseURI).href,
+      "https://cdn.example.test/hafen.png",
+      "N",
+      "B",
+    ]);
+    expect(marks[0]?.querySelector("img")?.getAttribute("alt")).toBe("");
+    marks[1]?.querySelector("img")?.dispatchEvent(new Event("error"));
+    expect(marks[1]?.querySelector("img")).toBeNull();
+    expect(marks[1]?.textContent).toBe("H");
+  });
+
   it("moves with the arrows without switching, and switches on Enter, closing and saying so", async () => {
     const onSwitch = vi.fn(async () => undefined);
     const account = mount({ organisations: ORGS, onSwitch });

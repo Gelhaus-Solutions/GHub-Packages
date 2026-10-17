@@ -76,7 +76,9 @@ const account = document.querySelector("gp-account")!;
 account.core = chrome;
 account.product = "GAdvisory"; // your own name, from your catalogue entry
 account.person = { name: user.name, email: user.email, id: user.id, avatarUrl: user.picture };
-account.organisations = [{ id: "org_1", name: "Hafen Labs", role: "Admin", active: true }];
+account.organisations = [
+  { id: "org_1", name: "Hafen Labs", role: "Admin", iconUrl: "/orgs/org_1/avatar", active: true },
+];
 account.onSwitch = async (id) => switchOrganisation(id); // reject when it did not switch
 account.onSignOut = async () => {
   await signOut(); // reject when it failed: the popup says they are still signed in
@@ -90,7 +92,8 @@ and the account popup renders nothing without a person.
 
 **The account popup shows mostly what the product passes**: the name and address from your
 session, your organisations with the role your product gives them there (its own label, already in the
-person's language and shown as given; none, and the row has no second line) and your two actions.
+person's language and shown as given; none, and the row has no second line) and their own picture
+where they have one (`iconUrl`; the initial otherwise, and if it does not load), and your two actions.
 Identity adds the picture, the colour of the initial, the links to its own account and set up
 screens and the footer, so the popup still signs somebody out while Identity is down. The
 picture is Identity's if the person has one, else yours, else a coloured initial whose tint

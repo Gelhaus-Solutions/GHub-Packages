@@ -78,6 +78,12 @@ export interface AccountOrganisation {
    * so the element has no list of its own. None, and the row has no second line.
    */
   role?: string | null;
+  /**
+   * The organisation's own picture, absolute or relative to the page, http or
+   * https only. Drawn in place of the initial, which comes back if it does not
+   * load.
+   */
+  iconUrl?: string | null;
   active: boolean;
 }
 
@@ -303,8 +309,9 @@ export const ACCOUNT_CSS = `${CONTRACT_CSS}
   .wrap > .radios:last-child > .org:last-child { border-radius: 4px 4px 18px 18px; }
   .org-mark {
     display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px;
-    color: ${AVATAR_INK}; font-size: 14px; font-weight: 600;
+    overflow: hidden; color: ${AVATAR_INK}; font-size: 14px; font-weight: 600;
   }
+  .org-mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .org-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .org-name { font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .org-role { font-size: 12.5px; line-height: 17px; color: var(--_ink-2); }
@@ -452,6 +459,35 @@ function emailLine(email: string): HTMLElement {
   return line;
 }
 
+/** An organisation's picture where it has one that loads, else its initial on its tint. */
+function orgMark(one: AccountOrganisation): HTMLElement {
+  const initial = initialOf(one.name);
+  const mark = element("span", {
+    class: `org-mark t${String(avatarTint(one.id))}`,
+    "aria-hidden": "true",
+  });
+  const picture = productAddress(one.iconUrl);
+  if (picture === null) {
+    mark.textContent = initial;
+    return mark;
+  }
+  const image = element("img", {
+    src: picture,
+    alt: "",
+    decoding: "async",
+    referrerpolicy: "no-referrer",
+  });
+  image.addEventListener(
+    "error",
+    () => {
+      mark.textContent = initial;
+    },
+    { once: true },
+  );
+  mark.append(image);
+  return mark;
+}
+
 /** An address the product gave, absolute or relative to the page, and only ever http or https. */
 function productAddress(value: string | null | undefined): string | null {
   if (typeof value !== "string" || value === "") return null;
@@ -587,11 +623,17 @@ function organisationsOf(value: unknown): AccountOrganisation[] {
   const out: AccountOrganisation[] = [];
   for (const one of value as unknown[]) {
     if (typeof one !== "object" || one === null) continue;
-    const { id, name, role, active } = one as Record<string, unknown>;
+    const { id, name, role, iconUrl, active } = one as Record<string, unknown>;
     if (typeof id !== "string" || id === "" || typeof name !== "string" || name.trim() === "")
       continue;
     const label = typeof role === "string" && role.trim() !== "" ? role.trim() : null;
-    out.push({ id, name: name.trim(), role: label, active: active === true });
+    out.push({
+      id,
+      name: name.trim(),
+      role: label,
+      iconUrl: typeof iconUrl === "string" && iconUrl !== "" ? iconUrl : null,
+      active: active === true,
+    });
   }
   // The active one first: the row says which one you are acting in.
   const active = out.findIndex((one) => one.active);
@@ -1321,14 +1363,7 @@ export function createAccountElementClass(): CustomElementConstructor {
         const text = element("span", { class: "org-text", "aria-hidden": "true" });
         text.append(element("span", { class: "org-name", title: one.name }, one.name));
         if (one.role) text.append(element("span", { class: "org-role" }, one.role));
-        row.append(
-          element(
-            "span",
-            { class: `org-mark t${String(avatarTint(one.id))}`, "aria-hidden": "true" },
-            initialOf(one.name),
-          ),
-          text,
-        );
+        row.append(orgMark(one), text);
         if (one.active) {
           const tag = element("span", { class: "active", "aria-hidden": "true" });
           tag.append(element("span", { class: "check" }), labels.active);
