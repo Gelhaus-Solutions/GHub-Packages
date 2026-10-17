@@ -1,6 +1,6 @@
 {
   "name": "@ghub/identity-chrome",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "The shared header controls of the Gelhaus Solutions products: the apps picker and the account popup, as custom elements with shadow DOM and as React wrappers. The browser half (state, cache, the last list held for an outage) and the server half (the token calls and a route handler). No dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
