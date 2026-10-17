@@ -392,6 +392,49 @@
 }
 
 /* --------------------------------------------------------------------------
+ * Product marks and avatar tints. Brand images, beside the UI tokens and never
+ * in place of them: nothing here is an accent, a status or a surface.
+ *
+ * From the GPlatform Identity bundle (sheet 35, palette; sheet 32, the
+ * coloured initial), proposed there against sheet 21 M5, which said modern has
+ * no avatar colour. THEME-INDEPENDENT on purpose, and so declared once, in a
+ * block of their own: a product's mark is the same file on a light page and a
+ * dark one, and a person's colour must not change with the theme.
+ *
+ * The seven hues are one lead and at most one partner per mark; every one
+ * clears 3:1 on white and on modern's near-black ground, and all seven are the
+ * same grey in greyscale, so shape tells marks apart. Paper and ink are the
+ * details inside a hue only, never a mark's edge.
+ *
+ * The avatar tints are those hues at L 0.84 to 0.87, C 0.06 to 0.08, with the
+ * initial in mark ink at 600: 9.8 to 11.2 to 1, so an initial passes 4.5 at any
+ * size on any page. Which tint a person gets is picked from a stable id, never
+ * the name (`avatarTint` in `@ghub/ui/modern`, the same hash
+ * `@ghub/identity-chrome` and Identity use), in this order.
+ * `packages/ui/src/modern-marks.test.ts` measures both.
+ * -------------------------------------------------------------------------- */
+:root {
+  --gm-mark-tide: #1c989e;
+  --gm-mark-harbour: #427fd8;
+  --gm-mark-iris: #8b67d6;
+  --gm-mark-rose: #d24b8a;
+  --gm-mark-ember: #dd5136;
+  --gm-mark-amber: #d4771a;
+  --gm-mark-moss: #2e9848;
+  --gm-mark-paper: #ffffff;
+  --gm-mark-ink: #141c1e;
+
+  --gm-avatar-1: oklch(0.84 0.06 200);
+  --gm-avatar-2: oklch(0.84 0.06 258);
+  --gm-avatar-3: oklch(0.84 0.07 296);
+  --gm-avatar-4: oklch(0.85 0.07 355);
+  --gm-avatar-5: oklch(0.85 0.07 33);
+  --gm-avatar-6: oklch(0.87 0.08 70);
+  --gm-avatar-7: oklch(0.85 0.07 148);
+  --gm-avatar-ink: #141c1e;
+}
+
+/* --------------------------------------------------------------------------
  * Tailwind theme mapping.
  *
  * PREFIXED `m-`, and the prefix is the whole point. Modern and console disagree
@@ -453,6 +496,25 @@
   --color-m-idle-ink: var(--gm-idle-ink);
 
   --color-m-ring: var(--gm-ring);
+
+  --color-m-mark-tide: var(--gm-mark-tide);
+  --color-m-mark-harbour: var(--gm-mark-harbour);
+  --color-m-mark-iris: var(--gm-mark-iris);
+  --color-m-mark-rose: var(--gm-mark-rose);
+  --color-m-mark-ember: var(--gm-mark-ember);
+  --color-m-mark-amber: var(--gm-mark-amber);
+  --color-m-mark-moss: var(--gm-mark-moss);
+  --color-m-mark-paper: var(--gm-mark-paper);
+  --color-m-mark-ink: var(--gm-mark-ink);
+
+  --color-m-avatar-1: var(--gm-avatar-1);
+  --color-m-avatar-2: var(--gm-avatar-2);
+  --color-m-avatar-3: var(--gm-avatar-3);
+  --color-m-avatar-4: var(--gm-avatar-4);
+  --color-m-avatar-5: var(--gm-avatar-5);
+  --color-m-avatar-6: var(--gm-avatar-6);
+  --color-m-avatar-7: var(--gm-avatar-7);
+  --color-m-avatar-ink: var(--gm-avatar-ink);
 
   --color-m-diff-add: var(--gm-diff-add);
   --color-m-diff-add-word: var(--gm-diff-add-word);

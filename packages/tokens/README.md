@@ -40,6 +40,15 @@ take the glass where both steps are made and nowhere else. With
 `prefers-reduced-transparency` every pane becomes a solid plate, and with
 `prefers-reduced-motion` nothing rises or drifts.
 
+## Product marks and avatar tints
+
+`modern.css` also carries two brand families beside the UI tokens, never in place of them:
+the product marks (`--gm-mark-tide`, `-harbour`, `-iris`, `-rose`, `-ember`, `-amber`,
+`-moss`, with `-paper` and `-ink` for details inside a hue) and the seven avatar tints with
+their ink (`--gm-avatar-1` to `-7`, `--gm-avatar-ink`), as `m-mark-*` and `m-avatar-*`
+utilities. Both are the same in light and dark: a mark is one file on any page, and a person
+keeps their colour. `Avatar` in `@ghub/ui/modern` picks the tint from a stable id.
+
 ## Licence
 
 Elastic License 2.0. Source-available: you may read, self-host and modify it for your own

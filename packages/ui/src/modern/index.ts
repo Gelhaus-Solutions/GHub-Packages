@@ -219,6 +219,13 @@ export {
   type RestoredDraft,
 } from "./draft-keeper.js";
 export { Slider, type SliderProps } from "./slider.js";
+export { Avatar, avatarTint, type AvatarProps } from "./avatar.js";
+export {
+  ProductChip,
+  ProductMark,
+  type ProductChipProps,
+  type ProductMarkProps,
+} from "./product-mark.js";
 export { drawCrop, ImageCrop, type ImageCropProps } from "./image-crop.js";
 export {
   clampCropPosition,

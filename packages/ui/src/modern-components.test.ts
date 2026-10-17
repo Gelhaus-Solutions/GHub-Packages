@@ -1092,6 +1092,8 @@ describe("the pin covers every modern component", () => {
   const EXERCISED = [
     "Agenda",
     "AsOf",
+    // Rendered in modern-marks.test.ts, with the tints it draws measured there.
+    "Avatar",
     "Badge",
     "Banner",
     "BulkBar",
@@ -1126,6 +1128,9 @@ describe("the pin covers every modern component", () => {
     "PageHead",
     "Pager",
     "Pagination",
+    // Both rendered in modern-marks.test.ts.
+    "ProductChip",
+    "ProductMark",
     "Provenance",
     "RecordRow",
     "Refusal",
