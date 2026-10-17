@@ -399,7 +399,10 @@
  * coloured initial), proposed there against sheet 21 M5, which said modern has
  * no avatar colour. THEME-INDEPENDENT on purpose, and so declared once, in a
  * block of their own: a product's mark is the same file on a light page and a
- * dark one, and a person's colour must not change with the theme.
+ * dark one, and a person's colour must not change with the theme. Declared on
+ * `html` rather than `:root`, the same element, so the three `:root` palette
+ * blocks stay the three palette blocks (dark, light pinned, light preferred)
+ * every check reads.
  *
  * The seven hues are one lead and at most one partner per mark; every one
  * clears 3:1 on white and on modern's near-black ground, and all seven are the
@@ -413,7 +416,7 @@
  * `@ghub/identity-chrome` and Identity use), in this order.
  * `packages/ui/src/modern-marks.test.ts` measures both.
  * -------------------------------------------------------------------------- */
-:root {
+html {
   --gm-mark-tide: #1c989e;
   --gm-mark-harbour: #427fd8;
   --gm-mark-iris: #8b67d6;

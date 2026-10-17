@@ -25,7 +25,7 @@ const css = readFileSync(
 ).replace(/\/\*[\s\S]*?\*\//g, "");
 
 /** The block that declares the marks: one of its own, outside the themed palettes. */
-const block = /:root\s*\{([^}]*--gm-mark-tide[^}]*)\}/.exec(css)?.[1] ?? "";
+const block = /html\s*\{([^}]*--gm-mark-tide[^}]*)\}/.exec(css)?.[1] ?? "";
 const tokens = Object.fromEntries(
   [...block.matchAll(/(--gm-[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], (m[2] ?? "").trim()]),
 );
