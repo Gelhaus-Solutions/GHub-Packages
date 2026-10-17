@@ -71,6 +71,15 @@ export function Dialog({
   const panel = useRef<HTMLDivElement>(null);
   const overlayPressed = useRef(false);
   const restoreFocus = useRef<HTMLElement | null>(null);
+  /*
+   * The latest onClose, read when Escape is pressed rather than captured by the
+   * effect. A caller passing `() => setOpen(false)` hands a new function every
+   * render; with it in the effect's dependencies, each keystroke in a field
+   * re-ran the effect, which moved focus back to the panel and took it out of
+   * the field being typed in.
+   */
+  const closing = useRef(onClose);
+  closing.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -86,7 +95,7 @@ export function Dialog({
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onClose();
+        closing.current();
         return;
       }
       if (event.key !== "Tab" || panel.current === null) return;
@@ -113,7 +122,7 @@ export function Dialog({
       document.body.style.overflow = previousOverflow;
       restoreFocus.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || typeof document === "undefined") return null;
 
