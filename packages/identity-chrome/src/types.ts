@@ -46,3 +46,20 @@ export interface ChromePublicView {
   more: ChromeTile[];
   legal: ChromeLegal | null;
 }
+
+/**
+ * A product's name and marks as Identity keeps them: the one place they live, so
+ * a product reads its own here for its top bar, title and favicon, and a rename or
+ * a new mark reaches every product without a release.
+ */
+export interface CatalogueEntry {
+  slug: string;
+  displayName: string;
+  homeUrl: string;
+  /** The colour mark, at an address that never changes its file. Null until one is uploaded. */
+  iconUrl: string | null;
+  /** The one colour mark, the same way. */
+  monoIconUrl: string | null;
+  /** When the entry or a mark last changed, ISO. */
+  updatedAt: string;
+}

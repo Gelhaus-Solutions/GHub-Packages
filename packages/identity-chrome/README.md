@@ -62,8 +62,28 @@ A one-off push of a product's users (`chrome.seed(emails)`) is refused unless st
 opened a window for it on Identity's product screen, and `chrome.remove(emails)` says people
 no longer have access.
 
-The shapes are kept in step by hand with `ChromeView` in GPlatform Identity, which this
-public package cannot depend on.
+## A product's own name and mark
+
+Identity's catalogue is where every product's name and mark live. Read your own from it for
+your top bar, your title and your favicon, and a rename or a new mark reaches you without a
+release:
+
+```ts
+import { catalogueMarkUrl, createCatalogue } from "@ghub/identity-chrome";
+
+const catalogue = createCatalogue({ baseUrl: process.env.GPID_URL });
+const me = await catalogue.entry("gadvisory"); // { displayName, homeUrl, iconUrl, monoIconUrl, ... }
+
+// Where you cannot ask first, an address that always leads to the current mark:
+// <link rel="icon" type="image/svg+xml" href={catalogueMarkUrl(process.env.GPID_URL, "gadvisory")} />
+```
+
+No token is needed. An entry is reused for a minute, and after a failed ask the last good one
+is returned, so an outage leaves the name and mark you last had. A self-hosted install asks
+nobody and ships the copy its release was built with.
+
+The shapes are kept in step by hand with `ChromeView` and `CatalogueEntry` in GPlatform
+Identity, which this public package cannot depend on.
 
 Part of [GHub-Packages](https://github.com/Gelhaus-Solutions/GHub-Packages), the packages
 the Gelhaus Solutions products share.

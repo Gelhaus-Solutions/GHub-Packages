@@ -17,7 +17,14 @@ export {
   type ChromeStatus,
   type StorageLike,
 } from "./core.js";
+export {
+  catalogueMarkUrl,
+  createCatalogue,
+  type Catalogue,
+  type CatalogueOptions,
+} from "./catalogue.js";
 export type {
+  CatalogueEntry,
   ChromeLegal,
   ChromePerson,
   ChromePublicView,

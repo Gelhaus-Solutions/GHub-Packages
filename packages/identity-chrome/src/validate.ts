@@ -12,7 +12,13 @@
  * storage anybody on the device can write.
  */
 
-import type { ChromeLegal, ChromePublicView, ChromeTile, ChromeView } from "./types.js";
+import type {
+  CatalogueEntry,
+  ChromeLegal,
+  ChromePublicView,
+  ChromeTile,
+  ChromeView,
+} from "./types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -91,4 +97,28 @@ export function parsePublicView(value: unknown): ChromePublicView | null {
   if (!isRecord(value)) return null;
   const more = tilesOf(value["more"]);
   return more === null ? null : { more, legal: legalOf(value["legal"]) };
+}
+
+/** A catalogue entry that can be drawn, or null where the answer is not one. */
+export function parseCatalogueEntry(value: unknown): CatalogueEntry | null {
+  if (!isRecord(value)) return null;
+  const { slug, displayName, homeUrl, iconUrl, monoIconUrl, updatedAt } = value;
+  if (
+    typeof slug !== "string" ||
+    slug === "" ||
+    typeof displayName !== "string" ||
+    displayName === ""
+  ) {
+    return null;
+  }
+  const home = safeUrl(homeUrl);
+  if (home === null || typeof updatedAt !== "string") return null;
+  return {
+    slug,
+    displayName,
+    homeUrl: home,
+    iconUrl: iconUrl === null || iconUrl === undefined ? null : safeUrl(iconUrl),
+    monoIconUrl: monoIconUrl === null || monoIconUrl === undefined ? null : safeUrl(monoIconUrl),
+    updatedAt,
+  };
 }
