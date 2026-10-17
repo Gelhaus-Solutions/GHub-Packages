@@ -6,7 +6,9 @@
     // tsc the build is current, and the package keeps shipping whatever it
     // emitted last, under whatever compiler options were in force then.
     "tsBuildInfoFile": "dist/.tsbuildinfo",
-    "rootDir": "src"
+    "rootDir": "src",
+    // The elements and the core run in a browser; the server half uses only what Node shares with it.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src"]
 }
