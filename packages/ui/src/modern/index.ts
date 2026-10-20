@@ -149,6 +149,15 @@ export {
   type GoToOption,
   type GoToProps,
 } from "./go-to.js";
+export {
+  PickerDialog,
+  type PickerColumn,
+  type PickerDialogProps,
+  type PickerFacet,
+  type PickerLabels,
+  type PickerPage,
+  type PickerQuery,
+} from "./picker-dialog.js";
 export { Agenda, type AgendaItem, type AgendaProps } from "./agenda.js";
 export { DayStepper, type DayStepperProps } from "./day-stepper.js";
 export { GlassPanel, type GlassPanelProps, type GlassTone } from "./glass-panel.js";
