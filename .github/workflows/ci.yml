@@ -35,7 +35,7 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       # Build before typecheck. A package that depends on another one here
-      # (terms-client on terms-rules) resolves it through its published `dist`,
+      # (legal-client on legal-rules) resolves it through its published `dist`,
       # so on a fresh runner its types do not exist until the build has run.
       - run: pnpm build
       - run: pnpm typecheck

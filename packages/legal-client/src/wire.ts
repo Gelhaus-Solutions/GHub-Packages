@@ -1,5 +1,5 @@
 /**
- * What crosses the wire between a product and GPlatform Terms, as this client
+ * What crosses the wire between a product and GPlatform Legal, as this client
  * sends and reads it.
  *
  * The service validates what it receives strictly and is the authority on the
@@ -13,7 +13,7 @@
  * here; an instant without a zone is refused, never read as UTC.
  */
 
-import type { ConsentAnnouncement, ConsentState, DocumentStandingKind } from "@ghub/terms-rules";
+import type { ConsentAnnouncement, ConsentState, DocumentStandingKind } from "@ghub/legal-rules";
 
 export type Locale = "en" | "de";
 

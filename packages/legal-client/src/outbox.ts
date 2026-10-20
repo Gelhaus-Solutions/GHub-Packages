@@ -1,5 +1,5 @@
 /**
- * The outbox: what a product has told GPlatform Terms and the service has not
+ * The outbox: what a product has told GPlatform Legal and the service has not
  * yet confirmed.
  *
  * Every subject push and every acceptance is written here first, in the

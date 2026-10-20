@@ -9,8 +9,8 @@ stays in that product's repository.
 | [`@ghub/ui`](packages/ui)                           | The design system: hand-rolled, accessible React components                                  |
 | [`@ghub/tokens`](packages/tokens)                   | The design tokens behind it, as a Tailwind v4 theme                                          |
 | [`@ghub/totp`](packages/totp)                       | TOTP (RFC 6238) for sign-in, with no runtime dependencies                                    |
-| [`@ghub/terms-rules`](packages/terms-rules)         | The consent rules: where an account stands with its terms, from a signed snapshot            |
-| [`@ghub/terms-client`](packages/terms-client)       | A product's client for GPlatform Terms: standings, acceptances, an outbox                    |
+| [`@ghub/legal-rules`](packages/legal-rules)         | The consent rules: where an account stands with its terms, from a signed snapshot            |
+| [`@ghub/legal-client`](packages/legal-client)       | A product's client for GPlatform Legal: standings, acceptances, an outbox                    |
 | [`@ghub/gmint-protocol`](packages/gmint-protocol)   | GMint's wire protocol: signed, channel-bound requests, HPKE-sealed responses                 |
 | [`@ghub/gmint-sdk`](packages/gmint-sdk)             | The GMint client: short-lived, narrowly scoped GitHub App tokens, verified end to end        |
 | [`@ghub/sshsig`](packages/sshsig)                   | SSHSIG verification for hardware-key signatures, shared by GMint and GLockdown               |
@@ -33,7 +33,7 @@ pnpm typecheck
 `@ghub/ui`'s contrast tests read the token files from `packages/tokens` directly, so a
 palette change that breaks a WCAG 2.2 AA ratio fails here, before it reaches any product.
 
-`@ghub/terms-client`'s outbox tests run against Postgres too when
+`@ghub/legal-client`'s outbox tests run against Postgres too when
 `TERMS_CLIENT_TEST_DATABASE_URL` names a database to try them in (each run makes a schema of
 its own and drops it); without it they are skipped.
 

@@ -118,23 +118,11 @@ importers:
         specifier: ^4.1.8
         version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4))
 
-  packages/sshsig:
-    devDependencies:
-      '@types/node':
-        specifier: ^22.19.7
-        version: 22.20.4
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.8
-        version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4))
-
-  packages/terms-client:
+  packages/legal-client:
     dependencies:
-      '@ghub/terms-rules':
+      '@ghub/legal-rules':
         specifier: workspace:^
-        version: link:../terms-rules
+        version: link:../legal-rules
     devDependencies:
       '@types/node':
         specifier: ^22.19.7
@@ -152,7 +140,19 @@ importers:
         specifier: ^4.1.8
         version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4))
 
-  packages/terms-rules:
+  packages/legal-rules:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.7
+        version: 22.20.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4))
+
+  packages/sshsig:
     devDependencies:
       '@types/node':
         specifier: ^22.19.7

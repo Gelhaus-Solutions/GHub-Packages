@@ -13,10 +13,10 @@ pnpm-lock.yaml
 dist/
 coverage/
 
-# The signed snapshot @ghub/terms-rules carries: its signature covers these
+# The signed snapshot @ghub/legal-rules carries: its signature covers these
 # exact bytes, and a reformatted copy no longer verifies.
-packages/terms-rules/snapshot/snapshot.json
-packages/terms-rules/snapshot/snapshot.sig.json
+packages/legal-rules/snapshot/snapshot.json
+packages/legal-rules/snapshot/snapshot.sig.json
 
 # GOpenCDR's byte-for-byte protocol vectors, which the Go agent core signs too.
 packages/agent-protocol/src/vectors.*.json

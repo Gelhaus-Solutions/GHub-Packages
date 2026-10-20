@@ -129,7 +129,7 @@ describe("with the service down", () => {
     expect(api.ledger).toHaveLength(1);
 
     const live = await made.stateOf(SURFACE, "acct-1", { recorded: RECORDED_V2, paid: false });
-    expect(live).toMatchObject({ source: "gpterms", state: { kind: "agreed" } });
+    expect(live).toMatchObject({ source: "gplegal", state: { kind: "agreed" } });
   });
 
   it("says nothing could decide, rather than locking anybody out, when no snapshot is held", async () => {
@@ -199,7 +199,7 @@ describe("with the service up", () => {
     // The service's ledger, not the product's record, decides: nothing is in
     // the ledger, so a free account is restricted whatever the product says.
     expect(standing).toMatchObject({
-      source: "gpterms",
+      source: "gplegal",
       why: null,
       state: { kind: "restricted" },
       recorded: null,
@@ -223,7 +223,7 @@ describe("with the service up", () => {
 
     const standing = await made.stateOf(SURFACE, "acct-1", { recorded: null, paid: false }, AFTER);
     expect(standing).toMatchObject({
-      source: "gpterms",
+      source: "gplegal",
       snapshot: 2,
       state: { kind: "agreed" },
       recorded: RECORDED_V2,
@@ -271,7 +271,7 @@ describe("with the service up", () => {
     ]);
     // A parked entry is not waiting to be delivered, so the service answers.
     const standing = await made.stateOf(SURFACE, "acct-1", { recorded: null, paid: false });
-    expect(standing.source).toBe("gpterms");
+    expect(standing.source).toBe("gplegal");
   });
 
   it("retries what failed for when it was sent, later and later", async () => {
@@ -564,6 +564,6 @@ describe("options", () => {
     expect(await made.flushOutbox()).toEqual({ delivered: 1, retrying: 0, parked: 0 });
     const back = await made.stateOf(SURFACE, "acct-1", { recorded: RECORDED_V2, paid: false });
     expect(back.why).toBeNull();
-    expect(back.source).toBe("gpterms");
+    expect(back.source).toBe("gplegal");
   });
 });

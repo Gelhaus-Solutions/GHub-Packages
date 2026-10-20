@@ -1,11 +1,11 @@
-# @ghub/terms-client
+# @ghub/legal-client
 
-The client a Gelhaus Solutions product uses to talk to GPlatform Terms: where an
+The client a Gelhaus Solutions product uses to talk to GPlatform Legal: where an
 account stands with the documents its product asks it to accept, the acceptances
 it makes, and the account facts notices are sent by. Server side only, the same
 for a NestJS product and a Next.js one.
 
-It is built around one rule: **if GPlatform Terms is down, nobody is locked
+It is built around one rule: **if GPlatform Legal is down, nobody is locked
 out.** A standing is asked of the service, which holds every acceptance in its
 ledger. When the service cannot answer, the standing is decided in the product,
 from the newest verified snapshot held and the product's own last known record.
@@ -14,17 +14,17 @@ before it is sent, and whatever does not arrive now arrives on a later flush,
 once.
 
 Self-hosted deployments do not use this package. They decide from the snapshot
-bundled with [`@ghub/terms-rules`](../terms-rules) (`offline()`) and never talk
+bundled with [`@ghub/legal-rules`](../legal-rules) (`offline()`) and never talk
 to the service.
 
 ## Setting it up
 
 ```ts
-import { createTermsClient, postgresOutboxStore } from "@ghub/terms-client";
+import { createTermsClient, postgresOutboxStore } from "@ghub/legal-client";
 
 export const terms = createTermsClient({
-  baseUrl: "https://terms.gplatform.org",
-  apiKey: process.env.GPTERMS_API_KEY!, // gpt_prod_..., from the product's secret store
+  baseUrl: "https://legal.gplatform.org",
+  apiKey: process.env.GPLEGAL_API_KEY!, // gpt_prod_..., from the product's secret store
   outbox: postgresOutboxStore((text, values) => prisma.$queryRawUnsafe(text, ...values)),
 });
 
@@ -62,7 +62,7 @@ switch (standing.state?.kind) {
 
 `standing.source` says who decided:
 
-- `gpterms`: the service, from its ledger. `objections` lists any on file.
+- `gplegal`: the service, from its ledger. `objections` lists any on file.
 - `snapshot`: this client, from the snapshot and the record you passed, because
   the service could not answer or had not yet received everything in the
   outbox for this account. `why` says which.
@@ -78,7 +78,7 @@ trying meanwhile.
 `toRecord`, `documents` (where the account stands with each covered document)
 and `announcements` come with every standing that has a state.
 
-The rules of `@ghub/terms-rules` are bound here to the newest snapshot, for the
+The rules of `@ghub/legal-rules` are bound here to the newest snapshot, for the
 questions that need no account: `terms.versionToRecord(surface, now)`,
 `terms.consentLinks(surface, now)`, `terms.documentsFor(surface, now)`,
 `terms.announcementsDue(surface, now)`, `terms.consentStateAt(...)` and
@@ -140,7 +140,7 @@ while the service cannot answer: an export is retried, not made up.
 ## Privacy requests
 
 A person who asks for their data to be erased, or objects to how it is
-processed, is recorded in GPlatform Terms. Staff decide there, per product and
+processed, is recorded in GPlatform Legal. Staff decide there, per product and
 per kind of data, whether it is kept, pseudonymised or deleted, and queue that
 as a run: a dry run counts what the plan would touch, a run that executes
 carries it out. Terms never calls the product; the product asks, from the same
@@ -246,7 +246,7 @@ the service was down. Anything else implements `OutboxStore`.
 The rules decide from a snapshot of the legal archive: documents, versions,
 what each surface covers and when each version binds where. It is signed by the
 service, and this client binds only a snapshot whose signature holds for a key
-pinned in `@ghub/terms-rules`; a new key reaches a product with a release of that
+pinned in `@ghub/legal-rules`; a new key reaches a product with a release of that
 package, never with the snapshot it signs. A snapshot that fails is refused and
 the one held stays. The cache never goes back to a lower serial.
 
@@ -256,7 +256,7 @@ answers a standing from a newer snapshot than the one held. Nothing waits for
 it.
 
 Three sources, the newest serial wins: the snapshot bundled with the installed
-`@ghub/terms-rules` (the floor), the one kept in a `snapshotStore` if you give
+`@ghub/legal-rules` (the floor), the one kept in a `snapshotStore` if you give
 one, and the one the service serves. A `snapshotStore` is two functions,
 `load()` and `save(snapshot)`, keeping `{ text, signature, etag }` anywhere (a
 file, a row); what it loads is verified again, so it need not be trusted.

@@ -1,6 +1,6 @@
 /**
  * Privacy requests: a person asking for erasure, or objecting to processing
- * (Art. 17 and 21 GDPR), handled across the products from GPlatform Terms.
+ * (Art. 17 and 21 GDPR), handled across the products from GPlatform Legal.
  *
  * Staff record the request in Terms and decide, per product and per kind of
  * data, whether it is kept, pseudonymised or deleted. A product says what it

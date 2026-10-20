@@ -1,5 +1,5 @@
 /**
- * A stand-in for GPlatform Terms' product API, over real HTTP on a local port,
+ * A stand-in for GPlatform Legal's product API, over real HTTP on a local port,
  * so the client's tests go through fetch, timeouts and refused connections the
  * way a product's would. It can be stopped and started again on the same
  * port, which is the case the client exists for.
@@ -16,7 +16,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { bind, parseSnapshot } from "@ghub/terms-rules";
+import { bind, parseSnapshot } from "@ghub/legal-rules";
 import type { Signed } from "./snapshots.js";
 
 export const API_KEY = "gpt_prod_test";

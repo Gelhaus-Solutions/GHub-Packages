@@ -1,5 +1,5 @@
 {
-  "name": "@ghub/terms-rules",
+  "name": "@ghub/legal-rules",
   "version": "0.1.3",
   "description": "The consent rules of the Gelhaus Solutions product family: where an account stands with the terms its product asks it to accept, at an instant, decided from a signed snapshot of the legal archive. No network, no database.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
-    "directory": "packages/terms-rules"
+    "directory": "packages/legal-rules"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

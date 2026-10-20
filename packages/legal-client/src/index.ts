@@ -1,10 +1,10 @@
 /**
- * The client every Gelhaus Solutions product uses to talk to GPlatform Terms:
+ * The client every Gelhaus Solutions product uses to talk to GPlatform Legal:
  * where an account stands with the documents its product asks it to accept,
  * the acceptances it makes, the account facts notices are sent by, and the
  * privacy requests staff send it.
  *
- * Built on @ghub/terms-rules, whose rules it binds to the newest verified
+ * Built on @ghub/legal-rules, whose rules it binds to the newest verified
  * snapshot the service serves, and which it falls back to when the service
  * cannot answer. Nobody is locked out because the service is down.
  */
@@ -70,4 +70,4 @@ export type {
   PinnedKey,
   ScheduledVersion,
   Terms,
-} from "@ghub/terms-rules";
+} from "@ghub/legal-rules";

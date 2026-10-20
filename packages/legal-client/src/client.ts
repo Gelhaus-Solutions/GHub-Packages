@@ -6,7 +6,7 @@ import {
   type ConsentState,
   type PinnedKey,
   type Terms,
-} from "@ghub/terms-rules";
+} from "@ghub/legal-rules";
 import {
   baseUrlOf,
   jsonOf,
@@ -51,7 +51,7 @@ import {
 } from "./wire.js";
 
 /**
- * The client a product uses to ask GPlatform Terms where an account stands and
+ * The client a product uses to ask GPlatform Legal where an account stands and
  * to tell it what happened: one per process, server side only, the same for a
  * NestJS product and a Next.js one.
  *
@@ -64,20 +64,20 @@ import {
  * sent, and whatever does not arrive now arrives on a later flush, once.
  *
  * Self-hosted deployments never use this client: they decide from the
- * snapshot bundled with @ghub/terms-rules and never talk to the service.
+ * snapshot bundled with @ghub/legal-rules and never talk to the service.
  */
 
 export interface TermsClientOptions {
-  /** `https://terms.gplatform.org`. */
+  /** `https://legal.gplatform.org`. */
   readonly baseUrl: string;
   /** The product's key, `gpt_prod_...`, from the product's own secret store. */
   readonly apiKey: string;
   readonly outbox: OutboxStore;
-  /** The keys a snapshot may be signed with. Those @ghub/terms-rules pins,
+  /** The keys a snapshot may be signed with. Those @ghub/legal-rules pins,
    *  unless a test signs its own. */
   readonly keys?: readonly PinnedKey[];
   /** The floor: the rules bound to the snapshot this release carries.
-   *  @ghub/terms-rules' offline() unless given; null for none. */
+   *  @ghub/legal-rules' offline() unless given; null for none. */
   readonly bundled?: (() => Terms) | null;
   /** Where the last fetched snapshot is kept between processes, if anywhere. */
   readonly snapshotStore?: SnapshotStore | null;
@@ -110,7 +110,7 @@ export interface LocalRecord {
 /**
  * Where an account stands, and who decided it.
  *
- * - `gpterms`: the service, from its ledger.
+ * - `gplegal`: the service, from its ledger.
  * - `snapshot`: this client, from the newest snapshot held and the product's
  *   own record, because the service could not answer or had not yet been told
  *   of everything in the outbox. `why` says which.
@@ -119,7 +119,7 @@ export interface LocalRecord {
  *   because the service is down.
  */
 export interface Standing {
-  readonly source: "gpterms" | "snapshot" | "none";
+  readonly source: "gplegal" | "snapshot" | "none";
   readonly why: string | null;
   readonly at: Date;
   /** The serial of the snapshot it was decided from. */
@@ -263,7 +263,7 @@ const FLUSH_CONCURRENCY = 8;
 
 function warn(error: unknown, context: string): void {
   console.warn(
-    `@ghub/terms-client: ${context}: ${error instanceof Error ? error.message : String(error)}`,
+    `@ghub/legal-client: ${context}: ${error instanceof Error ? error.message : String(error)}`,
   );
 }
 
@@ -306,7 +306,7 @@ class Client implements TermsClient {
     };
     if (options.outbox === undefined || options.outbox === null) {
       throw new TypeError(
-        "outbox is required: an acceptance made while GPlatform Terms is unreachable has to be kept somewhere.",
+        "outbox is required: an acceptance made while GPlatform Legal is unreachable has to be kept somewhere.",
       );
     }
     this.outbox = options.outbox;
@@ -405,7 +405,7 @@ class Client implements TermsClient {
       if (answer.status !== 200) throw refusalOf(answer, "the state");
       const read = readStateAnswer(jsonOf(answer, "the state"));
       this.cache.refreshIfBehind(read.snapshot);
-      return { source: "gpterms", why: null, ...read };
+      return { source: "gplegal", why: null, ...read };
     } catch (error) {
       this.report(error, `asking the state of ${surface}/${accountId}; deciding from the snapshot`);
       return this.decideLocally(surface, local, at ?? this.clock(), messageOf(error));
@@ -679,7 +679,7 @@ class Client implements TermsClient {
   /** Why a person's request does not ask the service now, or null. */
   private quietReason(): string | null {
     if (this.clock().getTime() >= this.quietUntil) return null;
-    return `GPlatform Terms did not answer a moment ago; it is asked again from ${new Date(this.quietUntil).toISOString()}`;
+    return `GPlatform Legal did not answer a moment ago; it is asked again from ${new Date(this.quietUntil).toISOString()}`;
   }
 
   // --- the outbox ----------------------------------------------------------

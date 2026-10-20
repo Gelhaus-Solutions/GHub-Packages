@@ -1,4 +1,6 @@
-# @ghub/terms-client
+# @ghub/legal-client
+
+Until 0.1.3 (rules) and 0.2.0 (client) this package was `@ghub/terms-client`; the history below is that name's.
 
 ## 0.2.0
 

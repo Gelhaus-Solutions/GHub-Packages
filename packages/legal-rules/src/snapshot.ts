@@ -215,7 +215,7 @@ function daysIn(year: number, month: number): number {
  * Read field by field rather than by `Date.parse`, which accepts 30 February
  * and quietly means 2 March: a legal date that is not a real date is a typing
  * error, and moving it to a neighbouring day is a guess about which day was
- * meant. The shape is the one the GPlatform Terms API accepts on the wire
+ * meant. The shape is the one the GPlatform Legal API accepts on the wire
  * (seconds optional, up to nine fractional digits, read to the millisecond),
  * because the server keeps an instant as the string it arrived as and puts that
  * string into the snapshot.
@@ -619,7 +619,7 @@ export function parseSnapshot(json: unknown): Snapshot {
   if (root.format !== 1) {
     fail(
       "snapshot.format",
-      `is ${describe(root.format)}. This release reads format 1 only; a newer format needs a newer @ghub/terms-rules.`,
+      `is ${describe(root.format)}. This release reads format 1 only; a newer format needs a newer @ghub/legal-rules.`,
     );
   }
   if (typeof root.serial !== "number" || !Number.isSafeInteger(root.serial) || root.serial < 0) {

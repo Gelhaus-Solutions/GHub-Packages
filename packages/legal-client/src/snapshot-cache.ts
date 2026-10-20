@@ -6,14 +6,14 @@ import {
   type PinnedKey,
   type SnapshotSignature,
   type Terms,
-} from "@ghub/terms-rules";
+} from "@ghub/legal-rules";
 import { refusalOf, send, TermsApiError, type HttpOptions } from "./http.js";
 
 /**
  * The snapshot a product decides from, kept fresh and never trusted unsigned.
  *
  * Three sources, newest serial wins: the snapshot bundled in the installed
- * release of @ghub/terms-rules (the floor, always there once a release carries
+ * release of @ghub/legal-rules (the floor, always there once a release carries
  * one), the last one this product fetched and stored, and the one the service
  * serves now. Every one of them is verified against the pinned keys before it
  * is bound; a snapshot that fails is refused and the one before it stays.
@@ -97,7 +97,7 @@ export class SnapshotCache {
     this.refreshIfDue();
     if (this.held === null) {
       throw new TermsUnavailableError(
-        "No verified snapshot is held yet: none is bundled with this release of @ghub/terms-rules, none was stored, and GPlatform Terms has not been reached. Await ready() at start.",
+        "No verified snapshot is held yet: none is bundled with this release of @ghub/legal-rules, none was stored, and GPlatform Legal has not been reached. Await ready() at start.",
       );
     }
     return this.held.terms;
@@ -193,7 +193,7 @@ export class SnapshotCache {
     if (answer.status !== 200) throw refusalOf(answer, "the snapshot");
     const header = answer.headers.get("x-snapshot-signature");
     if (header === null) {
-      throw new TermsApiError(200, null, "GPlatform Terms sent a snapshot without its signature.");
+      throw new TermsApiError(200, null, "GPlatform Legal sent a snapshot without its signature.");
     }
     let signed: unknown;
     try {
@@ -202,7 +202,7 @@ export class SnapshotCache {
       throw new TermsApiError(
         200,
         null,
-        "GPlatform Terms sent a snapshot signature that is not JSON.",
+        "GPlatform Legal sent a snapshot signature that is not JSON.",
       );
     }
     const signature = parseSnapshotSignature(signed);
@@ -217,7 +217,7 @@ export class SnapshotCache {
       throw new TermsApiError(
         200,
         null,
-        `GPlatform Terms served snapshot ${String(fetched.serial)}, older than the ${String(this.held.serial)} held; the held one stays.`,
+        `GPlatform Legal served snapshot ${String(fetched.serial)}, older than the ${String(this.held.serial)} held; the held one stays.`,
       );
     }
     this.adopt(fetched);

@@ -1,4 +1,4 @@
-# @ghub/terms-rules
+# @ghub/legal-rules
 
 The consent rules of the Gelhaus Solutions product family: where an account
 stands with the documents its product asks it to accept, at a given instant,
@@ -17,7 +17,7 @@ reads the clock. Every question is asked at an instant the caller passes.
 ## Binding a snapshot
 
 ```ts
-import { bind, verifySnapshot, PINNED_KEYS } from "@ghub/terms-rules";
+import { bind, verifySnapshot, PINNED_KEYS } from "@ghub/legal-rules";
 
 const snapshot = verifySnapshot(json, signature, PINNED_KEYS);
 const terms = bind(snapshot);
@@ -97,11 +97,11 @@ identifiers.
 
 `offline()` binds the snapshot bundled in this release, verified against the
 keys this release pins. Self-hosted GControl uses it and never talks to
-GPlatform Terms; new archived versions reach it with each release, as they
+GPlatform Legal; new archived versions reach it with each release, as they
 always have.
 
 0.1.3 is the first release that carries one: serial 203 of 3 October 2026,
-signed by GPlatform Terms' key `gpterms-snapshot` version 1, which it pins. It
+signed by GPlatform Legal's key `gpterms-snapshot` version 1, which it pins. It
 answers for GAdvisory, GControl, GPlatform Control, SSO and Billing exactly as
 `@ghub/gctl-terms` 0.1.4 did through the first rollout, and for Contribution
 Checker. It cannot yet answer for GOpenCDR, GOpenCNR and GOpenCSR: their
@@ -126,8 +126,8 @@ and any change after signing.
 
 The rules of `@ghub/gctl-terms` 0.1.4 live here now, taking the archive as a
 snapshot instead of compiling it in. `@ghub/gctl-terms` is retired once every
-product has moved. The client products use to ask GPlatform Terms for a
-standing and to record an acceptance is `@ghub/terms-client`, built on this.
+product has moved. The client products use to ask GPlatform Legal for a
+standing and to record an acceptance is `@ghub/legal-client`, built on this.
 
 Part of [GHub-Packages](https://github.com/Gelhaus-Solutions/GHub-Packages), the packages
 the Gelhaus Solutions products share.

@@ -9,7 +9,7 @@ import { parseSnapshot, SnapshotError, type Snapshot } from "./snapshot.js";
  * and a product could edit would let them restrict an account or release one,
  * or move a date nobody announced, so a product only ever binds a snapshot
  * signed with a key this release pins (see keys.ts). The signature is Ed25519
- * over the canonical JSON bytes (see canonical.ts), made by the GPlatform Terms
+ * over the canonical JSON bytes (see canonical.ts), made by the GPlatform Legal
  * service's signing key (key id `gpterms-snapshot`), which never leaves the
  * service's key store.
  */
@@ -123,7 +123,7 @@ export function verifySnapshot(
   );
   if (pinned === undefined) {
     throw new SnapshotSignatureError(
-      `the snapshot is signed with key ${named.keyId} version ${named.keyVersion}, which this release does not pin. A key reaches a product with a release of @ghub/terms-rules, never with the snapshot it signs.`,
+      `the snapshot is signed with key ${named.keyId} version ${named.keyVersion}, which this release does not pin. A key reaches a product with a release of @ghub/legal-rules, never with the snapshot it signs.`,
     );
   }
   let parsed: unknown;

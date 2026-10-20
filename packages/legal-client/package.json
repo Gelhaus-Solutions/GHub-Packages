@@ -1,15 +1,15 @@
 {
-  "name": "@ghub/terms-client",
+  "name": "@ghub/legal-client",
   "version": "0.2.0",
   "private": true,
-  "description": "The client every Gelhaus Solutions product uses to ask GPlatform Terms where an account stands and to record an acceptance: a verified snapshot cache, an outbox, and nobody locked out while the service is unreachable. Server side only.",
+  "description": "The client every Gelhaus Solutions product uses to ask GPlatform Legal where an account stands and to record an acceptance: a verified snapshot cache, an outbox, and nobody locked out while the service is unreachable. Server side only.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
   "license": "Elastic-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git",
-    "directory": "packages/terms-client"
+    "directory": "packages/legal-client"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,7 +40,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ghub/terms-rules": "workspace:^"
+    "@ghub/legal-rules": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.19.7",

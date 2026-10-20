@@ -1,5 +1,5 @@
 /**
- * The one way this package talks to GPlatform Terms: a request with the
+ * The one way this package talks to GPlatform Legal: a request with the
  * product's key and a deadline, and a refusal read into something a caller can
  * branch on.
  *
@@ -14,7 +14,7 @@
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
 /**
- * A request GPlatform Terms did not answer with what was asked for.
+ * A request GPlatform Legal did not answer with what was asked for.
  *
  * `status` is null where no answer came at all: the connection was refused,
  * the deadline passed, the name did not resolve. `code` is the service's own
@@ -94,7 +94,7 @@ export async function send(
       error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")
         ? `no answer within ${String(http.timeoutMs)} ms`
         : `${(error as Error).message ?? String(error)}${causeOf(error)}`;
-    throw new TermsApiError(null, null, `GPlatform Terms could not be reached: ${reason}.`);
+    throw new TermsApiError(null, null, `GPlatform Legal could not be reached: ${reason}.`);
   }
   let text: string;
   try {
@@ -103,7 +103,7 @@ export async function send(
     throw new TermsApiError(
       null,
       null,
-      `GPlatform Terms answered ${String(response.status)} and the body broke off: ${(error as Error).message}.`,
+      `GPlatform Legal answered ${String(response.status)} and the body broke off: ${(error as Error).message}.`,
     );
   }
   return { status: response.status, headers: response.headers, text };
@@ -127,7 +127,7 @@ export function jsonOf(answer: Answer, what: string): unknown {
     throw new TermsApiError(
       answer.status,
       null,
-      `GPlatform Terms answered ${what} with ${String(answer.status)} and a body that is not JSON.`,
+      `GPlatform Legal answered ${what} with ${String(answer.status)} and a body that is not JSON.`,
     );
   }
 }
@@ -147,7 +147,7 @@ export function refusalOf(answer: Answer, what: string): TermsApiError {
       return new TermsApiError(
         answer.status,
         code,
-        `GPlatform Terms refused ${what} (${String(answer.status)} ${code}): ${message}`,
+        `GPlatform Legal refused ${what} (${String(answer.status)} ${code}): ${message}`,
         typeof detail === "object" && detail !== null ? (detail as Record<string, unknown>) : null,
       );
     }
@@ -155,6 +155,6 @@ export function refusalOf(answer: Answer, what: string): TermsApiError {
   return new TermsApiError(
     answer.status,
     null,
-    `GPlatform Terms answered ${what} with ${String(answer.status)}.`,
+    `GPlatform Legal answered ${what} with ${String(answer.status)}.`,
   );
 }

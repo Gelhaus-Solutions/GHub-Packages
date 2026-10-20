@@ -5,7 +5,7 @@ import { parseSnapshotSignature, verifySnapshot, type PinnedKey } from "./verify
 
 /**
  * The snapshot bundled in the release, for a deployment that never talks to
- * GPlatform Terms.
+ * GPlatform Legal.
  *
  * Self-hosted GControl and GAdvisory run without any connection to GPlatform
  * Terms, and
@@ -21,7 +21,7 @@ export class NoBundledSnapshotError extends Error {
 
   constructor() {
     super(
-      "No snapshot is bundled with this release of @ghub/terms-rules yet. It arrives with the first release that carries one; until then offline() has nothing to decide from, and a caller binds a snapshot it holds itself with bind().",
+      "No snapshot is bundled with this release of @ghub/legal-rules yet. It arrives with the first release that carries one; until then offline() has nothing to decide from, and a caller binds a snapshot it holds itself with bind().",
     );
   }
 }

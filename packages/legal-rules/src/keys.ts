@@ -3,7 +3,7 @@ import type { PinnedKey } from "./verify.js";
 /**
  * The public keys a snapshot may be signed with, pinned into the release.
  *
- * `gpterms-snapshot` version 1 is the Ed25519 key GPlatform Terms signs its
+ * `gpterms-snapshot` version 1 is the Ed25519 key GPlatform Legal signs its
  * snapshot with (Vault Transit `prod-transit/keys/gpterms-snapshot`, never
  * exportable). Pinned in 0.1.3, the release that first carries a snapshot,
  * from what the service publishes at `/api/public/v1/keys`, read the same over

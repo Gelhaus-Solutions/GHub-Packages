@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 function directoryWith(files: Record<string, string>): string {
-  const directory = mkdtempSync(join(tmpdir(), "terms-rules-"));
+  const directory = mkdtempSync(join(tmpdir(), "legal-rules-"));
   made.push(directory);
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(join(directory, name), content, "utf8");

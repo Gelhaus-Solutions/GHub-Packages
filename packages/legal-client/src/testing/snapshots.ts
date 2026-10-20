@@ -18,7 +18,7 @@ import {
   type Snapshot,
   type SnapshotSignature,
   type Terms,
-} from "@ghub/terms-rules";
+} from "@ghub/legal-rules";
 
 export const SURFACE = "example";
 export const V1 = "example-terms-2026-01-01";

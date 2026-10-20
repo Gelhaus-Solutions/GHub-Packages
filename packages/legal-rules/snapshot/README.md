@@ -1,9 +1,9 @@
 # The bundled snapshot
 
 The signed snapshot of the legal archive that `offline()` decides from, as
-GPlatform Terms served it when this release was cut:
+GPlatform Legal served it when this release was cut:
 
-- `snapshot.json`: the snapshot, exactly as GPlatform Terms wrote it, in
+- `snapshot.json`: the snapshot, exactly as GPlatform Legal wrote it, in
   canonical JSON. Not reformatted, not pretty-printed, no trailing newline: the
   signature covers these bytes, and a reformatted copy does not verify.
 - `snapshot.sig.json`: `{ "keyId", "keyVersion", "signature" }`, the Ed25519
@@ -14,8 +14,8 @@ To carry a newer one, take both files from the service as they are served, never
 retyped:
 
 ```
-curl -s https://terms.gplatform.org/api/public/v1/snapshot -o snapshot.json
-curl -s https://terms.gplatform.org/api/public/v1/snapshot.sig -o snapshot.sig.json
+curl -s https://legal.gplatform.org/api/public/v1/snapshot -o snapshot.json
+curl -s https://legal.gplatform.org/api/public/v1/snapshot.sig -o snapshot.sig.json
 ```
 
 0.1.3 carries serial 203 (generated 2026-10-03 11:44 UTC, sha256
