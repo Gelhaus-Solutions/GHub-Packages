@@ -1,6 +1,16 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { cn } from "./cn.js";
 import { FieldShell } from "./input.js";
 import { AURORA_FIELD, AURORA_MENU } from "./modern/aurora.js";
@@ -38,6 +48,15 @@ import { AURORA_FIELD, AURORA_MENU } from "./modern/aurora.js";
  *   - Typing filters, and the active option resets to the first match, because
  *     an active option that has been filtered out is a keystroke that appears
  *     to do nothing.
+ *
+ * **The list is portalled and `fixed`, as `Popover` is.** It used to hang
+ * absolutely inside the field, which put it inside whatever stacking context
+ * the field sat in: on Aurora every section is one (its glass has a backdrop
+ * filter, and the stagger animates it), so the section after the field's own
+ * painted over the open list, its labels and controls lying across the
+ * options. No `z-index` on the list can win against that from the inside, and
+ * an ancestor's `overflow` clipped it as well. It flips above the field when
+ * there is no room below, and follows a scroll in any ancestor.
  */
 export interface ComboboxOption {
   value: string;
@@ -69,6 +88,11 @@ export interface ComboboxProps {
   className?: string;
 }
 
+/** Clear of the field without floating away from it. */
+const OFFSET = 4;
+/** Never closer to the viewport's edge than this, so the shadow is not cut. */
+const MARGIN = 8;
+
 export function Combobox({
   name,
   options,
@@ -99,6 +123,7 @@ export function Combobox({
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const [place, setPlace] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const committedOption = options.find((option) => option.value === committed);
 
@@ -133,13 +158,53 @@ export function Combobox({
     setQuery("");
   }
 
+  // Under the field, at its width, and above it where the viewport has no room
+  // below. Measured from the wrapper rather than the input so the chevron's
+  // padding is inside the list's width too.
+  const position = useCallback(() => {
+    const field = root.current;
+    const box = list.current;
+    if (field === null || box === null) return;
+    const from = field.getBoundingClientRect();
+    const height = box.getBoundingClientRect().height;
+    let top = from.bottom + OFFSET;
+    if (top + height > window.innerHeight - MARGIN && from.top - height - OFFSET >= MARGIN) {
+      top = from.top - height - OFFSET;
+    }
+    setPlace({ top, left: from.left, width: from.width });
+  }, []);
+
+  // Before paint, so the list is never seen at the origin on its way to the field.
+  useLayoutEffect(() => {
+    if (!open) {
+      setPlace(null);
+      return;
+    }
+    position();
+  }, [open, matches.length, position]);
+
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener("resize", position);
+    // Capture, so a scroll in any ancestor moves the list with its field.
+    window.addEventListener("scroll", position, true);
+    return () => {
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", position, true);
+    };
+  }, [open, position]);
+
   // Pointer-down rather than click, and on the document rather than a backdrop:
   // a transparent backdrop would swallow the first click on whatever is behind
-  // it, so dismissing the list would cost a click somewhere else.
+  // it, so dismissing the list would cost a click somewhere else. The list is
+  // portalled out of the field, so a press inside it is not "outside" either.
   useEffect(() => {
     if (!open) return;
     function onPointerDown(event: PointerEvent) {
-      if (root.current !== null && !root.current.contains(event.target as Node)) close();
+      const target = event.target as Node;
+      if (root.current?.contains(target) === true) return;
+      if (list.current?.contains(target) === true) return;
+      close();
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => {
@@ -272,16 +337,19 @@ export function Combobox({
           </svg>
         </span>
 
-        {!open ? null : (
+        {!open || typeof document === "undefined" ? null : createPortal(
           <ul
             ref={list}
             id={listId}
             role="listbox"
+            style={{ top: place?.top ?? 0, left: place?.left ?? 0, width: place?.width }}
             className={cn(
-              "absolute z-50 mt-1 max-h-64 w-full overflow-y-auto py-1",
+              "fixed z-50 max-h-64 overflow-y-auto py-1",
               "rounded-(--radius-md) border border-(--gc-border-subtle) bg-overlay shadow-md",
               AURORA_MENU,
               "aurora:p-1.5",
+              // Invisible until placed rather than seen moving there from the origin.
+              place === null && "pointer-events-none opacity-0",
             )}
           >
             {matches.length === 0 ? (
@@ -338,7 +406,8 @@ export function Combobox({
                 );
               })
             )}
-          </ul>
+          </ul>,
+          document.body,
         )}
       </div>
     </FieldShell>
