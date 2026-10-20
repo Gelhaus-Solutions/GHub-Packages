@@ -75,3 +75,49 @@ describe("Combobox", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 });
+
+describe("Combobox searched on the server", () => {
+  it("shows what load answers for the typed text, and Browse hands the text on", async () => {
+    const calls: string[] = [];
+    const browsed: string[] = [];
+    const load = (query: string) => {
+      calls.push(query);
+      return Promise.resolve({
+        options: [{ value: "nordwerk", label: "Nordwerk Medien GmbH", hint: "Hamburg, Germany" }],
+        total: 38,
+      });
+    };
+    render(
+      createElement(Combobox, {
+        name: "party",
+        label: "Party",
+        options: [],
+        load,
+        browse: {
+          label: (_query: string, total: number | null) => `Search and filter all ${String(total)}`,
+          onBrowse: (query: string) => browsed.push(query),
+        },
+      }),
+    );
+    const input = screen.getByRole("combobox", { name: "Party" });
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: "nor" } });
+
+    const option = await screen.findByRole("option", { name: /Nordwerk Medien GmbH/ });
+    expect(calls.at(-1)).toBe("nor");
+    const browse = screen.getByRole("option", { name: "Search and filter all 38" });
+
+    // Down past the last match lands on the browse row; Enter opens the picker with the text.
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input.getAttribute("aria-activedescendant")).toBe(browse.id);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(browsed).toEqual(["nor"]);
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    // A committed server option keeps its label though `options` never held it.
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.pointerDown(await screen.findByRole("option", { name: /Nordwerk Medien GmbH/ }));
+    expect((input as HTMLInputElement).value).toBe("Nordwerk Medien GmbH");
+    expect(option).toBeTruthy();
+  });
+});

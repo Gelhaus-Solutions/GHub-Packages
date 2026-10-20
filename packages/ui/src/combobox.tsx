@@ -57,6 +57,13 @@ import { AURORA_FIELD, AURORA_MENU } from "./modern/aurora.js";
  * options. No `z-index` on the list can win against that from the inside, and
  * an ancestor's `overflow` clipped it as well. It flips above the field when
  * there is no room below, and follows a scroll in any ancestor.
+ *
+ * **A list that piles up is searched on the server** (D157). With `load`, the
+ * options are what it answers for the typed text, a few at a time (150 ms
+ * after typing stops, a load the text moved past aborted), and `options` holds
+ * only the committed one so its label still shows. With `browse`, a last row
+ * ("Search and filter all 38") hands the typed text to a `PickerDialog`, where
+ * the facets and the pages are; Enter on it does the same.
  */
 export interface ComboboxOption {
   value: string;
@@ -64,6 +71,12 @@ export interface ComboboxOption {
   /** A quieter second line: what this option is, where the label is an id. */
   hint?: string;
   disabled?: boolean;
+}
+
+/** What a server-searched combobox's `load` answers: the closest few, and how many match in all. */
+export interface ComboboxResult {
+  options: readonly ComboboxOption[];
+  total: number;
 }
 
 export interface ComboboxProps {
@@ -85,6 +98,15 @@ export interface ComboboxProps {
   disabled?: boolean;
   /** Renders an option's row. The default is the label over the hint. */
   renderOption?: (option: ComboboxOption, active: boolean) => ReactNode;
+  /** Search on the server: the options for the typed text. `options` then holds the committed one. */
+  load?: (query: string, signal: AbortSignal) => Promise<ComboboxResult>;
+  /** What the list says while the first answer is on its way. */
+  loadingLabel?: string;
+  /** A last row that opens the full picker with the typed text: "Search and filter all 38". */
+  browse?: {
+    label: (query: string, total: number | null) => string;
+    onBrowse: (query: string) => void;
+  };
   className?: string;
 }
 
@@ -92,6 +114,8 @@ export interface ComboboxProps {
 const OFFSET = 4;
 /** Never closer to the viewport's edge than this, so the shadow is not cut. */
 const MARGIN = 8;
+/** A typeahead waits less than a list's search: it answers a few rows, not a page. */
+const LOAD_PAUSE_MS = 150;
 
 export function Combobox({
   name,
@@ -107,6 +131,9 @@ export function Combobox({
   required = false,
   disabled = false,
   renderOption,
+  load,
+  loadingLabel = "Searching",
+  browse,
   className,
 }: ComboboxProps) {
   const generated = useId();
@@ -125,9 +152,43 @@ export function Combobox({
   const list = useRef<HTMLUListElement>(null);
   const [place, setPlace] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  const committedOption = options.find((option) => option.value === committed);
+  // A server-searched option is not in `options` until the caller puts it there, so the last one committed is kept for its label.
+  const [picked, setPicked] = useState<ComboboxOption | null>(null);
+  const committedOption =
+    options.find((option) => option.value === committed) ??
+    (picked !== null && picked.value === committed ? picked : undefined);
+
+  const [loaded, setLoaded] = useState<ComboboxResult | null>(null);
+  const loader = useRef(load);
+  useEffect(() => {
+    loader.current = load;
+  });
+  const searched = load !== undefined;
+
+  useEffect(() => {
+    if (!searched || !open) return;
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => {
+        void loader
+          .current?.(query.trim(), controller.signal)
+          .then((result) => {
+            if (!controller.signal.aborted) setLoaded(result);
+          })
+          .catch(() => {
+            if (!controller.signal.aborted) setLoaded({ options: [], total: 0 });
+          });
+      },
+      query === "" ? 0 : LOAD_PAUSE_MS,
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searched, open, query]);
 
   const matches = useMemo(() => {
+    if (searched) return loaded?.options ?? [];
     const needle = query.trim().toLowerCase();
     if (needle === "") return options;
     return options.filter(
@@ -135,17 +196,22 @@ export function Combobox({
         option.label.toLowerCase().includes(needle) ||
         (option.hint ?? "").toLowerCase().includes(needle),
     );
-  }, [options, query]);
+  }, [searched, loaded, options, query]);
+
+  /** The rows the keyboard moves over: the matches, then the browse row. */
+  const rowCount = matches.length + (browse === undefined ? 0 : 1);
+  const onBrowseRow = browse !== undefined && active === matches.length;
 
   // An active index left pointing past the end of a filtered list is a Down
   // press that appears to do nothing. It is clamped on every change rather than
   // reset, so narrowing a search keeps the highlight where it can.
   useEffect(() => {
-    setActive((current) => (current >= matches.length ? 0 : current));
-  }, [matches.length]);
+    setActive((current) => (current >= rowCount ? 0 : current));
+  }, [rowCount]);
 
   function commit(option: ComboboxOption) {
     if (option.disabled === true) return;
+    setPicked(option);
     if (value === undefined) setUncontrolled(option.value);
     onChange?.(option.value);
     setQuery("");
@@ -156,6 +222,13 @@ export function Combobox({
   function close() {
     setOpen(false);
     setQuery("");
+  }
+
+  function openBrowse() {
+    if (browse === undefined) return;
+    const typed = query.trim();
+    close();
+    browse.onBrowse(typed);
   }
 
   // Under the field, at its width, and above it where the viewport has no room
@@ -227,9 +300,9 @@ export function Combobox({
         setOpen(true);
         return;
       }
-      if (matches.length === 0) return;
+      if (rowCount === 0) return;
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((current) => (current + step + matches.length) % matches.length);
+      setActive((current) => (current + step + rowCount) % rowCount);
       return;
     }
     if (event.key === "Home" && open) {
@@ -239,7 +312,7 @@ export function Combobox({
     }
     if (event.key === "End" && open) {
       event.preventDefault();
-      setActive(Math.max(0, matches.length - 1));
+      setActive(Math.max(0, rowCount - 1));
       return;
     }
     if (event.key === "Enter") {
@@ -247,6 +320,11 @@ export function Combobox({
       // Only swallow Enter when it is doing something. A combobox inside a form
       // that ate every Enter would stop the form being submitted from the
       // keyboard, which is how most people submit a one-field form.
+      if (onBrowseRow) {
+        event.preventDefault();
+        openBrowse();
+        return;
+      }
       const option = matches[active];
       if (option === undefined) return;
       event.preventDefault();
@@ -293,7 +371,9 @@ export function Combobox({
           aria-required={required ? true : undefined}
           aria-invalid={error === undefined ? undefined : true}
           aria-activedescendant={
-            open && matches[active] !== undefined ? `${generated}-opt-${String(active)}` : undefined
+            open && (matches[active] !== undefined || onBrowseRow)
+              ? `${generated}-opt-${String(active)}`
+              : undefined
           }
           onChange={(event) => {
             setQuery(event.target.value);
@@ -354,7 +434,11 @@ export function Combobox({
                   place === null && "pointer-events-none opacity-0",
                 )}
               >
-                {matches.length === 0 ? (
+                {searched && loaded === null ? (
+                  <li className="px-2.5 py-2 text-2xs text-fg-tertiary aurora:text-[12.5px] aurora:text-m-ink-3">
+                    {loadingLabel}
+                  </li>
+                ) : matches.length === 0 ? (
                   // Not a disabled option and not an empty list. A list with nothing
                   // in it reads as a component that failed to load.
                   <li className="px-2.5 py-2 text-2xs text-fg-tertiary aurora:text-[12.5px] aurora:text-m-ink-3">
@@ -407,6 +491,30 @@ export function Combobox({
                       </li>
                     );
                   })
+                )}
+                {browse === undefined ? null : (
+                  <li
+                    id={`${generated}-opt-${String(matches.length)}`}
+                    role="option"
+                    aria-selected={false}
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      openBrowse();
+                    }}
+                    onPointerEnter={() => {
+                      setActive(matches.length);
+                    }}
+                    className={cn(
+                      "mt-1 cursor-pointer border-t border-(--gc-border-hairline) px-2.5 py-1.5 text-sm font-medium text-accent",
+                      "aurora:flex aurora:min-h-9 aurora:items-center aurora:rounded-a-item aurora:border-m-hairline aurora:px-3 aurora:text-[13.5px] aurora:text-m-accent-text",
+                      onBrowseRow && "bg-hover aurora:bg-m-hover",
+                    )}
+                  >
+                    {browse.label(
+                      query.trim(),
+                      searched ? (loaded?.total ?? null) : matches.length,
+                    )}
+                  </li>
                 )}
               </ul>,
               document.body,
