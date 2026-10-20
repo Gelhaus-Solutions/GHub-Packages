@@ -1,5 +1,11 @@
 # @ghub/legal-rules
 
+## 0.2.0
+
+### Minor Changes
+
+- d4f6bc8: GPlatform Terms is GPlatform Legal (D152): `@ghub/terms-rules` and `@ghub/terms-client` go on as `@ghub/legal-rules` and `@ghub/legal-client`. Change the dependency and the imports; the service is at `https://legal.gplatform.org` (the old address answers too), and a standing the client read from it says `source: "gplegal"` where it said `"gpterms"`. The snapshot key keeps its id `gpterms-snapshot`, so snapshots verify as before.
+
 Until 0.1.3 (rules) and 0.2.0 (client) this package was `@ghub/terms-rules`; the history below is that name's.
 
 ## 0.1.3
