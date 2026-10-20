@@ -1111,6 +1111,8 @@ describe("the pin covers every modern component", () => {
     "Disclosure",
     "DraftKeeperBanner",
     "FilterButton",
+    // Both rendered in modern-form-dialog-interaction.test.ts, with their keyboard and their links.
+    "FormDialog",
     "FormField",
     "GlassPanel",
     "GoTo",
@@ -1119,6 +1121,7 @@ describe("the pin covers every modern component", () => {
     // Rendered in modern-image-crop.test.ts, with its keyboard in the interaction file.
     "ImageCrop",
     "Input",
+    "LeaveGuard",
     "LifecycleStepper",
     "LinkPage",
     "ListFilters",

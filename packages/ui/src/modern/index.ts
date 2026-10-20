@@ -158,6 +158,8 @@ export {
   type PickerPage,
   type PickerQuery,
 } from "./picker-dialog.js";
+export { FormDialog, type FormDialogProps } from "./form-dialog.js";
+export { LeaveGuard, type LeaveGuardLabels, type LeaveGuardProps } from "./leave-guard.js";
 export { Agenda, type AgendaItem, type AgendaProps } from "./agenda.js";
 export { DayStepper, type DayStepperProps } from "./day-stepper.js";
 export { GlassPanel, type GlassPanelProps, type GlassTone } from "./glass-panel.js";
@@ -214,6 +216,8 @@ export {
   AURORA_IN_SECTION,
   AURORA_LIST_IN_SECTION,
   AURORA_MENU,
+  AURORA_POPUP,
+  AURORA_SCRIM,
   AURORA_TRACK,
   AURORA_TRACK_ITEM,
   AURORA_TRACK_OFF,
