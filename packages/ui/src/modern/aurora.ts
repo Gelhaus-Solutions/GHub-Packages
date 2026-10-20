@@ -56,6 +56,19 @@ export const AURORA_MENU =
   "aurora:a-glass-menu aurora:rounded-a-banner aurora:border aurora:border-a-edge-pill aurora:shadow-a-menu";
 
 /**
+ * A popup (D158): the page's own auroras inside it as frosted glass, the accent's
+ * light at the top left and info's at the bottom right over plate at 72 per cent,
+ * blur 24 and saturate 160, so it is tinted like the page around it rather than a
+ * flat grey card over a lit page. The 18px corner and a 1px ink edge of glass, the
+ * deep drop of a menu. Whatever sits inside paints no ground of its own.
+ */
+export const AURORA_POPUP =
+  "aurora:rounded-a-glass aurora:border aurora:border-a-edge aurora:shadow-a-menu aurora:[background:radial-gradient(120%_80%_at_0%_0%,color-mix(in_oklch,var(--gm-accent)_20%,transparent),transparent_62%),radial-gradient(90%_70%_at_100%_100%,color-mix(in_oklch,var(--gm-info)_14%,transparent),transparent_66%),radial-gradient(70%_50%_at_85%_10%,color-mix(in_oklch,var(--gm-accent)_10%,transparent),transparent_70%),color-mix(in_oklch,var(--gm-plate)_72%,transparent)] aurora:backdrop-blur-[24px] aurora:backdrop-saturate-[1.6]";
+
+/** The scrim behind a popup: the page held back at 74 per cent, with a 4px blur. */
+export const AURORA_SCRIM = "aurora:bg-[oklch(0.1_0.006_258/0.74)] aurora:backdrop-blur-[4px]";
+
+/**
  * A segmented track (padding 3, ink 6 per cent with an ink 8 edge), and the
  * raised current item inside it.
  */

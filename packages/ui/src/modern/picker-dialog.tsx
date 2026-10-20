@@ -12,12 +12,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../cn.js";
-import { focusablesIn } from "../focus.js";
-import { AURORA_MENU } from "./aurora.js";
+import { AURORA_POPUP, AURORA_SCRIM } from "./aurora.js";
 import { buttonClasses } from "./button-classes.js";
 import { Button } from "./button.js";
 import { FilterButton, type FilterOption } from "./filter-button.js";
 import { Input } from "./input.js";
+import { useModal } from "./modal.js";
 import { Pagination } from "./pagination.js";
 
 /** How long typing has to pause before the search is applied. The sheet's number. */
@@ -197,56 +197,18 @@ function PickerPanel<T>({
 
   const panel = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLLabelElement>(null);
-  const overlayPressed = useRef(false);
-  const close = useRef(onClose);
   const loader = useRef(load);
   useEffect(() => {
-    close.current = onClose;
     loader.current = load;
   });
 
-  // The modal contract: focus in the field, the page still, Tab trapped, Escape closes.
-  useEffect(() => {
-    const restore = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    // Focus starts in the search: the popup is a question, and the field asks it.
-    field.current?.querySelector("input")?.focus();
-
-    const onKeyDown = (event: globalThis.KeyboardEvent): void => {
-      // A facet's open list handles Escape and Tab first and stops them, so they
-      // are heard here, on the way up, only when no list was open.
-      if (event.defaultPrevented) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        close.current();
-        return;
-      }
-      if (event.key !== "Tab" || panel.current === null) return;
-      const focusable = focusablesIn(panel.current);
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (first === undefined || last === undefined || focusable.length === 1) {
-        event.preventDefault();
-        return;
-      }
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = overflow;
-      restore?.focus?.();
-    };
-  }, []);
+  // The modal contract (`useModal`), focus starting in the search: the popup is a
+  // question, and the field asks it.
+  const scrim = useModal({
+    panel,
+    onClose,
+    focus: () => field.current?.querySelector("input") ?? null,
+  });
 
   // Typing applies after a pause, and goes back to the first page.
   useEffect(() => {
@@ -373,15 +335,11 @@ function PickerPanel<T>({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:pt-[8vh]"
-      onMouseDown={(event) => {
-        overlayPressed.current = event.target === event.currentTarget;
-      }}
-      onMouseUp={(event) => {
-        // Both ends on the scrim: a drag out of the panel is a selection.
-        if (overlayPressed.current && event.target === event.currentTarget) close.current();
-        overlayPressed.current = false;
-      }}
+      className={cn(
+        "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:pt-[8vh]",
+        AURORA_SCRIM,
+      )}
+      {...scrim}
     >
       <div
         ref={panel}
@@ -390,8 +348,7 @@ function PickerPanel<T>({
         aria-labelledby={titleId}
         className={cn(
           "flex w-full max-w-[920px] flex-col overflow-hidden rounded-m-card border border-m-subtle bg-m-overlay shadow-m-overlay",
-          AURORA_MENU,
-          "aurora:rounded-a-glass",
+          AURORA_POPUP,
         )}
       >
         <div className="flex items-start gap-3 px-5 pt-[18px] pb-3">
@@ -408,9 +365,7 @@ function PickerPanel<T>({
           </div>
           <button
             type="button"
-            onClick={() => {
-              close.current();
-            }}
+            onClick={onClose}
             aria-label={labels.close}
             className="grid size-8 shrink-0 place-items-center rounded-full text-[20px] leading-none text-m-ink-2 hover:bg-m-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring"
           >
@@ -630,7 +585,7 @@ function PickerPanel<T>({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2.5 border-t border-m-hairline bg-m-plate/50 px-5 py-3">
+        <div className="flex flex-wrap items-center gap-2.5 border-t border-m-hairline bg-m-plate/50 px-5 py-3 aurora:bg-transparent">
           <div className="flex min-w-0 flex-[1_1_240px] flex-wrap items-center gap-1.5">
             {several && picked.length > 0 ? (
               <>
@@ -658,13 +613,7 @@ function PickerPanel<T>({
               </>
             ) : null}
           </div>
-          <Button
-            variant="secondary"
-            size={36}
-            onClick={() => {
-              close.current();
-            }}
-          >
+          <Button variant="secondary" size={36} onClick={onClose}>
             {labels.cancel}
           </Button>
           <Button
