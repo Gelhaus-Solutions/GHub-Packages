@@ -1,7 +1,6 @@
 {
   "name": "@ghub/agent-protocol",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "The server half of the GOpen agents' wire protocol: EdDSA request assertions bound to the audience, method, path and body for a minute, key proofs for rotation, and RFC 7638 key ids. Hand-written on node:crypto, no dependencies.",
   "author": "Gelhaus Solutions (Enno Gelhaus) <egelhaus@ennogelhaus.de> (https://ennogelhaus.de)",
   "homepage": "https://ennogelhaus.de",
