@@ -1,5 +1,12 @@
 # @ghub/tokens
 
+## 0.7.1
+
+### Patch Changes
+
+- Aurora's glass is less transparent: a section, a tile and a glass panel (`--ga-glass`, `a-glass`) are the plate at 80 per cent instead of 62, and the rail (`--ga-glass-rail`) at 76 instead of 58, so the light and whatever passes behind a pane no longer compete with the words on it.
+- Aurora's menu film (`--ga-menu`, `a-glass-menu`, and so every `Combobox`, `Popover`, `Menu`, `GoTo` and `Sheet` on Aurora) is the overlay at 97 per cent instead of the plate at 82. A menu opens inside a glass section, where its backdrop blur reaches only that section's content, so the labels of the section below showed through the open list at full sharpness and its own options were hard to read.
+
 ## 0.7.0
 
 ### Minor Changes

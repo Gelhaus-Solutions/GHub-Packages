@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.10.1
+
+### Patch Changes
+
+- `Combobox` portals its list to the body and positions it `fixed` under the field, as `Popover` does, flipping above it where the viewport has no room below and following a scroll in any ancestor. It used to hang absolutely inside the field, inside the field's stacking context: on Aurora every section is one, so the section after the field's own painted over the open list, its labels and controls lying across the options, and an ancestor's `overflow` could clip it. A press inside the portalled list still counts as inside the combobox.
+
 ## 0.10.0
 
 ### Minor Changes
