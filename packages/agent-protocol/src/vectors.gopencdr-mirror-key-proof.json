@@ -1,0 +1,19 @@
+{
+  "comment": "Byte-for-byte test vectors for a key rotation's proof (MirrorKeyRotationRequest in src/mirror-protocol.ts): Ed25519 is deterministic, so an implementation that signs this header and these claims with the new key's seed must produce exactly this JWS, and must accept it. The request is the rotation that carries it, which is signed, as every request, by the key it replaces. Written once by hand; never regenerated.",
+  "seed": "e0eba1669a1932fa2d4d41f0261d1818c99021590842b85352bea82e91cb0932",
+  "publicKey": "QPoD6yxCQmnOpnp4hDahIYdCgD01muzgPGPTam_bufA",
+  "keyId": "cIp4Z0iBnI73H7jDaPsHCaYf0MGFjc7mqDc0ek73ECI",
+  "vectors": [
+    {
+      "name": "rotation",
+      "header": "{\"alg\":\"EdDSA\",\"typ\":\"gocdr-mirror-key+jwt\",\"jwk\":{\"kty\":\"OKP\",\"crv\":\"Ed25519\",\"x\":\"QPoD6yxCQmnOpnp4hDahIYdCgD01muzgPGPTam_bufA\"}}",
+      "claims": "{\"iss\":\"cmr0mirror6k1m4p8x2q5w7z\",\"aud\":\"https://cdr.gplatform.org\",\"iat\":1790791200,\"exp\":1790791260,\"jti\":\"YSBuZXcga2V5IHByb3ZlcyBpdHNlbGY\"}",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/mirrors/self/keys",
+        "body": "{\"proof\":\"eyJhbGciOiJFZERTQSIsInR5cCI6ImdvY2RyLW1pcnJvci1rZXkrand0IiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiUVBvRDZ5eENRbW5PcG5wNGhEYWhJWWRDZ0QwMW11emdQR1BUYW1fYnVmQSJ9fQ.eyJpc3MiOiJjbXIwbWlycm9yNmsxbTRwOHgycTV3N3oiLCJhdWQiOiJodHRwczovL2Nkci5ncGxhdGZvcm0ub3JnIiwiaWF0IjoxNzkwNzkxMjAwLCJleHAiOjE3OTA3OTEyNjAsImp0aSI6IllTQnVaWGNnYTJWNUlIQnliM1psY3lCcGRITmxiR1kifQ.LiXeUtJpWNp9fFwUumFnfH9ePJh3WyylyIqbBWzu5YH324afUHvcnmWkIcPggsu9hHsCo4npd1I8hzQHXbWZBQ\"}"
+      },
+      "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImdvY2RyLW1pcnJvci1rZXkrand0IiwiandrIjp7Imt0eSI6Ik9LUCIsImNydiI6IkVkMjU1MTkiLCJ4IjoiUVBvRDZ5eENRbW5PcG5wNGhEYWhJWWRDZ0QwMW11emdQR1BUYW1fYnVmQSJ9fQ.eyJpc3MiOiJjbXIwbWlycm9yNmsxbTRwOHgycTV3N3oiLCJhdWQiOiJodHRwczovL2Nkci5ncGxhdGZvcm0ub3JnIiwiaWF0IjoxNzkwNzkxMjAwLCJleHAiOjE3OTA3OTEyNjAsImp0aSI6IllTQnVaWGNnYTJWNUlIQnliM1psY3lCcGRITmxiR1kifQ.LiXeUtJpWNp9fFwUumFnfH9ePJh3WyylyIqbBWzu5YH324afUHvcnmWkIcPggsu9hHsCo4npd1I8hzQHXbWZBQ"
+    }
+  ]
+}

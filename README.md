@@ -14,6 +14,7 @@ stays in that product's repository.
 | [`@ghub/gmint-protocol`](packages/gmint-protocol)   | GMint's wire protocol: signed, channel-bound requests, HPKE-sealed responses                 |
 | [`@ghub/gmint-sdk`](packages/gmint-sdk)             | The GMint client: short-lived, narrowly scoped GitHub App tokens, verified end to end        |
 | [`@ghub/sshsig`](packages/sshsig)                   | SSHSIG verification for hardware-key signatures, shared by GMint and GLockdown               |
+| [`@ghub/agent-protocol`](packages/agent-protocol)   | The GOpen agents' wire protocol, server half: signed requests and key proofs                 |
 | [`@ghub/glockdown-sdk`](packages/glockdown-sdk)     | GLockdown for apps: the stage the agent set for the app, and raising the app one rung        |
 | [`@ghub/identity-chrome`](packages/identity-chrome) | The shared header controls: the apps picker and the account popup, browser and server halves |
 

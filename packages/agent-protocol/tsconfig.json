@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    // Inside outDir on purpose: a tsbuildinfo that outlives its dist convinces
+    // tsc the build is current, and the package keeps shipping whatever it
+    // emitted last, under whatever compiler options were in force then.
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}
