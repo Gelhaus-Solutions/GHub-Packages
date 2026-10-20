@@ -337,78 +337,80 @@ export function Combobox({
           </svg>
         </span>
 
-        {!open || typeof document === "undefined" ? null : createPortal(
-          <ul
-            ref={list}
-            id={listId}
-            role="listbox"
-            style={{ top: place?.top ?? 0, left: place?.left ?? 0, width: place?.width }}
-            className={cn(
-              "fixed z-50 max-h-64 overflow-y-auto py-1",
-              "rounded-(--radius-md) border border-(--gc-border-subtle) bg-overlay shadow-md",
-              AURORA_MENU,
-              "aurora:p-1.5",
-              // Invisible until placed rather than seen moving there from the origin.
-              place === null && "pointer-events-none opacity-0",
-            )}
-          >
-            {matches.length === 0 ? (
-              // Not a disabled option and not an empty list. A list with nothing
-              // in it reads as a component that failed to load.
-              <li className="px-2.5 py-2 text-2xs text-fg-tertiary aurora:text-[12.5px] aurora:text-m-ink-3">
-                {emptyLabel}
-              </li>
-            ) : (
-              matches.map((option, index) => {
-                const isActive = index === active;
-                const selected = option.value === committed;
-
-                return (
-                  <li
-                    key={option.value}
-                    id={`${generated}-opt-${String(index)}`}
-                    role="option"
-                    aria-selected={selected}
-                    aria-disabled={option.disabled === true ? true : undefined}
-                    // Pointer-down rather than click: the input's blur would
-                    // otherwise close the list before the click landed.
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      commit(option);
-                    }}
-                    onPointerEnter={() => {
-                      setActive(index);
-                    }}
-                    className={cn(
-                      "cursor-pointer px-2.5 py-1.5 text-sm",
-                      "aurora:flex aurora:min-h-9 aurora:flex-col aurora:justify-center aurora:rounded-a-item aurora:px-3 aurora:text-[13.5px]",
-                      option.disabled === true &&
-                        "cursor-not-allowed text-fg-disabled aurora:text-m-ink-off",
-                      isActive && option.disabled !== true && "bg-hover aurora:bg-m-hover",
-                      selected && "bg-selected aurora:bg-m-selected",
-                    )}
-                  >
-                    {renderOption === undefined ? (
-                      <>
-                        <span className="block truncate text-fg-secondary aurora:text-m-ink">
-                          {option.label}
-                        </span>
-                        {option.hint === undefined ? null : (
-                          <span className="block truncate text-2xs text-fg-tertiary aurora:text-[12px] aurora:text-m-ink-3">
-                            {option.hint}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      renderOption(option, isActive)
-                    )}
+        {!open || typeof document === "undefined"
+          ? null
+          : createPortal(
+              <ul
+                ref={list}
+                id={listId}
+                role="listbox"
+                style={{ top: place?.top ?? 0, left: place?.left ?? 0, width: place?.width }}
+                className={cn(
+                  "fixed z-50 max-h-64 overflow-y-auto py-1",
+                  "rounded-(--radius-md) border border-(--gc-border-subtle) bg-overlay shadow-md",
+                  AURORA_MENU,
+                  "aurora:p-1.5",
+                  // Invisible until placed rather than seen moving there from the origin.
+                  place === null && "pointer-events-none opacity-0",
+                )}
+              >
+                {matches.length === 0 ? (
+                  // Not a disabled option and not an empty list. A list with nothing
+                  // in it reads as a component that failed to load.
+                  <li className="px-2.5 py-2 text-2xs text-fg-tertiary aurora:text-[12.5px] aurora:text-m-ink-3">
+                    {emptyLabel}
                   </li>
-                );
-              })
+                ) : (
+                  matches.map((option, index) => {
+                    const isActive = index === active;
+                    const selected = option.value === committed;
+
+                    return (
+                      <li
+                        key={option.value}
+                        id={`${generated}-opt-${String(index)}`}
+                        role="option"
+                        aria-selected={selected}
+                        aria-disabled={option.disabled === true ? true : undefined}
+                        // Pointer-down rather than click: the input's blur would
+                        // otherwise close the list before the click landed.
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          commit(option);
+                        }}
+                        onPointerEnter={() => {
+                          setActive(index);
+                        }}
+                        className={cn(
+                          "cursor-pointer px-2.5 py-1.5 text-sm",
+                          "aurora:flex aurora:min-h-9 aurora:flex-col aurora:justify-center aurora:rounded-a-item aurora:px-3 aurora:text-[13.5px]",
+                          option.disabled === true &&
+                            "cursor-not-allowed text-fg-disabled aurora:text-m-ink-off",
+                          isActive && option.disabled !== true && "bg-hover aurora:bg-m-hover",
+                          selected && "bg-selected aurora:bg-m-selected",
+                        )}
+                      >
+                        {renderOption === undefined ? (
+                          <>
+                            <span className="block truncate text-fg-secondary aurora:text-m-ink">
+                              {option.label}
+                            </span>
+                            {option.hint === undefined ? null : (
+                              <span className="block truncate text-2xs text-fg-tertiary aurora:text-[12px] aurora:text-m-ink-3">
+                                {option.hint}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          renderOption(option, isActive)
+                        )}
+                      </li>
+                    );
+                  })
+                )}
+              </ul>,
+              document.body,
             )}
-          </ul>,
-          document.body,
-        )}
       </div>
     </FieldShell>
   );
