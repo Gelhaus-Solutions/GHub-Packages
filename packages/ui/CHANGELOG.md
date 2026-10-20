@@ -1,5 +1,12 @@
 # @ghub/ui
 
+## 0.11.0
+
+### Minor Changes
+
+- ddb108d: `Combobox` searches on the server when given `load`: the options are what it answers for the typed text (150 ms after typing stops, a load the text moved past aborted), `options` then holds only the committed one, and a committed server option keeps its label. `browse` adds a last row ("Search and filter all 38") that hands the typed text to a picker; Enter on it does the same. Without either, nothing changes.
+- b3f07de: `PickerDialog` in `@ghub/ui/modern`: the popup behind a picker whose list piles up (D157, drawn for GPlatform Legal). The caller's `load` answers one page for the search, the facets and the page, so the server searches, filters and pages; the search applies on Enter and after 300 ms, and a load the query moved past is aborted. Choosing one, the primary names whom and Enter on the highlighted row confirms; choosing several, rows tick, the foot holds the chosen as chips from any page, and "Chosen only" lists them. Rows are columns the caller describes, scrolling sideways below `minWidth`; a row that cannot be chosen says why. The modal contract is Go to's: portalled, Tab trapped, Escape and the scrim close, focus returns.
+
 ## 0.10.1
 
 ### Patch Changes
