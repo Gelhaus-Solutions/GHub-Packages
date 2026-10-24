@@ -250,3 +250,12 @@ export {
   type CropPosition,
   type CropView,
 } from "./image-crop-math.js";
+export {
+  WORKSPACE_SEARCH_FROM,
+  WorkspacePicker,
+  type WorkspaceKind,
+  type WorkspacePickerLabels,
+  type WorkspacePickerProps,
+  type WorkspacePlace,
+} from "./workspace-picker.js";
+export { RecordPager, type RecordPagerLabels, type RecordPagerProps } from "./record-pager.js";

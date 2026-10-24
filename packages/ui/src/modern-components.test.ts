@@ -1137,6 +1137,8 @@ describe("the pin covers every modern component", () => {
     "ProductChip",
     "ProductMark",
     "Provenance",
+    // Both rendered in modern-workspace-picker-interaction.test.ts, with their keyboard and their links.
+    "RecordPager",
     "RecordRow",
     "Refusal",
     "ReorderList",
@@ -1153,6 +1155,7 @@ describe("the pin covers every modern component", () => {
     "Tabs",
     "TypedConfirmation",
     "VersionState",
+    "WorkspacePicker",
     "ZonedDateTime",
     "ZonedDateTimeInput",
   ] as const;
