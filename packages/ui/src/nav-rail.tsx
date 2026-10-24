@@ -52,6 +52,9 @@ export function NavRail({
       style={{ width: `${String(width)}px` }}
       className={cn(
         "flex h-full shrink-0 flex-col border-r border-(--gc-border-hairline) bg-base",
+        // Aurora floats the rail as its own pane of glass: a 20px corner, an
+        // edge on every side, the rail's frost and drop.
+        "aurora:rounded-a-rail aurora:border aurora:border-a-edge aurora:a-glass-rail aurora:shadow-a-rail",
         className,
       )}
     >
@@ -149,7 +152,9 @@ export function NavGroup({
       )}
     >
       {eyebrow === undefined ? null : eyebrowStyle === "plain" ? (
-        <div className="px-2.5 pb-2 text-[12.5px] leading-[18px] text-fg-tertiary">{eyebrow}</div>
+        <div className="px-2.5 pb-2 text-[12.5px] leading-[18px] text-fg-tertiary aurora:pb-[3px] aurora:pt-2 aurora:text-[12px] aurora:leading-4 aurora:text-m-ink-3">
+          {eyebrow}
+        </div>
       ) : (
         // Secondary rather than tertiary. A group heading is read to find a
         // screen, so it is being read rather than glanced at.
@@ -178,6 +183,16 @@ const countInk: Record<Status, string> = {
   info: "text-info-ink",
   locked: "text-locked-ink",
   idle: "text-fg-tertiary",
+};
+
+/** The same states in Aurora: the level's wash behind its ink. */
+const countWash: Record<Status, string> = {
+  ok: "aurora:bg-m-ok-wash aurora:text-m-ok-ink",
+  warn: "aurora:bg-m-warn-wash aurora:text-m-warn-ink",
+  crit: "aurora:bg-m-crit-wash aurora:text-m-crit-ink",
+  info: "aurora:bg-m-info-wash aurora:text-m-info-ink",
+  locked: "aurora:bg-m-hover aurora:text-m-ink-2",
+  idle: "aurora:bg-m-hover aurora:text-m-ink-2",
 };
 
 export interface NavItemProps {
@@ -234,6 +249,13 @@ export function NavItem({
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--gc-ring)",
     collapsed ? "w-full justify-center px-0" : "gap-2.5 px-2.5",
     active ? "bg-selected text-fg" : "text-fg-secondary hover:bg-hover hover:text-fg",
+    // Aurora: 32 high, a 10px corner, 14 in ink-2 with the hover film; the
+    // current item is raised off the glass (nearly solid, lit on top, a soft
+    // drop) and set at 500, which is the cue that does not depend on colour.
+    "aurora:h-8 aurora:gap-2 aurora:rounded-a-item aurora:text-[14px] aurora:focus-visible:outline-m-ring",
+    active
+      ? "aurora:bg-a-raised aurora:font-medium aurora:text-m-ink aurora:shadow-a-raised aurora:hover:bg-a-raised"
+      : "aurora:text-m-ink-2 aurora:hover:bg-m-hover aurora:hover:text-m-ink",
   );
 
   return render({
@@ -248,7 +270,7 @@ export function NavItem({
         {active ? (
           <span
             aria-hidden="true"
-            className="absolute left-0 top-1/2 h-[15px] w-0.5 -translate-y-1/2 rounded-full bg-accent"
+            className="absolute left-0 top-1/2 h-[15px] w-0.5 -translate-y-1/2 rounded-full bg-accent aurora:hidden"
           />
         ) : null}
         {icon === undefined ? null : (
@@ -256,6 +278,9 @@ export function NavItem({
             className={cn(
               "flex shrink-0",
               active ? "text-fg-accent" : "text-fg-tertiary group-hover:text-fg-secondary",
+              active
+                ? "aurora:text-m-accent-text"
+                : "aurora:text-m-ink-3 aurora:group-hover:text-m-ink-2",
             )}
           >
             {icon}
@@ -275,6 +300,12 @@ export function NavItem({
             className={cn(
               "numeric ml-auto text-3xs",
               countStatus === undefined ? "text-fg-tertiary" : countInk[countStatus],
+              // Aurora sets a count as a badge: 20 high, mono 11, on a film,
+              // and on the level's wash where the count is a state.
+              "aurora:h-5 aurora:min-w-5 aurora:rounded-full aurora:px-[7px] aurora:text-center aurora:font-mono aurora:text-[11px] aurora:leading-5",
+              countStatus === undefined
+                ? "aurora:bg-m-hover aurora:text-m-ink"
+                : countWash[countStatus],
             )}
           >
             {count}
