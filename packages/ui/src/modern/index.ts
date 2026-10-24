@@ -259,3 +259,19 @@ export {
   type WorkspacePlace,
 } from "./workspace-picker.js";
 export { RecordPager, type RecordPagerLabels, type RecordPagerProps } from "./record-pager.js";
+export {
+  REASON_MINIMUM,
+  ReasonField,
+  reasonIsEnough,
+  type ReasonFieldLabels,
+  type ReasonFieldProps,
+} from "./reason-field.js";
+export { ShownOnce, type ShownOnceLabels, type ShownOnceProps } from "./shown-once.js";
+export { ProveItIsYou, type ProveItIsYouProps, type ProveWay } from "./prove-it-is-you.js";
+export {
+  EventLog,
+  type EventLevel,
+  type EventLogEntry,
+  type EventLogLabels,
+  type EventLogProps,
+} from "./event-log.js";

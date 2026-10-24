@@ -1110,6 +1110,8 @@ describe("the pin covers every modern component", () => {
     "DistributionBar",
     "Disclosure",
     "DraftKeeperBanner",
+    // The four of wave B are rendered in modern-wave-b-interaction.test.ts.
+    "EventLog",
     "FilterButton",
     // Both rendered in modern-form-dialog-interaction.test.ts, with their keyboard and their links.
     "FormDialog",
@@ -1136,8 +1138,10 @@ describe("the pin covers every modern component", () => {
     // Both rendered in modern-marks.test.ts.
     "ProductChip",
     "ProductMark",
+    "ProveItIsYou",
     "Provenance",
     // Both rendered in modern-workspace-picker-interaction.test.ts, with their keyboard and their links.
+    "ReasonField",
     "RecordPager",
     "RecordRow",
     "Refusal",
@@ -1145,6 +1149,7 @@ describe("the pin covers every modern component", () => {
     "SavedViews",
     "Section",
     // Rendered in modern-image-crop.test.ts.
+    "ShownOnce",
     "Slider",
     "Standing",
     "StatTile",
