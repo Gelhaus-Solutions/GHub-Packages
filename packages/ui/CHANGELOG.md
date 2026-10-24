@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.14.0
+
+### Minor Changes
+
+- Four parts for acts and records in `@ghub/ui/modern`, drawn for GPlatform Identity. `ReasonField` is a reason somebody else reads, with a live count that says how many characters are missing until the minimum (40 by default) and that it is enough from there; `reasonIsEnough` is the same rule for the act's disabled state. `ShownOnce` shows a secret for the only time it will be shown, with Copy that says it copied and a warn line. `ProveItIsYou` draws proving it is you inside the act that asked: passkey first, the app's password field, or a session that never had one, with a failure laid over the way tried, taking focus when it appears; the ceremony stays the app's. `EventLog` is a record nobody can change: rows with the time to the second and the day, a level dot, what happened, who, the reason in quotes and a kind chip that carries the level, and the line that says none of it can be changed or removed.
+
 ## 0.13.0
 
 ### Minor Changes
