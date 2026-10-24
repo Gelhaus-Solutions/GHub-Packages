@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.13.0
+
+### Minor Changes
+
+- The rail and the top of it in Aurora, drawn for GPlatform Identity. `WorkspacePicker` (modern) is one control for every place a reader can be: their account, each company, each group and staff, grouped by kind with a mark that says the kind (a round picture, a square monogram in the accent or info colour, an amber STAFF chip), a search field past eight places, links drawn by the app through `render`, arrows, Home, End and Escape. `RecordPager` (modern) says "3 of 9" and links the records either side, keeping a disabled stand-in where there is none. `NavRail`, `NavGroup` and `NavItem` gain Aurora classes: the rail as its own pane of glass, items 32 high on a 10px corner with the current one raised, and counts as badges on the level's wash; console markup is unchanged outside Aurora. `ChoiceCards` gains Aurora classes (a 14px card, the chosen one lit by an accent or crit gradient, a 5px ring) and `consequences`, a list unfolded under the chosen card only.
+
 ## 0.12.0
 
 ### Minor Changes
