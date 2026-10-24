@@ -49,6 +49,13 @@ export interface ChoiceOption<K extends string = string> {
    * where one shown with its reason attached answers that.
    */
   blocked?: string | null;
+  /**
+   * What picking it sets off, one line each, unfolded under the chosen card
+   * only. The detail says what the answer is; these say what follows from it
+   * ("ends 4 sessions", "mails the owner"), and showing them for every card at
+   * once would make the group a wall nobody reads before choosing.
+   */
+  consequences?: readonly ReactNode[];
 }
 
 export interface ChoiceCardsProps<K extends string = string> {
@@ -137,20 +144,48 @@ export function ChoiceCards<K extends string = string>({
                     ? "border-[color-mix(in_oklch,var(--gc-crit)_55%,transparent)] bg-crit-wash"
                     : "border-(--gc-border-strong) bg-raised"
                   : "border-(--gc-border-subtle) bg-inset hover:border-(--gc-border-strong)",
+              // Aurora: a 14px card on a film; the chosen one lit by an
+              // accent gradient with an accent edge, or crit's for an answer
+              // that cannot be undone.
+              "aurora:rounded-a-choice aurora:px-3.5 aurora:py-3 aurora:focus-visible:outline-m-ring",
+              blocked
+                ? "aurora:border-a-edge aurora:bg-transparent"
+                : picked
+                  ? danger
+                    ? "aurora:border-[color-mix(in_oklch,var(--gm-crit)_50%,transparent)] aurora:[background:linear-gradient(135deg,color-mix(in_oklch,var(--gm-crit)_20%,transparent),color-mix(in_oklch,var(--gm-crit)_6%,transparent))]"
+                    : "aurora:border-[color-mix(in_oklch,var(--gm-accent)_50%,transparent)] aurora:[background:linear-gradient(135deg,color-mix(in_oklch,var(--gm-accent)_20%,transparent),color-mix(in_oklch,var(--gm-accent)_6%,transparent))]"
+                  : "aurora:border-a-edge aurora:bg-m-hover aurora:hover:border-m-strong",
             )}
           >
             <span
               className={cn(
                 "flex items-center gap-2.5 text-xs font-medium",
                 danger && !blocked ? "text-crit-ink" : "text-fg",
+                "aurora:text-[14px] aurora:font-semibold",
+                danger && !blocked ? "aurora:text-m-crit-ink" : "aurora:text-m-ink",
               )}
             >
               <Radio picked={picked} danger={danger} blocked={blocked} />
               {option.title}
             </span>
-            <span className="mt-1.5 block pl-[1.375rem] text-2xs leading-[17px] text-fg-secondary">
+            <span className="mt-1.5 block pl-[1.375rem] text-2xs leading-[17px] text-fg-secondary aurora:pl-[26px] aurora:text-[12.5px] aurora:leading-[18px] aurora:text-m-ink-2">
               {option.blocked ?? option.detail}
             </span>
+            {picked &&
+            !blocked &&
+            option.consequences !== undefined &&
+            option.consequences.length > 0 ? (
+              <ul className="mt-2 flex flex-col gap-1 pl-[1.375rem] text-2xs leading-[17px] text-fg-secondary aurora:pl-[26px] aurora:text-[12.5px] aurora:leading-[18px] aurora:text-m-ink-2">
+                {option.consequences.map((line, index) => (
+                  <li key={index} className="flex gap-2">
+                    <span aria-hidden="true" className="text-fg-tertiary aurora:text-m-ink-3">
+                      +
+                    </span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </button>
         );
       })}
@@ -187,10 +222,20 @@ function Radio({
           : blocked
             ? "border-(--gc-border-hairline)"
             : "border-(--gc-border-strong)",
+        // Aurora draws 16 with a 1.5 ring, and picked as a 5px ring in the
+        // accent (or crit) around an empty centre rather than a filled dot.
+        "aurora:size-4 aurora:border-[1.5px]",
+        picked
+          ? danger
+            ? "aurora:border-[5px] aurora:border-m-crit"
+            : "aurora:border-[5px] aurora:border-m-accent"
+          : "aurora:border-m-control",
       )}
     >
       {picked ? (
-        <span className={cn("size-1.5 rounded-full", danger ? "bg-crit" : "bg-accent")} />
+        <span
+          className={cn("size-1.5 rounded-full aurora:hidden", danger ? "bg-crit" : "bg-accent")}
+        />
       ) : null}
     </span>
   );
