@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.15.0
+
+### Minor Changes
+
+- `PickerDialog` (modern) takes `views`, an `action` and a `note`, drawn for GPlatform Integrate's project picker (canvas A2). Views are a second axis beside the facets, for a list somebody reads from a different end ("Recent", "Starred", "All"): a row of tabs under the search, one at a time, a radio group to a keyboard (one tab stop, the arrows move), and the chosen key reaches `load` as `view`, back on page 1. A popup given no views asks exactly what it asked before. `action` is one control at the end of the search row, such as a button that starts a new one; `note` is a line at the start of the foot saying what the list covers.
+
 ## 0.14.0
 
 ### Minor Changes
