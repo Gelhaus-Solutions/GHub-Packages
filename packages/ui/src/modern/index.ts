@@ -157,6 +157,7 @@ export {
   type PickerLabels,
   type PickerPage,
   type PickerQuery,
+  type PickerView,
 } from "./picker-dialog.js";
 export { FormDialog, type FormDialogProps } from "./form-dialog.js";
 export { LeaveGuard, type LeaveGuardLabels, type LeaveGuardProps } from "./leave-guard.js";

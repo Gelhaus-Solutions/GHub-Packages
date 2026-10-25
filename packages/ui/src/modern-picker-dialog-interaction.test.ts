@@ -8,7 +8,9 @@
  * is aborted. One: Enter on the highlighted row chooses it and confirms.
  * Several: rows tick and untick, the tray holds the chosen from any page, and
  * "Chosen only" lists them. A row that cannot be chosen says why and ignores
- * the click. Escape closes and focus goes back to what opened it.
+ * the click. Escape closes and focus goes back to what opened it. Views are a
+ * radio group of tabs whose key reaches `load`, and a popup without them asks
+ * exactly what it always asked.
  */
 
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
@@ -39,6 +41,7 @@ const PARTIES: Party[] = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 const LABELS: PickerLabels = {
+  views: "Which parties",
   search: "Search parties",
   searchPlaceholder: "Name or city",
   filters: "Filter parties",
@@ -86,6 +89,7 @@ function Harness({
   onClose = () => {},
   unavailable,
   initialSearch,
+  views,
 }: {
   load: ReturnType<typeof endpoint>;
   several?: boolean;
@@ -93,6 +97,7 @@ function Harness({
   onClose?: () => void;
   unavailable?: (item: Party) => string | null;
   initialSearch?: string;
+  views?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return createElement(
@@ -129,6 +134,18 @@ function Harness({
       labels: LABELS,
       ...(unavailable === undefined ? {} : { unavailable }),
       ...(initialSearch === undefined ? {} : { initialSearch }),
+      ...(views === true
+        ? {
+            views: [
+              { key: "recent", label: "Recent" },
+              { key: "starred", label: "Starred" },
+              { key: "all", label: "All" },
+            ],
+            initialView: "all",
+            action: createElement("button", { type: "button" }, "New party"),
+            note: "Parties show where your organization has them.",
+          }
+        : {}),
     }),
   );
 }
@@ -294,5 +311,42 @@ describe("PickerDialog", () => {
     });
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Open" }));
+  });
+
+  it("views: one at a time, the arrows move, a change goes back to page 1 and reaches load", async () => {
+    const user = userEvent.setup();
+    const load = endpoint();
+    render(createElement(Harness, { load, onConfirm: () => {}, views: true }));
+    await openIt(user);
+
+    expect(load).toHaveBeenLastCalledWith(
+      { search: "", facets: {}, page: 1, view: "all" },
+      expect.any(AbortSignal),
+    );
+    const group = screen.getByRole("radiogroup", { name: "Which parties" });
+    const all = within(group).getByRole("radio", { name: "All" });
+    expect(all.getAttribute("aria-checked")).toBe("true");
+    expect(within(group).getByRole("radio", { name: "Recent" }).tabIndex).toBe(-1);
+    expect(all.tabIndex).toBe(0);
+
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+    await screen.findByText("Party 06");
+    await user.click(within(group).getByRole("radio", { name: "Starred" }));
+    expect(load).toHaveBeenLastCalledWith(
+      { search: "", facets: {}, page: 1, view: "starred" },
+      expect.any(AbortSignal),
+    );
+
+    await user.keyboard("{ArrowLeft}");
+    const recent = within(group).getByRole("radio", { name: "Recent" });
+    expect(recent.getAttribute("aria-checked")).toBe("true");
+    expect(document.activeElement).toBe(recent);
+    expect(load).toHaveBeenLastCalledWith(
+      { search: "", facets: {}, page: 1, view: "recent" },
+      expect.any(AbortSignal),
+    );
+
+    expect(screen.getByRole("button", { name: "New party" })).toBeTruthy();
+    expect(screen.getByText("Parties show where your organization has them.")).toBeTruthy();
   });
 });

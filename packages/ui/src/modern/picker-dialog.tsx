@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { choiceTabStop, nextChoice } from "../choice-roving.js";
 import { cn } from "../cn.js";
 import { AURORA_POPUP, AURORA_SCRIM } from "./aurora.js";
 import { buttonClasses } from "./button-classes.js";
@@ -34,11 +35,19 @@ export interface PickerFacet {
   options: readonly FilterOption[];
 }
 
+/** One of the views the list is shown in: "Recent", "Starred", "All". */
+export interface PickerView {
+  key: string;
+  label: string;
+}
+
 /** What the popup asks the caller's `load` for. Page 1 is the first. */
 export interface PickerQuery {
   search: string;
   facets: Readonly<Record<string, string | null>>;
   page: number;
+  /** The view's key. Present only where the popup was given views. */
+  view?: string;
 }
 
 /** One page of matches, as a paged list endpoint answers. */
@@ -66,6 +75,8 @@ export interface PickerLabels {
   filters: string;
   /** Names the listbox: "Parties". */
   list: string;
+  /** Names the row of views: "Which projects". Needed where there are views. */
+  views?: string;
   clear: string;
   close: string;
   cancel: string;
@@ -106,6 +117,17 @@ export interface PickerDialogProps<T> {
   itemName: (item: T) => string;
   columns: readonly PickerColumn<T>[];
   facets?: readonly PickerFacet[];
+  /**
+   * Views of the list, one shown at a time, as a row of tabs under the search:
+   * "Recent", "Starred", "All". The chosen one's key reaches `load` as `view`.
+   */
+  views?: readonly PickerView[];
+  /** The view it opens on. The first one where this is not given. */
+  initialView?: string;
+  /** One control at the end of the search row, such as a button that starts a new one. */
+  action?: ReactNode;
+  /** A line at the start of the foot, where several would hold the chosen: what the list covers. */
+  note?: ReactNode;
   /** The search it opens with: what was typed into the field that opened it. */
   initialSearch?: string;
   initialFacets?: Readonly<Record<string, string | null>>;
@@ -138,6 +160,11 @@ export interface PickerDialogProps<T> {
  * or a new search goes back to page 1; a load the query has moved past is
  * aborted, so a slow answer never paints over a newer one.
  *
+ * **Views** are a second axis beside the facets, for lists somebody reads
+ * from a different end ("Recent", "Starred", "All"): a row of tabs under the
+ * search, one at a time, a radio group to a keyboard (one stop, the arrows
+ * move), and a change goes back to page 1 like a facet does.
+ *
  * **One or several.** One: a click chooses, the primary says whom ("Choose
  * Elbe Kanzlei"), and Enter on the highlighted row chooses it and confirms.
  * Several: a click or Enter ticks and unticks, the foot's tray holds every
@@ -168,6 +195,10 @@ function PickerPanel<T>({
   itemName,
   columns,
   facets = [],
+  views,
+  initialView,
+  action,
+  note,
   initialSearch = "",
   initialFacets = {},
   several = false,
@@ -187,6 +218,7 @@ function PickerPanel<T>({
   const [search, setSearch] = useState(initialSearch);
   const [values, setValues] = useState<Readonly<Record<string, string | null>>>(initialFacets);
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<string | undefined>(initialView ?? views?.[0]?.key);
   const [chosenOnly, setChosenOnly] = useState(false);
   const [chosen, setChosen] = useState<ReadonlyMap<string, T>>(
     () => new Map(chosenAtOpen.map((item) => [itemKey(item), item])),
@@ -197,6 +229,7 @@ function PickerPanel<T>({
 
   const panel = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLLabelElement>(null);
+  const viewRow = useRef<HTMLDivElement>(null);
   const loader = useRef(load);
   useEffect(() => {
     loader.current = load;
@@ -228,8 +261,13 @@ function PickerPanel<T>({
     const slow = setTimeout(() => {
       setState((now) => (now === "loading" ? "waiting" : now));
     }, STILL_WAITING_MS);
+    // `view` only where there are views, so a popup without them asks what it always asked.
+    const query: PickerQuery =
+      view === undefined
+        ? { search, facets: values, page }
+        : { search, facets: values, page, view };
     void loader
-      .current({ search, facets: values, page }, controller.signal)
+      .current(query, controller.signal)
       .then((next) => {
         if (controller.signal.aborted) return;
         setResult(next);
@@ -244,7 +282,7 @@ function PickerPanel<T>({
       controller.abort();
       clearTimeout(slow);
     };
-  }, [search, values, page]);
+  }, [search, values, page, view]);
 
   const rows: readonly T[] = chosenOnly ? [...chosen.values()] : (result?.items ?? []);
   const pages = result === null ? 1 : Math.max(1, Math.ceil(result.total / result.perPage));
@@ -307,6 +345,30 @@ function PickerPanel<T>({
     if (item === undefined || blocked(item)) return;
     if (several) toggle(item);
     else onConfirm([item]);
+  }
+
+  const viewList = views ?? [];
+  const viewAt = viewList.findIndex((one) => one.key === view);
+  const viewEnabled = viewList.map(() => true);
+  const viewStop = choiceTabStop(viewAt, viewEnabled);
+
+  function pickView(key: string) {
+    setView(key);
+    setPage(1);
+  }
+
+  function onViewKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const radios = [
+      ...(viewRow.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]') ?? []),
+    ];
+    const focused = radios.findIndex((radio) => radio === document.activeElement);
+    const moved = nextChoice(event.key, focused >= 0 ? focused : viewAt, viewEnabled);
+    if (moved === null) return;
+    event.preventDefault();
+    const next = viewList[moved];
+    if (next === undefined) return;
+    pickView(next.key);
+    radios[moved]?.focus();
   }
 
   function clearAll() {
@@ -445,7 +507,45 @@ function PickerPanel<T>({
               {labels.clear}
             </button>
           ) : null}
+          {action === undefined ? null : (
+            <span className="ml-auto flex items-center">{action}</span>
+          )}
         </div>
+
+        {viewList.length === 0 ? null : (
+          <div
+            ref={viewRow}
+            role="radiogroup"
+            aria-label={labels.views}
+            onKeyDown={onViewKeyDown}
+            className="mx-5 mb-2 flex gap-[22px] overflow-x-auto border-b border-m-hairline"
+          >
+            {viewList.map((one, at) => {
+              const on = one.key === view;
+              return (
+                <button
+                  key={one.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  tabIndex={at === viewStop ? 0 : -1}
+                  onClick={() => {
+                    pickView(one.key);
+                  }}
+                  className={cn(
+                    "-mb-px border-b-2 pt-1.5 pb-2.5 text-[13.5px] leading-5 whitespace-nowrap max-sm:min-h-11",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
+                    on
+                      ? "border-m-accent font-medium text-m-ink"
+                      : "border-transparent text-m-ink-2 hover:text-m-ink",
+                  )}
+                >
+                  {one.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <p role="status" className="min-h-[18px] px-5 pb-2 text-m-meta text-m-ink-3">
           {status}
@@ -587,6 +687,9 @@ function PickerPanel<T>({
 
         <div className="flex flex-wrap items-center gap-2.5 border-t border-m-hairline bg-m-plate/50 px-5 py-3 aurora:bg-transparent">
           <div className="flex min-w-0 flex-[1_1_240px] flex-wrap items-center gap-1.5">
+            {note !== undefined && !(several && picked.length > 0) ? (
+              <span className="text-m-meta text-m-ink-3">{note}</span>
+            ) : null}
             {several && picked.length > 0 ? (
               <>
                 <span className="mr-1 text-m-label text-m-ink">
