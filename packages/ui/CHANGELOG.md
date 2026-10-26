@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.15.1
+
+### Patch Changes
+
+- `PickerDialog` starts the highlight on the first row that can be chosen after every load, so Enter after a search opens what was found. It used to start on the first row, which in a tree (GPlatform Integrate's project picker) is a group or a company shown only for where its projects sit, and Enter there did nothing.
+
 ## 0.15.0
 
 ### Minor Changes
