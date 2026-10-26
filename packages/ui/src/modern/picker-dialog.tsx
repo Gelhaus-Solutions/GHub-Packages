@@ -231,8 +231,10 @@ function PickerPanel<T>({
   const field = useRef<HTMLLabelElement>(null);
   const viewRow = useRef<HTMLDivElement>(null);
   const loader = useRef(load);
+  const closed = useRef(unavailable);
   useEffect(() => {
     loader.current = load;
+    closed.current = unavailable;
   });
 
   // The modal contract (`useModal`), focus starting in the search: the popup is a
@@ -272,7 +274,10 @@ function PickerPanel<T>({
         if (controller.signal.aborted) return;
         setResult(next);
         setState("ready");
-        setActive(0);
+        // The first row that can be chosen, so Enter after a search opens what was found
+        // rather than landing on a row shown only for where the others sit.
+        const open = next.items.findIndex((item) => closed.current?.(item) == null);
+        setActive(open === -1 ? 0 : open);
       })
       .catch(() => {
         if (controller.signal.aborted) return;

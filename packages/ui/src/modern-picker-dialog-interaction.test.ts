@@ -349,4 +349,23 @@ describe("PickerDialog", () => {
     expect(screen.getByRole("button", { name: "New party" })).toBeTruthy();
     expect(screen.getByText("Parties show where your organization has them.")).toBeTruthy();
   });
+
+  it("after a load the highlight starts on the first row that can be chosen", async () => {
+    const user = userEvent.setup();
+    const load = endpoint();
+    const onConfirm = vi.fn();
+    render(
+      createElement(Harness, {
+        load,
+        onConfirm,
+        unavailable: (one: Party) => (one.id === "p1" || one.id === "p2" ? "" : null),
+      }),
+    );
+    await openIt(user);
+
+    const field = screen.getByRole("combobox", { name: "Search parties" });
+    expect(field.getAttribute("aria-activedescendant")).toBe(screen.getAllByRole("option")[2]?.id);
+    await user.keyboard("{Enter}");
+    expect(onConfirm).toHaveBeenCalledWith([PARTIES[2]]);
+  });
 });
