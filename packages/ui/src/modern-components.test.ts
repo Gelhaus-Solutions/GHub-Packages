@@ -1135,6 +1135,8 @@ describe("the pin covers every modern component", () => {
     "Pagination",
     // Rendered in modern-picker-dialog-interaction.test.ts, with its keyboard and its loads.
     "PickerDialog",
+    // Rendered in modern-marks.test.ts, alone and inside the picker.
+    "PlaceMark",
     // Both rendered in modern-marks.test.ts.
     "ProductChip",
     "ProductMark",

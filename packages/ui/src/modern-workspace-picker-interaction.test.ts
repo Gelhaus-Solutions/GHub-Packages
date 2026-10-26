@@ -152,6 +152,23 @@ describe("WorkspacePicker", () => {
     expect(screen.getByRole("status").textContent).toBe("No place matches");
   });
 
+  it("draws a company's logo, and its glyph where the logo does not load", async () => {
+    const places = FEW.map((place) =>
+      place.key === "org:nordwind"
+        ? { ...place, picture: "https://id.example/nordwind.png" }
+        : place,
+    );
+    const { container } = render(picker(places));
+    const logo = container.querySelector("button img");
+    expect(logo?.getAttribute("src")).toBe("https://id.example/nordwind.png");
+
+    await act(async () => {
+      logo?.dispatchEvent(new Event("error"));
+    });
+    expect(container.querySelector("button img")).toBeNull();
+    expect(container.querySelector('button [data-mark="glyph"]')).not.toBeNull();
+  });
+
   it("closes when focus or a click leaves it", async () => {
     const user = userEvent.setup();
     render(picker(FEW));

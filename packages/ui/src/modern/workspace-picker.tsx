@@ -12,6 +12,7 @@ import {
 import { cn } from "../cn.js";
 import { AURORA_FIELD, AURORA_MENU } from "./aurora.js";
 import { Avatar } from "./avatar.js";
+import { PlaceMark } from "./place-mark.js";
 
 /**
  * The top of a rail: where the reader is, and every other place they can be.
@@ -23,9 +24,10 @@ import { Avatar } from "./avatar.js";
  * grouped by kind, so the company is one choice away from the account.
  *
  * **The mark says the kind before the name is read.** A round picture for the
- * person's own account, a square monogram for a company, the same square in
- * the info colour for a group, an amber STAFF chip for staff. Shape and colour
- * both carry it, so it survives a monochrome screen and a colour-blind reader.
+ * person's own account, a rounded square for a company and for a group (its
+ * logo, or a building on the accent and a network on the info colour until it
+ * has one: `PlaceMark`), an amber STAFF chip for staff. Shape, colour and glyph
+ * all carry it, so it survives a monochrome screen and a colour-blind reader.
  *
  * **A search field once there are more than eight places**, the count at which
  * a list stops being read and starts being scanned. Under that a field is one
@@ -48,7 +50,7 @@ export interface WorkspacePlace {
   /** The line under the name: the reader's standing there ("Owner"), or the account's address. */
   line: string;
   href: string;
-  /** The person's picture, for the account row. */
+  /** The person's picture for the account row, a company's or a group's logo for theirs. */
   picture?: string | null;
   /** The stable id an account's tint is picked from. Required for `account`. */
   tintKey?: string;
@@ -91,13 +93,6 @@ export const WORKSPACE_SEARCH_FROM = 9;
 
 const ORDER: readonly WorkspaceKind[] = ["account", "organisation", "group", "staff"];
 
-function monogram(name: string): string {
-  const words = name.trim().split(/\s+/u).filter(Boolean);
-  const first = words[0]?.[0] ?? "";
-  const second = words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : (words[0]?.[1] ?? "");
-  return `${first}${second}`.toUpperCase();
-}
-
 function Mark({
   place,
   size,
@@ -127,20 +122,7 @@ function Mark({
       </span>
     );
   }
-  return (
-    <span
-      aria-hidden="true"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
-      className={cn(
-        "grid shrink-0 place-items-center rounded-[9px] font-semibold leading-none",
-        place.kind === "group"
-          ? "bg-[linear-gradient(135deg,var(--gm-info),color-mix(in_oklch,var(--gm-info)_70%,black))] text-m-ink"
-          : "bg-[linear-gradient(135deg,var(--gm-accent),color-mix(in_oklch,var(--gm-accent)_75%,black))] text-m-accent-on",
-      )}
-    >
-      {monogram(place.name)}
-    </span>
-  );
+  return <PlaceMark kind={place.kind} src={place.picture ?? null} size={size} />;
 }
 
 export function WorkspacePicker({

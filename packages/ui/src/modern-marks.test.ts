@@ -17,7 +17,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { contrastRatio, parseOklch, WCAG_AA, type Srgb } from "./contrast.js";
-import { Avatar, avatarTint, ProductChip, ProductMark } from "./modern/index.js";
+import { Avatar, avatarTint, PlaceMark, ProductChip, ProductMark } from "./modern/index.js";
 
 const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "..", "..", "tokens", "modern.css"),
@@ -145,5 +145,37 @@ describe("ProductMark and ProductChip", () => {
     const html = render(createElement(ProductChip, { name: "GAdvisory", src: null }));
     expect(html).toContain(">GAdvisory</span>");
     expect(html).toContain("rounded-full");
+  });
+});
+
+describe("PlaceMark", () => {
+  it("draws the kind's glyph on the kind's colour, never a letter", () => {
+    const company = render(createElement(PlaceMark, { kind: "organisation", size: 30 }));
+    expect(company).toContain('data-mark="glyph"');
+    expect(company).toContain("lucide-building2");
+    expect(company).toContain("var(--gm-accent)");
+    expect(company).toContain('aria-hidden="true"');
+    expect(company).not.toMatch(/>[A-Z]{1,2}</u);
+
+    const group = render(createElement(PlaceMark, { kind: "group", src: null }));
+    expect(group).toContain("lucide-network");
+    expect(group).toContain("var(--gm-info)");
+  });
+
+  it("draws the logo where there is one, on the plate, as decoration", () => {
+    const html = render(
+      createElement(PlaceMark, { kind: "organisation", src: "https://id.example/l.png", size: 72 }),
+    );
+    expect(html).toContain('data-mark="logo"');
+    expect(html).toContain('<img src="https://id.example/l.png" alt=""');
+    expect(html).toContain("bg-m-plate");
+    expect(html).toContain("width:72px");
+    expect(html).not.toContain("lucide-");
+  });
+
+  it("is an image with a name when it stands alone", () => {
+    const html = render(createElement(PlaceMark, { kind: "group", label: "Nordwind Gruppe" }));
+    expect(html).toContain('role="img"');
+    expect(html).toContain('aria-label="Nordwind Gruppe"');
   });
 });

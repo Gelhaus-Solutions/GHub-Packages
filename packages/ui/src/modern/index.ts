@@ -240,6 +240,7 @@ export {
   type ProductChipProps,
   type ProductMarkProps,
 } from "./product-mark.js";
+export { PlaceMark, type PlaceMarkKind, type PlaceMarkProps } from "./place-mark.js";
 export { drawCrop, ImageCrop, type ImageCropProps } from "./image-crop.js";
 export {
   clampCropPosition,
