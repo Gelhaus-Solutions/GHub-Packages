@@ -144,6 +144,7 @@ function Harness({
             initialView: "all",
             action: createElement("button", { type: "button" }, "New party"),
             note: "Parties show where your organization has them.",
+            footAction: createElement("a", { href: "/elsewhere/new" }, "Make one elsewhere"),
           }
         : {}),
     }),
@@ -348,6 +349,12 @@ describe("PickerDialog", () => {
 
     expect(screen.getByRole("button", { name: "New party" })).toBeTruthy();
     expect(screen.getByText("Parties show where your organization has them.")).toBeTruthy();
+    // The foot's own way out sits before Cancel.
+    const elsewhere = screen.getByRole("link", { name: "Make one elsewhere" });
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(
+      elsewhere.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("after a load the highlight starts on the first row that can be chosen", async () => {

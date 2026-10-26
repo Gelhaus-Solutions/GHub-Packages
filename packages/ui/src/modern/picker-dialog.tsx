@@ -128,6 +128,12 @@ export interface PickerDialogProps<T> {
   action?: ReactNode;
   /** A line at the start of the foot, where several would hold the chosen: what the list covers. */
   note?: ReactNode;
+  /**
+   * One quiet control in the foot, before Cancel: a way out of the list to
+   * somewhere else, such as making a new one in another product (GPlatform
+   * Integrate's New project, canvas O1).
+   */
+  footAction?: ReactNode;
   /** The search it opens with: what was typed into the field that opened it. */
   initialSearch?: string;
   initialFacets?: Readonly<Record<string, string | null>>;
@@ -199,6 +205,7 @@ function PickerPanel<T>({
   initialView,
   action,
   note,
+  footAction,
   initialSearch = "",
   initialFacets = {},
   several = false,
@@ -721,6 +728,7 @@ function PickerPanel<T>({
               </>
             ) : null}
           </div>
+          {footAction}
           <Button variant="secondary" size={36} onClick={onClose}>
             {labels.cancel}
           </Button>
