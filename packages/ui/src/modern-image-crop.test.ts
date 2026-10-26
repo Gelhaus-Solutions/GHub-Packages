@@ -115,4 +115,21 @@ describe("ImageCrop", () => {
     expect(markup).toContain("visibility:hidden");
     expect(markup).toContain('aria-live="polite"');
   });
+
+  it("crops under a circle, or under PlaceMark's rounded square for a logo", () => {
+    expect(markup).toMatch(/data-shape="circle" class="[^"]*rounded-full/u);
+    const square = renderToStaticMarkup(
+      createElement(ImageCrop, {
+        src: "blob:logo",
+        label: "Crop",
+        zoom: 1,
+        onZoomChange: () => {},
+        onCropChange: () => {},
+        announce: () => "",
+        width: 464,
+        shape: "square",
+      }),
+    );
+    expect(square).toMatch(/data-shape="square" class="[^"]*rounded-\[30%\]/u);
+  });
 });

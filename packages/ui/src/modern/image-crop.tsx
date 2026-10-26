@@ -45,6 +45,13 @@ export interface ImageCropProps {
   inset?: number;
   /** A fixed width instead of the container's, for a caller that knows it (and for tests). */
   width?: number;
+  /**
+   * The window's shape: a circle for a person's picture, the default, or the
+   * rounded square `PlaceMark` draws for a company's or a group's logo, so the
+   * corners somebody keeps are the corners they can see. The area reported is
+   * the same square either way.
+   */
+  shape?: "circle" | "square";
   /** The picture decoded, with its own size: the moment a caller can check it is large enough. */
   onLoad?: (image: CropImage) => void;
   /** The picture could not be decoded: a damaged file, or a format this browser cannot read. */
@@ -89,6 +96,7 @@ export function ImageCrop({
   height = 320,
   inset = 30,
   width: fixedWidth,
+  shape = "circle",
   onLoad,
   onError,
   className,
@@ -260,10 +268,14 @@ export function ImageCrop({
                 }
           }
         />
-        {/* The circle, with everything outside it dimmed: the photo editor's convention, not a token. */}
+        {/* The window, with everything outside it dimmed: the photo editor's convention, not a token. */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_0_9999px_oklch(0_0_0/0.6),inset_0_0_0_2px_oklch(1_0_0/0.9)]"
+          data-shape={shape}
+          className={cn(
+            "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 shadow-[0_0_0_9999px_oklch(0_0_0/0.6),inset_0_0_0_2px_oklch(1_0_0/0.9)]",
+            shape === "square" ? "rounded-[30%]" : "rounded-full",
+          )}
           style={{ width: view.diameter, height: view.diameter }}
         />
       </div>
