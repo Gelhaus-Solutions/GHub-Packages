@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.17.0
+
+### Minor Changes
+
+- `PickerDialog` (modern) takes a `footAction`: one quiet control in the foot, before Cancel, for a way out of the list to somewhere else, drawn for GPlatform Integrate's project picker, whose New project is made in GPlatform Identity (canvas O1). A popup given none has the foot it had.
+
 ## 0.16.0
 
 ### Minor Changes
