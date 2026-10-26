@@ -1,5 +1,11 @@
 # @ghub/ui
 
+## 0.16.0
+
+### Minor Changes
+
+- `PlaceMark` in `@ghub/ui/modern` (GPlatform Identity, G62): a company's or a group's mark, its uploaded logo on the plate in a rounded square, or until it has one the kind's glyph on the kind's colour, a building on the accent for a company and a network on the info colour for a group. Never a letter tile, so two companies with the same initials no longer look alike and nothing reads as a logo nobody chose. A logo that fails to load falls back to the glyph. `WorkspacePicker` draws it for its company and group rows, and a place's `picture` is now that place's logo as well as the account's picture. `ImageCrop` takes `shape="square"`, which crops a logo under that rounded square rather than under a circle.
+
 ## 0.15.1
 
 ### Patch Changes
