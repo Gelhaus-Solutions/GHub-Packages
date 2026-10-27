@@ -15,6 +15,7 @@ import {
   pagerPages,
   SavedViews,
   StatTile,
+  Switch,
   Table,
   Tabs,
 } from "./modern/index.js";
@@ -111,6 +112,34 @@ describe("Checkbox", () => {
     expect(html).toContain('role="checkbox"');
     expect(html).toContain('aria-checked="mixed"');
     expect(html).toContain('aria-label="Select all on this page"');
+  });
+});
+
+describe("Switch", () => {
+  it("is a named switch that says whether it is on, and flips to the other state", () => {
+    const flipped: boolean[] = [];
+    const on = createElement(Switch, {
+      checked: true,
+      label: "Fristen-Sync in this project",
+      onCheckedChange: () => undefined,
+    });
+    const html = render(on);
+    expect(html).toContain('role="switch"');
+    expect(html).toContain('aria-checked="true"');
+    expect(html).toContain('aria-label="Fristen-Sync in this project"');
+    expect(html).toContain('type="button"');
+    const button = Switch({
+      checked: true,
+      label: "On",
+      onCheckedChange: (next) => flipped.push(next),
+    });
+    (button.props as { onClick: () => void }).onClick();
+    expect(flipped).toEqual([false]);
+    expect(
+      render(
+        createElement(Switch, { checked: false, label: "Off", onCheckedChange: () => undefined }),
+      ),
+    ).toContain('aria-checked="false"');
   });
 });
 

@@ -195,6 +195,7 @@ export {
 } from "./link-page.js";
 export { Badge, type BadgeProps, type BadgeTone } from "./badge.js";
 export { Checkbox, type CheckboxProps } from "./checkbox.js";
+export { Switch, type SwitchProps } from "./switch.js";
 export { BULK_PRIMARY, BULK_SECONDARY, BulkBar, type BulkBarProps } from "./bulk-bar.js";
 export { SavedViews, type SavedView, type SavedViewsProps } from "./saved-views.js";
 export { Pager, pagerPages, type PagerProps } from "./pager.js";

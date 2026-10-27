@@ -1158,6 +1158,8 @@ describe("the pin covers every modern component", () => {
     "StatTiles",
     "Status",
     "SummaryPair",
+    // Rendered in modern-list-blocks.test.ts.
+    "Switch",
     "Table",
     "Tabs",
     "TypedConfirmation",
