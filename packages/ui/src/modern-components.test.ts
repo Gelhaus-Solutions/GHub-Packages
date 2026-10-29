@@ -1092,6 +1092,8 @@ describe("the pin covers every modern component", () => {
   const EXERCISED = [
     "Agenda",
     "AsOf",
+    // Rendered in modern-fabric.test.ts, beside the timeline and the map.
+    "Auroras",
     // Rendered in modern-marks.test.ts, with the tints it draws measured there.
     "Avatar",
     "Badge",
@@ -1120,6 +1122,8 @@ describe("the pin covers every modern component", () => {
     "GoTo",
     "GoToButton",
     "Hash",
+    // Rendered in modern-fabric.test.ts, with its layout measured there.
+    "LayerMap",
     // Rendered in modern-image-crop.test.ts, with its keyboard in the interaction file.
     "ImageCrop",
     "Input",
@@ -1158,6 +1162,8 @@ describe("the pin covers every modern component", () => {
     "StatTiles",
     "Status",
     "SummaryPair",
+    // Rendered in modern-fabric.test.ts, with the events' rows measured there.
+    "SwimlaneTimeline",
     // Rendered in modern-list-blocks.test.ts.
     "Switch",
     "Table",

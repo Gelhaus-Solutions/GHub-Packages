@@ -278,3 +278,30 @@ export {
   type EventLogLabels,
   type EventLogProps,
 } from "./event-log.js";
+export { Auroras } from "./auroras.js";
+export {
+  EVENT_ROWS,
+  placeEvents,
+  SwimlaneTimeline,
+  timelineFraction,
+  type PlacedEvent,
+  type SwimlaneBar,
+  type SwimlaneEvent,
+  type SwimlaneLabels,
+  type SwimlaneLane,
+  type SwimlaneLevel,
+  type SwimlaneTick,
+  type SwimlaneTimelineProps,
+} from "./swimlane-timeline.js";
+export {
+  LAYER_MAP_COLUMNS,
+  LayerMap,
+  layoutLayerMap,
+  type LayerMapColumn,
+  type LayerMapLayout,
+  type LayerMapLine,
+  type LayerMapNode,
+  type LayerMapProps,
+  type MapSegment,
+  type PlacedNode,
+} from "./layer-map.js";
