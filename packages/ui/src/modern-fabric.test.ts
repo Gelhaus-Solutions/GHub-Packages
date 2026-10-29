@@ -168,7 +168,9 @@ describe("SwimlaneTimeline", () => {
   const html = render(createElement(SwimlaneTimeline, timeline));
 
   it("hides the drawing and says the same in lists", () => {
-    expect(html).toContain('aria-hidden="true" class="relative grid min-w-[820px]');
+    expect(html).toContain('aria-hidden="true" class="relative grid min-w-[820px] flex-1');
+    // A strip wider than its pane opens at its end, at now.
+    expect(html).toContain('<div class="flex flex-row-reverse overflow-x-auto">');
     expect(html).toContain('<ol aria-label="Events, oldest first"><li>02:04: First run</li>');
     expect(html).toContain("<li>03:50 to now: Every NIC on</li>");
   });

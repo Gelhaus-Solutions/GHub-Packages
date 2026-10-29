@@ -20,7 +20,8 @@ import { cn } from "../cn.js";
  * stretches follow as lists, each entry with its time in words.
  *
  * On a phone the strip keeps its width and scrolls sideways, as the canvas
- * draws it: squeezed below 820px the labels would stack into each other.
+ * draws it: squeezed below 820px the labels would stack into each other. It
+ * opens at now, the end somebody looks at first.
  */
 
 export type SwimlaneLevel = "ok" | "warn" | "crit" | "info" | "idle" | "accent";
@@ -201,10 +202,14 @@ export function SwimlaneTimeline({
   const future = <div className={FUTURE} style={{ left: percent(nowAt) }} />;
   return (
     <div className={cn("flex flex-col", className)}>
-      <div className="overflow-x-auto">
+      {/*
+       * Reversed, so a strip wider than its pane opens scrolled to its end: now and the latest
+       * stretches are in view, and the past is a swipe back. No script measures anything.
+       */}
+      <div className="flex flex-row-reverse overflow-x-auto">
         <div
           aria-hidden="true"
-          className="relative grid min-w-[820px] grid-cols-[110px_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5"
+          className="relative grid min-w-[820px] flex-1 grid-cols-[110px_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5"
         >
           <span className="text-[13px] leading-[18px] text-m-ink-2">{labels.events}</span>
           <div className="relative" style={{ height: EVENT_ROWS * 24 + 2 }}>
