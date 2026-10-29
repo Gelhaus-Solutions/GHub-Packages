@@ -281,9 +281,14 @@ export {
 export { Auroras } from "./auroras.js";
 export {
   EVENT_ROWS,
+  GROUP_WITHIN,
+  groupEvents,
+  nowPill,
   placeEvents,
+  SLIVER_BELOW,
   SwimlaneTimeline,
   timelineFraction,
+  type EventGroup,
   type PlacedEvent,
   type SwimlaneBar,
   type SwimlaneEvent,
