@@ -305,6 +305,7 @@ export {
   type LayerMapColumn,
   type LayerMapLayout,
   type LayerMapLine,
+  type LayerMapLink,
   type LayerMapNode,
   type LayerMapProps,
   type MapSegment,

@@ -186,20 +186,25 @@ describe("SwimlaneTimeline", () => {
   });
 
   it("draws a marker without its label when no row has room, titled with both", () => {
+    // Three minutes apart, so no two are one group (GROUP_WITHIN is 2.7 minutes of these three
+    // hours), and each label too long to leave a row for the next.
     const crowded = render(
       createElement(SwimlaneTimeline, {
         ...timeline,
-        events: Array.from({ length: EVENT_ROWS + 1 }, (_, i) => ({
-          key: `e${i}`,
-          at: at("02:10"),
-          time: "02:10",
-          level: "info" as const,
-          label: `Event ${i}`,
-        })),
+        events: Array.from({ length: EVENT_ROWS + 1 }, (_, i) => {
+          const time = `02:${String(10 + 3 * i).padStart(2, "0")}`;
+          return {
+            key: `e${i}`,
+            at: at(time),
+            time,
+            level: "info" as const,
+            label: `Event ${i} on a row of its own`,
+          };
+        }),
       }),
     );
-    expect(crowded).toContain('title="02:10 Event 4"');
-    expect(crowded).toContain("<li>02:10: Event 4</li>");
+    expect(crowded).toContain('title="02:22 Event 4 on a row of its own"');
+    expect(crowded).toContain("<li>02:22: Event 4 on a row of its own</li>");
   });
 
   it("fills a crit marker, so it reads without its hue", () => {
@@ -271,6 +276,55 @@ describe("layoutLayerMap", () => {
     expect(arrows).toHaveLength(6);
     expect(layout.segments.filter((s) => !s.arrow)).toHaveLength(4);
     expect(Math.min(...layout.nodes.map((n) => n.y))).toBe(24);
+  });
+});
+
+describe("a link under the map", () => {
+  const he = {
+    node: { key: "he", title: "Hurricane Electric" },
+    to: "pve",
+    label: "6in4 to CT 122",
+  };
+  const layout = layoutLayerMap(map, undefined, [he]);
+  const node = (key: string) => {
+    const found = layout.nodes.find((n) => n.node.key === key);
+    if (found === undefined) throw new Error(`no node ${key}`);
+    return found;
+  };
+
+  it("sets its node in the first column under every card of the tree", () => {
+    const start = node("he");
+    const lowest = Math.max(...layout.nodes.filter((n) => n !== start).map((n) => n.y + n.height));
+    expect([start.depth, start.x, start.y, start.linkTo]).toEqual([0, 24, lowest + 40, "pve"]);
+    expect(layout.height).toBe(start.y + start.height + 24);
+  });
+
+  it("runs its dashed line beneath the map and up into the card it names", () => {
+    const start = node("he");
+    const end = node("pve");
+    const y = start.y + start.height / 2;
+    const x = end.x + end.width / 2;
+    const dashed = layout.segments.filter((s) => s.dashed);
+    expect(dashed).toHaveLength(2);
+    expect(dashed[1]).toEqual({
+      d: `M ${start.x + start.width} ${y} L ${x} ${y} L ${x} ${end.y + end.height}`,
+      arrow: true,
+      dashed: true,
+    });
+    expect(layout.labels.map((l) => l.text)).toEqual(["WireGuard, IPv4 only", "6in4 to CT 122"]);
+  });
+
+  it("draws nothing for a link whose card is not on the map", () => {
+    const lost = layoutLayerMap(map, undefined, [{ ...he, to: "nowhere" }]);
+    expect(lost.segments.filter((s) => s.dashed)).toHaveLength(1);
+    expect(lost.nodes.some((n) => n.node.key === "he")).toBe(true);
+  });
+
+  it("lists the link's card after the tree and says its line in words", () => {
+    const html = render(createElement(LayerMap, { root: map, links: [he], label: "Map" }));
+    const order = [...html.matchAll(/<b class="font-semibold">([^<]+)<\/b>/gu)].map((m) => m[1]);
+    expect(order.at(-1)).toBe("Hurricane Electric");
+    expect(html).toContain('<span class="sr-only">6in4 to CT 122</span>');
   });
 });
 

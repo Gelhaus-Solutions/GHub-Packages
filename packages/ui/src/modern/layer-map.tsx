@@ -9,6 +9,13 @@ import { cn } from "../cn.js";
  * straight segments (no graph layout, no curves), and a tunnel as a dashed
  * line to a node set under its end.
  *
+ * **A link is a tunnel that ends deep inside**: a second uplink that comes in
+ * past the first and ends on a card further right (GFabric's HE tunnel into
+ * CT 122, D65). Its node is set in the first column under everything else,
+ * and its dashed line runs beneath every column, then up into the bottom of
+ * the card it names. Name the lowest card of its column, so the line meets no
+ * other, and one card per column, so two lines never share a run.
+ *
  * **One node per column fans out.** That is what a chain is, and it keeps the
  * layout a few lines of arithmetic: children are centred on their parent and
  * nothing is pushed apart. Two fanning nodes in one column would overlap;
@@ -44,6 +51,14 @@ export interface LayerMapNode {
   tunnel?: { node: LayerMapNode; label: string };
 }
 
+/** A node under the map whose dashed line ends on the card named by `to`. */
+export interface LayerMapLink {
+  node: LayerMapNode;
+  /** The key of the card the line ends on. */
+  to: string;
+  label: string;
+}
+
 export interface LayerMapColumn {
   width: number;
   /** Every card in the column is this high. */
@@ -54,6 +69,8 @@ export interface LayerMapColumn {
 
 export interface LayerMapProps {
   root: LayerMapNode;
+  /** Nodes under the map, each joined by a dashed line to a card inside it. */
+  links?: readonly LayerMapLink[];
   /** Left to right; deeper nodes than columns take the last one. */
   columns?: readonly LayerMapColumn[];
   /** The map's accessible name. */
@@ -75,6 +92,8 @@ const COLUMN_GAP = 76;
 const PAD = 24;
 /** From the end of a tunnel's parent to the top of the node under it. */
 const TUNNEL_DROP = 120;
+/** From the lowest card of the tree to the top of the first link's node. */
+const LINK_DROP = 40;
 
 export interface PlacedNode {
   node: LayerMapNode;
@@ -85,6 +104,8 @@ export interface PlacedNode {
   height: number;
   /** Set on the node at the far end of a tunnel. */
   tunnelOf?: string;
+  /** Set on a link's node: the key of the card its line ends on. */
+  linkTo?: string;
 }
 
 export interface MapSegment {
@@ -107,6 +128,7 @@ export interface LayerMapLayout {
 export function layoutLayerMap(
   root: LayerMapNode,
   columns: readonly LayerMapColumn[] = LAYER_MAP_COLUMNS,
+  links: readonly LayerMapLink[] = [],
 ): LayerMapLayout {
   const column = (depth: number) =>
     columns[Math.min(depth, columns.length - 1)] ?? { width: 200, height: 72, gap: 24 };
@@ -137,6 +159,20 @@ export function layoutLayerMap(
     }
   };
   place(root, 0, 0);
+  const first = column(0);
+  let below = Math.max(...nodes.map((n) => n.y + n.height)) + LINK_DROP;
+  for (const link of links) {
+    nodes.push({
+      node: link.node,
+      depth: 0,
+      x: left(0),
+      y: below,
+      width: first.width,
+      height: first.height,
+      linkTo: link.to,
+    });
+    below += first.height + first.gap;
+  }
 
   // Shift everything down so the topmost card sits at the pad.
   const top = Math.min(...nodes.map((n) => n.y));
@@ -199,6 +235,19 @@ export function layoutLayerMap(
       }
     }
   }
+  for (const link of links) {
+    const start = byKey.get(link.node.key);
+    const end = byKey.get(link.to);
+    if (start === undefined || end === undefined) continue;
+    const x = end.x + end.width / 2;
+    const y = mid(start);
+    segments.push({
+      d: `M ${start.x + start.width} ${y} L ${x} ${y} L ${x} ${end.y + end.height}`,
+      arrow: true,
+      dashed: true,
+    });
+    labels.push({ key: link.node.key, x: start.x + start.width + 12, y: y + 8, text: link.label });
+  }
   return { width: right + PAD, height: bottom + PAD, nodes, segments, labels };
 }
 
@@ -207,12 +256,13 @@ const CARD =
 
 export function LayerMap({
   root,
+  links = [],
   columns = LAYER_MAP_COLUMNS,
   label,
   renderLink,
   className,
 }: LayerMapProps) {
-  const layout = layoutLayerMap(root, columns);
+  const layout = layoutLayerMap(root, columns, links);
   const at = new Map(layout.nodes.map((n) => [n.node.key, n]));
   const link =
     renderLink ??
@@ -333,7 +383,10 @@ export function LayerMap({
             {tunnel.text}
           </span>
         ))}
-        <ul>{item(root)}</ul>
+        <ul>
+          {item(root)}
+          {links.map((link) => item(link.node, link.label))}
+        </ul>
       </div>
     </div>
   );
