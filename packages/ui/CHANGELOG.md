@@ -1,5 +1,41 @@
 # @ghub/ui
 
+## 0.18.0
+
+### Minor Changes
+
+- fdcc33f: `Auroras`, `SwimlaneTimeline` and `LayerMap` in modern, drawn for GFabric's
+  overview and Map (D14, D15). `Auroras` is the upstream copy (W5) of the three
+  lights Legal, Identity, Integrate and Billing each hold, the same to the class.
+  `SwimlaneTimeline` places a row of events, one lane of state bars per concern,
+  a line at now and hatched planned bars by their instants, with the words and
+  the clock left to the caller; the drawing is `aria-hidden` and lists say the
+  same, an event with no free row keeps its marker alone, and a strip wider than
+  its pane opens scrolled to now. `LayerMap` lays a chain out in columns,
+  children centred on their parent and joined by straight segments, a tunnel
+  dashed; its cards are a nested list in tree order.
+- f3fd16b: `LayerMap` takes `links`: a node set in the first column under the whole
+  map, joined by a dashed line that runs beneath every column and up into the
+  card it names, for a second uplink that ends deep inside (GFabric's HE tunnel
+  into CT 122). The node is a list item after the tree, its line's words in
+  hidden text, as a tunnel's are. `layoutLayerMap` takes the links as a third
+  argument, and `LayerMapLink` is exported.
+- 8626172: `SwimlaneTimeline` draws events too close to tell apart as one group: the
+  marker of its most severe event, that event's label with the count of the rest
+  (`labels.more`, "+N" when unset) and every one of them in its title, so a first
+  pass that raises twenty findings in a minute no longer buries each label under
+  the next. A bar narrower than `SLIVER_BELOW` per cent is a sliver without words
+  instead of a padded pill over the bar after it. `watchedFrom` hatches the
+  stretch before watching began, with `labels.unwatched` over it and in the
+  screen reader's text, so no data no longer reads as nothing wrong. A tick
+  the now pill would cover is left out rather than showing one digit beside it.
+  `groupEvents`, `nowPill`, `GROUP_WITHIN` and `SLIVER_BELOW` are exported beside
+  `placeEvents`.
+- 1b71401: `Switch` in modern: an on/off switch for a setting that takes effect at once,
+  in a row of a list. A button with `role="switch"` and `aria-checked`, named by
+  `label`, flipped by Space and Enter, saving through `onCheckedChange`. Drawn
+  for Integrate's K3, where a project turns each app on or off.
+
 ## 0.17.0
 
 ### Minor Changes
