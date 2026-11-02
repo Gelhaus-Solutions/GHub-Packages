@@ -311,3 +311,11 @@ export {
   type MapSegment,
   type PlacedNode,
 } from "./layer-map.js";
+export {
+  CONSOLE_ROUND,
+  ConsoleShell,
+  type ConsolePage,
+  type ConsoleRailItem,
+  type ConsoleRenderLink,
+  type ConsoleShellProps,
+} from "./console-shell.js";
