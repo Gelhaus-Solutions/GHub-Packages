@@ -1043,6 +1043,8 @@ describe("Badge", () => {
     const html = render(createElement(Badge, { tone: "crit", word: "late", children: "8" }));
     expect(html).toContain('8<span class="sr-only"> late</span>');
     expect(html).toContain("bg-m-crit-wash");
+    // The hidden word is placed against the pill, never a box outside a scroller.
+    expect(html).toMatch(/^<span class="relative /);
   });
 
   it("solid accent is the one that needs you", () => {

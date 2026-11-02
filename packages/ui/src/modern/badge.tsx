@@ -41,13 +41,15 @@ export interface BadgeProps {
 /**
  * The one badge shape: a count in a pill, 20 high, mono 11, tabular, centred.
  * One shape everywhere so a count reads as a count at a glance, and the tone
- * is the only thing that varies.
+ * is the only thing that varies. The pill places its hidden word itself: an
+ * `sr-only` span is absolutely positioned, and placed against a box outside a
+ * scrolling table it widened the whole page on a phone.
  */
 export function Badge({ children, tone = "plain", word, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-6 shrink-0 items-center justify-center rounded-full px-[7px]",
+        "relative inline-flex h-5 min-w-6 shrink-0 items-center justify-center rounded-full px-[7px]",
         "font-mono text-[11px] leading-none font-medium tabular-nums whitespace-nowrap",
         TONE[tone],
         className,
