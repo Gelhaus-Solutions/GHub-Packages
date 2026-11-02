@@ -8,12 +8,14 @@
     "./theme.css": "./theme.css",
     "./modern.css": "./modern.css",
     "./aurora.css": "./aurora.css",
-    "./base.css": "./base.css"
+    "./base.css": "./base.css",
+    "./console.css": "./console.css"
   },
   "files": [
     "theme.css",
     "modern.css",
     "aurora.css",
+    "console.css",
     "base.css",
     "LICENSE"
   ],

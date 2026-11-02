@@ -1,0 +1,124 @@
+/* ----------------------------------------------------------------------------
+ * Console: the flat, dense theme for operator consoles, modelled on UniFi Network.
+ *
+ * A layer over modern.css, as aurora.css is, and switched the same way:
+ *
+ *   1. `@import "@ghub/tokens/console.css";` after modern.css.
+ *   2. `data-console` on `<html>` (and no `data-aurora`).
+ *
+ * It restates modern's tokens rather than adding its own components: every
+ * `@ghub/ui/modern` component already paints from `--gm-*`, so a console screen
+ * is the same components on a near-black ground, panels a step lighter, one
+ * hairline, blue as the one accent and colour only for state. No glass, no
+ * glows, no shadows on surfaces. Dark only for now; a light column comes later.
+ *
+ * `html:root[data-console]` outranks modern's `:root` and both of its light
+ * blocks, so the order of the imports and the OS preference do not matter.
+ * -------------------------------------------------------------------------- */
+html:root[data-console] {
+  color-scheme: dark;
+  --gm-ground: #131417;
+  --gm-sunken: #111214;
+  --gm-plate: #1b1c20;
+  --gm-overlay: #232429;
+  --gm-inset: #16171a;
+  --gm-hover: rgb(255 255 255 / 0.04);
+  --gm-active: rgb(255 255 255 / 0.07);
+  --gm-selected: #1a2638;
+  --gm-hairline: #26282d;
+  --gm-subtle: #2b2d33;
+  --gm-control: #3a3d44;
+  --gm-strong: #4a4d55;
+  --gm-ink: #e6e7ea;
+  --gm-ink-2: #b4b7bd;
+  /* 5.0:1 on the plate, 5.5:1 on the ground. */
+  --gm-ink-3: #8b8f96;
+  --gm-ink-off: #5d6168;
+  /* The fill takes white text at 4.7:1; text in the accent is the lighter blue. */
+  --gm-accent: #2f74e6;
+  --gm-accent-hover: #3b82f6;
+  --gm-accent-press: #2563d6;
+  --gm-accent-on: #ffffff;
+  --gm-accent-text: #4a9bff;
+  --gm-accent-wash: rgb(74 155 255 / 0.14);
+  --gm-ok: #3ccf6e;
+  --gm-ok-ink: #52d27f;
+  --gm-ok-wash: rgb(60 207 110 / 0.13);
+  --gm-warn: #f0b429;
+  --gm-warn-ink: #f3c86a;
+  --gm-warn-wash: rgb(240 180 41 / 0.13);
+  --gm-crit: #e5534b;
+  --gm-crit-ink: #ff6b61;
+  --gm-crit-wash: rgb(229 83 75 / 0.14);
+  --gm-info: #4a9bff;
+  --gm-info-ink: #7ab6ff;
+  --gm-info-wash: rgb(74 155 255 / 0.13);
+  --gm-idle: #6f737a;
+  --gm-idle-ink: #8b8f96;
+  --gm-crit-fill: #c93c34;
+  --gm-ring: #4a9bff;
+  --gm-shadow-plate: none;
+  --gm-shadow-card: none;
+  --gm-shadow-quiet: none;
+  --gm-shadow-inset: none;
+  --gm-shadow-overlay: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+  --gm-diff-add: rgb(60 207 110 / 0.09);
+  --gm-diff-add-word: rgb(60 207 110 / 0.26);
+  --gm-diff-del: rgb(230 231 234 / 0.05);
+  --gm-diff-del-word: rgb(230 231 234 / 0.15);
+  --gm-diff-band: rgb(230 231 234 / 0.04);
+
+  /* Console-only: the shell's sizes and the series colours of charts. */
+  --gc-topbar: 48px;
+  --gc-rail: 52px;
+  --gc-row: 33px;
+  --gc-series-1: #3fc8e8;
+  --gc-series-2: #a68bff;
+
+  /*
+   * Type: Inter and JetBrains Mono when the app loads them as `--font-inter` and
+   * `--font-jetbrains-mono`, else Geist as everywhere else.
+   */
+  --font-sans: var(--font-inter), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono), var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ----------------------------------------------------------------------------
+ * Density. A console is read for an hour at a time, so its steps run below
+ * modern's: 13px body as UniFi's, headings that do not shout.
+ *
+ *     step      modern     console
+ *     display   34/42      24/30
+ *     title     26/34      18/24   (the page's h1)
+ *     heading   20/28      14/20   (a heading between blocks)
+ *     lede      17/27      13.5/20
+ *     body      15/24      13/19
+ *     label     14/20      13/18
+ *     meta      13/20      12/17
+ *     micro     11.5/16    11.5/16
+ *
+ * Radii are smaller: panels 8, controls 6, chips 4.
+ * -------------------------------------------------------------------------- */
+html:root[data-console] {
+  --text-m-display: 1.5rem;
+  --text-m-display--line-height: 1.875rem;
+  --text-m-title: 1.125rem;
+  --text-m-title--line-height: 1.5rem;
+  --text-m-heading: 0.875rem;
+  --text-m-heading--line-height: 1.25rem;
+  --text-m-lede: 0.84375rem;
+  --text-m-lede--line-height: 1.25rem;
+  --text-m-body: 0.8125rem;
+  --text-m-body--line-height: 1.1875rem;
+  --text-m-label: 0.8125rem;
+  --text-m-label--line-height: 1.125rem;
+  --text-m-meta: 0.75rem;
+  --text-m-meta--line-height: 1.0625rem;
+  --text-m-micro: 0.71875rem;
+  --text-m-micro--line-height: 1rem;
+  --radius-m-card: 8px;
+  --radius-m-panel: 8px;
+  --radius-m-control: 6px;
+  --radius-m-chip: 4px;
+}
