@@ -109,11 +109,13 @@ export function Table<Row>({
   };
   return (
     // The one place `sunken` appears on a signed-in screen: the well the table
-    // sits in. Clipped corners so the hairlines do not cross the radius.
+    // sits in. Clipped corners so the hairlines do not cross the radius. It is a
+    // positioning box, so what a cell places absolutely (a header's sr-only
+    // label) scrolls inside it instead of widening the page on a phone.
     <div
       data-m-flush=""
       className={cn(
-        "overflow-x-auto rounded-m-card bg-m-sunken",
+        "relative overflow-x-auto rounded-m-card bg-m-sunken",
         AURORA_GLASS,
         AURORA_IN_SECTION,
         className,

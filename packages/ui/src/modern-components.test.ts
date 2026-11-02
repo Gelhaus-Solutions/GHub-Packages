@@ -801,6 +801,12 @@ describe("Table", () => {
     expect(html.match(/<th[^>]*scope="col"/g) ?? []).toHaveLength(2);
   });
 
+  it("holds what its cells place absolutely in its own scroll frame", () => {
+    // A header's sr-only label placed against a box outside the frame widened
+    // the whole page on a phone; the frame is the positioning box.
+    expect(render(table())).toMatch(/^<div[^>]*class="relative overflow-x-auto /);
+  });
+
   it("names itself for somebody moving between tables", () => {
     /*
      * A table with no caption is announced only as "table", which in a list of
