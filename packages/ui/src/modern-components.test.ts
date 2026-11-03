@@ -1115,6 +1115,8 @@ describe("the pin covers every modern component", () => {
     "Checkbox",
     "ClockLine",
     "Consequence",
+    // Rendered in modern-console-shell.test.ts, with its rail and top bar.
+    "ConsoleShell",
     "DayStepper",
     "DiffViewer",
     "DistributionBar",
