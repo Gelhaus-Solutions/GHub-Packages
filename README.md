@@ -17,6 +17,7 @@ stays in that product's repository.
 | [`@ghub/agent-protocol`](packages/agent-protocol)   | The GOpen agents' wire protocol, server half: signed requests and key proofs                 |
 | [`@ghub/glockdown-sdk`](packages/glockdown-sdk)     | GLockdown for apps: the stage the agent set for the app, and raising the app one rung        |
 | [`@ghub/identity-chrome`](packages/identity-chrome) | The shared header controls: the apps picker and the account popup, browser and server halves |
+| [`agentcore`](packages/agentcore)                   | The GOpen agents' shared core in Go: key, signed requests, verified bundles, atomic apply    |
 
 ## Working on it
 
@@ -38,6 +39,10 @@ palette change that breaks a WCAG 2.2 AA ratio fails here, before it reaches any
 its own and drops it); without it they are skipped.
 
 A change to a published package carries a changeset (`pnpm changeset`).
+
+`agentcore` is a Go module, outside pnpm's workspace: `make test` and `make lint` in its
+directory. It is released as `packages/agentcore/vX.Y.Z` tags, which the Go toolchain resolves as
+`github.com/gelhaus-solutions/ghub-packages/packages/agentcore`.
 
 ## Licence
 

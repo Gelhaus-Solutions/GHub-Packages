@@ -1,0 +1,32 @@
+{
+  "comment": "Byte-for-byte test vectors for the mirror protocol (src/mirror-protocol.ts): Ed25519 is deterministic, so an implementation that signs these headers and claims with this seed must produce exactly these JWS, and must accept them. Written once by hand; never regenerated.",
+  "seed": "6fd6a329e44cf815c9cecaab8ccf21ae5864f9eb7747d6e79c0520d72143c838",
+  "publicKey": "qIT-20BX5rP_G6rcXhXGRUGsp-1X9zpM784mpbSsE8A",
+  "keyId": "cmj9KJCFmMlSciWJwp3XhdT7Yt5DrKVtSlzHVuAj6Dw",
+  "vectors": [
+    {
+      "name": "bundle",
+      "header": "{\"alg\":\"EdDSA\",\"typ\":\"gocdr-mirror+jwt\",\"kid\":\"cmj9KJCFmMlSciWJwp3XhdT7Yt5DrKVtSlzHVuAj6Dw\"}",
+      "claims": "{\"iss\":\"cmr0mirror6k1m4p8x2q5w7z\",\"aud\":\"https://cdr.gplatform.org\",\"iat\":1790791200,\"exp\":1790791260,\"jti\":\"b2Ygc2lnbmVkIG9uY2UsIHRha2VuIG9uY2U\",\"method\":\"GET\",\"path\":\"/api/v1/mirrors/self/bundle\",\"bodySha256\":\"47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU\"}",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/mirrors/self/bundle",
+        "body": ""
+      },
+      "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImdvY2RyLW1pcnJvcitqd3QiLCJraWQiOiJjbWo5S0pDRm1NbFNjaVdKd3AzWGhkVDdZdDVEcktWdFNsekhWdUFqNkR3In0.eyJpc3MiOiJjbXIwbWlycm9yNmsxbTRwOHgycTV3N3oiLCJhdWQiOiJodHRwczovL2Nkci5ncGxhdGZvcm0ub3JnIiwiaWF0IjoxNzkwNzkxMjAwLCJleHAiOjE3OTA3OTEyNjAsImp0aSI6ImIyWWdjMmxuYm1Wa0lHOXVZMlVzSUhSaGEyVnVJRzl1WTJVIiwibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9hcGkvdjEvbWlycm9ycy9zZWxmL2J1bmRsZSIsImJvZHlTaGEyNTYiOiI0N0RFUXBqOEhCU2EtX1RJbVctNUpDZXVRZVJrbTVOTXBKV1pHM2hTdUZVIn0.GihVrukCSwr54VuamfapNNf1LSChJsZB6wmi005qXTqWL3B2qbIv7RWjlcqN0TKxBVcKNzwZxLP8KEUfjsjKCw",
+      "authorization": "GOCDR-Mirror eyJhbGciOiJFZERTQSIsInR5cCI6ImdvY2RyLW1pcnJvcitqd3QiLCJraWQiOiJjbWo5S0pDRm1NbFNjaVdKd3AzWGhkVDdZdDVEcktWdFNsekhWdUFqNkR3In0.eyJpc3MiOiJjbXIwbWlycm9yNmsxbTRwOHgycTV3N3oiLCJhdWQiOiJodHRwczovL2Nkci5ncGxhdGZvcm0ub3JnIiwiaWF0IjoxNzkwNzkxMjAwLCJleHAiOjE3OTA3OTEyNjAsImp0aSI6ImIyWWdjMmxuYm1Wa0lHOXVZMlVzSUhSaGEyVnVJRzl1WTJVIiwibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9hcGkvdjEvbWlycm9ycy9zZWxmL2J1bmRsZSIsImJvZHlTaGEyNTYiOiI0N0RFUXBqOEhCU2EtX1RJbVctNUpDZXVRZVJrbTVOTXBKV1pHM2hTdUZVIn0.GihVrukCSwr54VuamfapNNf1LSChJsZB6wmi005qXTqWL3B2qbIv7RWjlcqN0TKxBVcKNzwZxLP8KEUfjsjKCw"
+    },
+    {
+      "name": "enrolment",
+      "header": "{\"alg\":\"EdDSA\",\"typ\":\"gocdr-mirror+jwt\",\"jwk\":{\"kty\":\"OKP\",\"crv\":\"Ed25519\",\"x\":\"qIT-20BX5rP_G6rcXhXGRUGsp-1X9zpM784mpbSsE8A\"}}",
+      "claims": "{\"aud\":\"https://cdr.gplatform.org\",\"iat\":1790791200,\"exp\":1790791260,\"jti\":\"ZW5yb2xtZW50IG9mIGEgbmV3IGtleQ\",\"method\":\"POST\",\"path\":\"/api/v1/mirrors/enrolments\",\"bodySha256\":\"z4NEDD0JKu050wPU91B188fSZjFA7SGWsW6f4-nkHrg\"}",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/mirrors/enrolments",
+        "body": "{\"token\":\"gcdr_enrol_Vq8Lm2Tx9Rk4Hn7Wc1Zp6Jd3Fb5Gs0Ye\",\"agentVersion\":\"1.4.3\"}"
+      },
+      "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImdvY2RyLW1pcnJvcitqd3QiLCJqd2siOnsia3R5IjoiT0tQIiwiY3J2IjoiRWQyNTUxOSIsIngiOiJxSVQtMjBCWDVyUF9HNnJjWGhYR1JVR3NwLTFYOXpwTTc4NG1wYlNzRThBIn19.eyJhdWQiOiJodHRwczovL2Nkci5ncGxhdGZvcm0ub3JnIiwiaWF0IjoxNzkwNzkxMjAwLCJleHAiOjE3OTA3OTEyNjAsImp0aSI6IlpXNXliMnh0Wlc1MElHOW1JR0VnYm1WM0lHdGxlUSIsIm1ldGhvZCI6IlBPU1QiLCJwYXRoIjoiL2FwaS92MS9taXJyb3JzL2Vucm9sbWVudHMiLCJib2R5U2hhMjU2IjoiejRORUREMEpLdTA1MHdQVTkxQjE4OGZTWmpGQTdTR1dzVzZmNC1ua0hyZyJ9.YzaQL92SdD6dUUJNE23qtvjxG0Ct7fFCn8mXk1cpgmeS7O0l4RyvUEjpK9pt0UR6szhyp_Arr89EPMuK_SJ9DQ",
+      "authorization": "GOCDR-Mirror eyJhbGciOiJFZERTQSIsInR5cCI6ImdvY2RyLW1pcnJvcitqd3QiLCJqd2siOnsia3R5IjoiT0tQIiwiY3J2IjoiRWQyNTUxOSIsIngiOiJxSVQtMjBCWDVyUF9HNnJjWGhYR1JVR3NwLTFYOXpwTTc4NG1wYlNzRThBIn19.eyJhdWQiOiJodHRwczovL2Nkci5ncGxhdGZvcm0ub3JnIiwiaWF0IjoxNzkwNzkxMjAwLCJleHAiOjE3OTA3OTEyNjAsImp0aSI6IlpXNXliMnh0Wlc1MElHOW1JR0VnYm1WM0lHdGxlUSIsIm1ldGhvZCI6IlBPU1QiLCJwYXRoIjoiL2FwaS92MS9taXJyb3JzL2Vucm9sbWVudHMiLCJib2R5U2hhMjU2IjoiejRORUREMEpLdTA1MHdQVTkxQjE4OGZTWmpGQTdTR1dzVzZmNC1ua0hyZyJ9.YzaQL92SdD6dUUJNE23qtvjxG0Ct7fFCn8mXk1cpgmeS7O0l4RyvUEjpK9pt0UR6szhyp_Arr89EPMuK_SJ9DQ"
+    }
+  ]
+}
