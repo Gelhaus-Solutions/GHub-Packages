@@ -11,6 +11,11 @@
  * Only then does the caller see a token. Retries happen only for transport failures and the
  * codes the protocol marks retryable, with a fresh connection and a fresh request each time.
  *
+ * When the grant needs an operator's approval, GMint answers `pending`. The client then keeps the
+ * request and polls for it (SPEC section 8), each poll on a fresh connection with the next
+ * sequence number, until GMint issues, refuses, or the caller's limit is reached. A pending request
+ * is never sent again: that would ask for a second approval.
+ *
  * The client certificate lives 7 days. The client renews it for the same key once two thirds of
  * its life are gone (SPEC section 7), on a timer and before a mint, and writes the new chain over
  * the old file in one step; a renewal another process wrote is picked up from disk.
@@ -20,8 +25,10 @@ import { X509Certificate, createPrivateKey, type KeyObject } from "node:crypto";
 import { readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { connect, type TLSSocket } from "node:tls";
 import {
+  POLL_PATH,
   RENEW_PATH,
   b64uDecode,
+  buildPoll,
   buildRenewRequest,
   buildRequest,
   chainPem,
@@ -85,6 +92,30 @@ export interface TokenRequest {
   purpose?: string;
 }
 
+/** How one `getToken` call waits when its grant needs an operator's approval. */
+export interface GetTokenOptions {
+  /** How often to ask whether the approval was decided. Default 2000 ms. */
+  approvalPollMs?: number;
+  /**
+   * How long to wait for a decision, from the pending answer. Default 300 000 ms, the life of an
+   * approval in GMint; then `getToken` throws `approval_required` with the approval's id.
+   */
+  approvalTimeoutMs?: number;
+  /** Called once with the approval's id when GMint answers that the request waits for one. */
+  onApprovalPending?: (requestId: string) => void;
+  /** Stops the wait: no further poll is sent and `getToken` throws `approval_required`. */
+  signal?: AbortSignal;
+}
+
+const APPROVAL_POLL_MS = 2_000;
+const APPROVAL_TIMEOUT_MS = 300_000;
+
+/** A request GMint answered `pending`, kept for the polls that ask after it. */
+interface Pending {
+  requestId: string;
+  request: BuiltRequest;
+}
+
 /** Every certificate in a PEM bundle. */
 function certificates(pem: Buffer): X509Certificate[] {
   const blocks = pem
@@ -118,6 +149,7 @@ export class GmintClient {
   private readonly port: number;
   private readonly origin: string;
   private readonly htu: string;
+  private readonly pollHtu: string;
 
   constructor(private readonly o: GmintClientOptions) {
     const url = new URL(o.url);
@@ -126,6 +158,7 @@ export class GmintClient {
     this.port = Number(url.port || 443);
     this.origin = url.origin;
     this.htu = `${url.origin}/v1/token`;
+    this.pollHtu = `${url.origin}${POLL_PATH}`;
     this.kid = o.signingKey.kid;
     this.signingKey =
       "key" in o.signingKey ? o.signingKey.key : createPrivateKey(readPrivate(o.signingKey.file));
@@ -242,20 +275,81 @@ export class GmintClient {
     return new Date(v.value.notAfter * 1000);
   }
 
-  async getToken(req: TokenRequest): Promise<GmintToken> {
+  /**
+   * A token for exactly `req`. When the grant needs an operator's approval this waits for it as
+   * `options` say, polling GMint, and returns the token once it is approved and issued.
+   */
+  async getToken(req: TokenRequest, options: GetTokenOptions = {}): Promise<GmintToken> {
+    const every = options.approvalPollMs ?? APPROVAL_POLL_MS;
+    const limit = options.approvalTimeoutMs ?? APPROVAL_TIMEOUT_MS;
+    if (!(every > 0) || !(limit >= 0))
+      throw new GmintError(
+        "bad_request",
+        "approvalPollMs must be positive and approvalTimeoutMs not negative",
+      );
     if (this.o.autoRenew !== false) await this.renewIfDue();
     const attempts = this.o.attempts ?? 3;
     let last: GmintError | null = null;
-    for (let i = 0; i < attempts; i++) {
+    let outcome: GmintToken | Pending | null = null;
+    for (let i = 0; i < attempts && !outcome; i++) {
       try {
-        return await this.once(req);
+        outcome = await this.once(req);
       } catch (e) {
-        last = e instanceof GmintError ? e : new GmintError("transport", (e as Error).message);
+        last = asGmintError(e);
         if (!last.retryable || i === attempts - 1) throw last;
         await new Promise((resolve) => setTimeout(resolve, 200 * 2 ** i + Math.random() * 200));
       }
     }
-    throw last ?? new GmintError("transport", "no attempt made");
+    if (!outcome) throw last ?? new GmintError("transport", "no attempt made");
+    if (outcome instanceof GmintToken) return outcome;
+    // Outside the retry loop on purpose: whatever the wait ends in, the request is not sent again.
+    return this.awaitApproval(outcome, every, limit, options);
+  }
+
+  /**
+   * Polls for a pending request until GMint issues or refuses, or the wait ends. The request, and
+   * with it the private half of its `enc` that the token will be sealed to, lives only as long as
+   * this call: nothing else holds it.
+   */
+  private async awaitApproval(
+    pending: Pending,
+    every: number,
+    limit: number,
+    o: GetTokenOptions,
+  ): Promise<GmintToken> {
+    const { requestId } = pending;
+    const deadline = Date.now() + limit;
+    const stillPending = (why: string) =>
+      new GmintError("approval_required", `pending approval ${requestId} (${why})`);
+    o.onApprovalPending?.(requestId);
+    for (;;) {
+      const left = deadline - Date.now();
+      if (left <= 0) throw stillPending("no decision in time");
+      await pause(Math.min(every, left), o.signal);
+      if (o.signal?.aborted) throw stillPending("the wait was aborted");
+      let answer: GmintToken | Pending;
+      try {
+        answer = await this.poll(pending);
+      } catch (e) {
+        const err = asGmintError(e);
+        // An outage or a busy GMint costs one poll, not the approval: ask again at the next turn.
+        // Everything else (a refusal, the approval expired, an answer that fails verification) ends
+        // the wait.
+        if (err.retryable) continue;
+        throw err;
+      }
+      if (!(answer instanceof GmintToken)) {
+        if (answer.requestId !== requestId)
+          throw new GmintError("untrusted", "a poll was answered for another approval");
+        continue;
+      }
+      if (o.signal?.aborted) {
+        // The caller stopped waiting while this poll was on the wire: nobody will use the token.
+        void answer.revoke();
+        throw stillPending("the wait was aborted");
+      }
+      return answer;
+    }
   }
 
   private connect(): Promise<TLSSocket> {
@@ -300,7 +394,7 @@ export class GmintClient {
     }
   }
 
-  private async once(req: TokenRequest): Promise<GmintToken> {
+  private async once(req: TokenRequest): Promise<GmintToken | Pending> {
     const socket = await this.connect();
     let built: BuiltRequest;
     let cb: Uint8Array;
@@ -343,17 +437,63 @@ export class GmintClient {
       "application/gmint-req+jws",
       built.jws,
     ).finally(() => socket.destroy());
+    return this.answer(res, built, cb);
+  }
+
+  /**
+   * One poll for a pending request (SPEC section 8): a connection of its own, its own exporter and
+   * the next sequence number, and an answer checked against the ORIGINAL request.
+   */
+  private async poll(pending: Pending): Promise<GmintToken | Pending> {
+    const socket = await this.connect();
+    let jws: string;
+    let cb: Uint8Array;
+    try {
+      const measured = channelBinding(socket);
+      if (!measured) throw new GmintError("untrusted", "not a TLS 1.3 connection");
+      cb = measured;
+      const built = await buildPoll({
+        signer: localSigner(this.kid, this.signingKey),
+        iss: this.o.clientId,
+        aud: `gmint:${this.o.instance}`,
+        htu: this.pollHtu,
+        seq: await nextSequence(this.o.sequenceFile),
+        cb,
+        requestId: pending.requestId,
+        request: pending.request,
+      });
+      jws = built.jws;
+    } catch (e) {
+      socket.destroy();
+      if (e instanceof GmintError) throw e;
+      throw new GmintError("bad_request", (e as Error).message);
+    }
+
+    const res = await this.post(socket, POLL_PATH, "application/gmint-poll+jws", jws).finally(() =>
+      socket.destroy(),
+    );
+    return this.answer(res, pending.request, cb);
+  }
+
+  /**
+   * Checks GMint's answer to a request or to a poll for it: both are bound to the request, and to
+   * the exporter of the connection the answer came back on.
+   */
+  private answer(
+    res: { status: number; type: string; body: string },
+    request: BuiltRequest,
+    cb: Uint8Array,
+  ): GmintToken | Pending {
     if (!res.type.startsWith("application/gmint-res+jws")) throw unsignedRefusal(res);
     const v = verifyResponse(res.body, {
       serverKeys: (kid) => this.serverKeys.get(kid),
-      request: built,
+      request,
       clientKid: this.kid,
       cb,
     });
     if (!v.ok) throw new GmintError("untrusted", v.reason);
     if (v.value.status === "refused") throw new GmintError(v.value.code, "refused");
-    if (v.value.status === "pending")
-      throw new GmintError("approval_required", `pending approval ${v.value.requestId}`);
+    if (v.value.status === "pending") return { requestId: v.value.requestId, request };
     const issued = v.value.issued;
     return new GmintToken(
       issued.credential,
@@ -378,6 +518,24 @@ export class GmintClient {
       signal: AbortSignal.timeout(5_000),
     });
   }
+}
+
+function asGmintError(e: unknown): GmintError {
+  return e instanceof GmintError ? e : new GmintError("transport", (e as Error).message);
+}
+
+/** Resolves after `ms`, or at once when `signal` aborts. Never rejects. */
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve();
+    const done = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener("abort", done, { once: true });
+  });
 }
 
 /** An unsigned refusal: the request never authenticated, or a unit was down. */

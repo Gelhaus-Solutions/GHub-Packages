@@ -64,6 +64,38 @@ checks the ids it granted against your grant, and `token.scope` then carries bot
 `repository_ids` with `repositories` holding the name of each, in the same order. Name neither for
 an org-scoped token (organization permissions only), which only an org-scoped grant allows.
 
+## Approvals
+
+A grant can require an operator's approval before GMint mints. `getToken` then waits: GMint
+answers that the request is pending, and the client asks again every 2 seconds, each time with a
+signed poll on a fresh connection, until the operator approves (the token is minted then, and
+`getToken` returns it as usual), refuses (`denied`), or the approval lapses (`approval_expired`,
+5 minutes after the request). The request is never sent twice, so a wait asks for one approval.
+
+```ts
+const stop = new AbortController();
+await using token = await gmint.getToken(
+  {
+    grant: "gadvisory-release",
+    installationId: 12345678,
+    repositoryIds: [111],
+    permissions: { contents: "write" },
+  },
+  {
+    onApprovalPending: (id) => log.info(`GMint approval ${id} waits for an operator`),
+    approvalTimeoutMs: 120_000, // give up sooner than GMint does
+    signal: stop.signal, // e.g. the caller's own request being cancelled
+  },
+);
+```
+
+`onApprovalPending` is called once, with the approval's id, which is what the operator sees; it
+tells the caller what it waits for. `approvalPollMs` (default 2000) sets the interval and
+`approvalTimeoutMs` (default 300 000) how long to wait; after that, or when `signal` aborts,
+`getToken` throws `approval_required` with the approval's id in the message. A poll that meets an
+outage is simply asked again at the next turn. The key the token is sealed to lives only as long
+as the wait.
+
 ## Handling the token
 
 `GmintToken` never prints itself: `String(token)`, `JSON.stringify(token)` and `util.inspect`
@@ -119,9 +151,11 @@ await git.fetch({ auth: token.reveal() });
 ## Errors
 
 `GmintError.code` is one of the protocol's stable codes (`denied`, `locked_down`,
-`witness_stale`, `rate_limited`, `unavailable`, ...), `transport`, or `untrusted`. `untrusted`
-means a response failed verification: treat it as an attack, not an outage. `retryable` says
-whether trying again later can help; the client already retries those a few times.
+`witness_stale`, `rate_limited`, `unavailable`, `approval_required`, `approval_expired`, ...),
+`transport`, or `untrusted`. `untrusted` means a response failed verification: treat it as an
+attack, not an outage. `retryable` says whether trying again later can help; the client already
+retries those a few times. The approval codes are not retryable: trying again asks for a new
+approval.
 
 No third-party dependencies. The wire protocol is [`@ghub/gmint-protocol`](../gmint-protocol).
 

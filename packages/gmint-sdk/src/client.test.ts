@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { constants, generateKeyPairSync } from "node:crypto";
+import { constants, generateKeyPairSync, randomBytes } from "node:crypto";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer, type Server } from "node:https";
@@ -8,14 +8,19 @@ import { join } from "node:path";
 import type { TLSSocket } from "node:tls";
 import { inspect } from "node:util";
 import {
+  POLL_PATH,
   b64uEncode,
+  buildPollResponse,
   buildResponse,
   channelBinding,
+  constantTimeEqual,
   localSigner,
   rawPublicKey,
   utf8Decode,
+  verifyPoll,
   verifyRequest,
   type Code,
+  type VerifiedRequest,
 } from "@ghub/gmint-protocol";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GmintClient } from "./client";
@@ -45,8 +50,15 @@ describe.runIf(hasOpenssl())("GmintClient against a protocol-speaking stand-in",
   let port = 0;
   let githubPort = 0;
   const revoked: string[] = [];
-  let mode: "issue" | Code | "rogue" = "issue";
+  let mode: "issue" | Code | "rogue" | "pending" = "issue";
   let requests = 0;
+  // Approvals: a request answered pending is kept by its id, as Core keeps it; each poll for it
+  // takes the next step of the script, and an empty script keeps it pending.
+  const approvals = new Map<string, VerifiedRequest>();
+  let pollScript: ("pending" | "issue" | Exclude<Code, "approval_required">)[] = [];
+  let polls = 0;
+  // The sequence number of every request and poll, in the order they arrived.
+  const seqs: number[] = [];
 
   beforeAll(async () => {
     ossl(
@@ -129,22 +141,80 @@ describe.runIf(hasOpenssl())("GmintClient against a protocol-speaking stand-in",
             });
             res.end(body);
           };
-          requests++;
           const cb = channelBinding(req.socket as TLSSocket)!;
-          const v = verifyRequest(utf8Decode(new Uint8Array(Buffer.concat(chunks)))!, {
-            resolveKey: (kid) =>
-              kid === "c1"
-                ? { key: clientSign.publicKey, owner: "gmint://test/client" }
-                : undefined,
-            aud: "gmint:test",
-            htu: `https://localhost:${port}/v1/token`,
-            cb,
-          });
-          if (!v.ok) return reply(403, "application/json", JSON.stringify({ code: "denied" }));
+          const body = utf8Decode(new Uint8Array(Buffer.concat(chunks)))!;
+          const resolveKey = (kid: string) =>
+            kid === "c1" ? { key: clientSign.publicKey, owner: "gmint://test/client" } : undefined;
           const signer = localSigner(
             "resp-1",
             (mode === "rogue" ? rogueSign : serverSign).privateKey,
           );
+          const denied = () => reply(403, "application/json", JSON.stringify({ code: "denied" }));
+
+          if (req.url === POLL_PATH) {
+            polls++;
+            const p = verifyPoll(body, {
+              resolveKey,
+              aud: "gmint:test",
+              htu: `https://localhost:${port}${POLL_PATH}`,
+              cb,
+            });
+            const original = p.ok ? approvals.get(p.value.requestId) : undefined;
+            if (!p.ok || !original || !constantTimeEqual(original.reqHash, p.value.reqHash))
+              return denied();
+            seqs.push(p.value.payload.seq);
+            const step = pollScript.shift() ?? "pending";
+            const answer =
+              step === "pending"
+                ? await buildPollResponse({
+                    signer,
+                    request: original,
+                    cb,
+                    status: "pending",
+                    requestId: p.value.requestId,
+                  })
+                : step === "issue"
+                  ? await buildPollResponse({
+                      signer,
+                      request: original,
+                      cb,
+                      status: "issued",
+                      issued: {
+                        credential: `ghs_approved${polls}`,
+                        expires_at: "2099-01-01T00:00:00Z",
+                        scope: original.payload.req.scope,
+                      },
+                    })
+                  : await buildPollResponse({
+                      signer,
+                      request: original,
+                      cb,
+                      status: "refused",
+                      code: step,
+                    });
+            return reply(200, "application/gmint-res+jws", answer);
+          }
+
+          requests++;
+          const v = verifyRequest(body, {
+            resolveKey,
+            aud: "gmint:test",
+            htu: `https://localhost:${port}/v1/token`,
+            cb,
+          });
+          if (!v.ok) return denied();
+          seqs.push(v.value.payload.seq);
+          if (mode === "pending") {
+            const requestId = b64uEncode(new Uint8Array(randomBytes(16)));
+            approvals.set(requestId, v.value);
+            const pending = await buildResponse({
+              signer,
+              request: v.value,
+              status: "pending",
+              requestId,
+            });
+            return reply(200, "application/gmint-res+jws", pending);
+          }
           const jws =
             mode === "issue" || mode === "rogue"
               ? await buildResponse({
@@ -265,6 +335,115 @@ describe.runIf(hasOpenssl())("GmintClient against a protocol-speaking stand-in",
     expect(err).toBeInstanceOf(GmintError);
     expect(err).toMatchObject({ code: "untrusted", retryable: false });
     expect(requests - before).toBe(1);
+  });
+
+  describe("approvals (E12-04)", () => {
+    const fast = { approvalPollMs: 10 };
+
+    it("waits while the request is pending, then returns the token the approval issued", async () => {
+      mode = "pending";
+      pollScript = ["pending", "pending", "issue"];
+      const before = { requests, polls, seqs: seqs.length };
+      const told: string[] = [];
+      await using token = await client().getToken(ask, {
+        ...fast,
+        onApprovalPending: (id) => told.push(id),
+      });
+      expect(token.reveal()).toBe(`ghs_approved${polls}`);
+      expect(String(token)).toBe("[GmintToken redacted]");
+      expect(token.scope.repository_ids).toEqual([2, 3]);
+      expect(told).toHaveLength(1);
+      expect(approvals.has(told[0]!)).toBe(true);
+      // One request, never sent again; three polls for it.
+      expect(requests - before.requests).toBe(1);
+      expect(polls - before.polls).toBe(3);
+      // The request and every poll took the next number of the same counter.
+      const taken = seqs.slice(before.seqs);
+      expect(taken).toHaveLength(4);
+      for (let i = 1; i < taken.length; i++) expect(taken[i]!).toBeGreaterThan(taken[i - 1]!);
+    });
+
+    it.each(["denied", "approval_expired"] as const)(
+      "throws %s when a poll is refused, and asks no more",
+      async (code) => {
+        mode = "pending";
+        pollScript = ["pending", code];
+        const before = { requests, polls };
+        await expect(client().getToken(ask, fast)).rejects.toMatchObject({
+          code,
+          retryable: false,
+        });
+        expect(requests - before.requests).toBe(1);
+        expect(polls - before.polls).toBe(2);
+      },
+    );
+
+    it("keeps polling through an outage at one poll", async () => {
+      mode = "pending";
+      pollScript = ["unavailable", "issue"];
+      const before = polls;
+      await using token = await client().getToken(ask, fast);
+      expect(token.reveal()).toMatch(/^ghs_approved/);
+      expect(polls - before).toBe(2);
+    });
+
+    it("gives up after approvalTimeoutMs with approval_required and the approval's id", async () => {
+      mode = "pending";
+      pollScript = [];
+      const told: string[] = [];
+      const err = await client()
+        .getToken(ask, {
+          approvalPollMs: 10,
+          approvalTimeoutMs: 60,
+          onApprovalPending: (id) => told.push(id),
+        })
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(GmintError);
+      expect(err).toMatchObject({ code: "approval_required", retryable: false });
+      expect(told).toHaveLength(1);
+      expect((err as GmintError).message).toContain(told[0]!);
+    });
+
+    it("stops polling when the caller's signal aborts", async () => {
+      mode = "pending";
+      pollScript = [];
+      const stop = new AbortController();
+      const before = polls;
+      const err = await client()
+        .getToken(ask, {
+          ...fast,
+          signal: stop.signal,
+          onApprovalPending: () => void setTimeout(() => stop.abort(), 50),
+        })
+        .catch((e: unknown) => e);
+      expect(err).toMatchObject({ code: "approval_required" });
+      expect((err as GmintError).message).toMatch(/aborted/);
+      const after = polls;
+      expect(after - before).toBeGreaterThan(0);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(polls).toBe(after);
+    });
+
+    it("sends no poll for a signal that aborted before the answer came", async () => {
+      mode = "pending";
+      const before = { requests, polls };
+      await expect(client().getToken(ask, { signal: AbortSignal.abort() })).rejects.toMatchObject({
+        code: "approval_required",
+      });
+      expect(requests - before.requests).toBe(1);
+      expect(polls - before.polls).toBe(0);
+    });
+
+    it("refuses wait options that make no sense before sending anything", async () => {
+      const before = requests;
+      await expect(client().getToken(ask, { approvalPollMs: 0 })).rejects.toMatchObject({
+        code: "bad_request",
+      });
+      await expect(client().getToken(ask, { approvalTimeoutMs: -1 })).rejects.toMatchObject({
+        code: "bad_request",
+      });
+      expect(requests).toBe(before);
+    });
   });
 
   it("refuses key files others can read", () => {
