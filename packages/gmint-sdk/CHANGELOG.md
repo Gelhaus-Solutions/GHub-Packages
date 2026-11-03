@@ -1,5 +1,16 @@
 # @ghub/gmint-sdk
 
+## 0.3.0
+
+### Minor Changes
+
+- `getToken` waits for an operator's approval instead of throwing `approval_required` at once (GMint E12-04). On a pending answer it keeps the request and polls `/v1/token/poll` every `approvalPollMs` (default 2000), each poll signed, on its own connection and with the next sequence number, until the token is issued (returned as before), refused (`denied`, `approval_expired` and the other codes, thrown as before), or `approvalTimeoutMs` passes (default 300 000; then `approval_required` with the approval's id, as 0.2 threw at once). A second argument takes these, `onApprovalPending(requestId)`, called once, and an `AbortSignal` that ends the wait. A pending request is never sent again; a poll that meets an outage is asked again at the next turn.
+
+### Patch Changes
+
+- Updated dependencies
+  - @ghub/gmint-protocol@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

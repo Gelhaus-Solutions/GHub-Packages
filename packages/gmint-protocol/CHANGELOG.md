@@ -1,5 +1,11 @@
 # @ghub/gmint-protocol
 
+## 0.3.0
+
+### Minor Changes
+
+- Approvals (GMint E12-04). A new message, the poll (`typ` gmint-poll+jws, `POLL_PATH` `/v1/token/poll`), signed with the request's key on a connection of its own, names a pending approval by `request_id` and the request it waits for by `req_hash`: `buildPoll` builds it from the `BuiltRequest` the client kept, `verifyPoll` runs the request's checks in the same order and reports `poll_*` reasons, which `publicCode` maps like the `request_*` ones. `buildPollResponse` answers it with the existing response format, bound to the original request's hash and the poll's exporter and, when issued, sealed to the original request's `enc`; it takes the original request as the server stored it (a `VerifiedRequest`: the payload, the kid and the hash as bytes). `verifyResponse` is unchanged and checks such an answer given the original request and the poll's exporter. `buildResponse` and `buildPollResponse` share one implementation. New code `approval_expired` (not retryable). SPEC section 8 describes the poll and the pending flow.
+
 ## 0.2.0
 
 ### Minor Changes
