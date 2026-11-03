@@ -1,10 +1,11 @@
 # GMint wire protocol, version 1
 
 This is the normative description of the bytes a GMint client and a GMint server exchange for one
-mint (sections 3 to 6) and for one certificate renewal (section 7). `src/messages.ts`, `src/renew.ts`
-and `src/csr.ts` are its implementation and `src/*.test.ts` its executable checks.
-`src/vectors.messages.json` holds one of each message from fixed test keys, every byte
-reproducible (`src/vectors.test.ts` is its generator), for implementations in other stacks.
+mint (sections 3 to 6), for one certificate renewal (section 7) and for the wait for an operator's
+approval (section 8). `src/messages.ts`, `src/renew.ts` and `src/csr.ts` are its implementation and
+`src/*.test.ts` its executable checks. `src/vectors.messages.json` holds one of each message of
+sections 3, 5 and 7 from fixed test keys, every byte reproducible (`src/vectors.test.ts` is its
+generator), for implementations in other stacks; the poll of section 8 has no vector yet.
 
 ## 1. Transport
 
@@ -12,7 +13,8 @@ reproducible (`src/vectors.test.ts` is its generator), for implementations in ot
   must be pinned in the server's signed policy; the server certificate must chain to the GMint root
   the client pins. No WebPKI trust, no session tickets, no 0-RTT.
 - One request per connection is the norm; the request must be sent on the connection whose
-  exporter it carries.
+  exporter it carries. The same holds for each poll (section 8): every poll opens a connection of
+  its own.
 
 ## 2. Encodings
 
@@ -89,7 +91,7 @@ GMint's response key (held in OpenBao). Payload (strict JSON):
 | ------------ | ---------------------------------------------------------------------------------------------------- |
 | `v`          | `1`                                                                                                  |
 | `req_hash`   | b64url SHA-256 of the request JWS bytes exactly as received                                          |
-| `cb`         | The request's `cb`                                                                                   |
+| `cb`         | The request's `cb`; in the answer to a poll, the poll's (section 8.3)                                |
 | `iat`        | Within 60 s of the client's clock                                                                    |
 | `status`     | `issued`, `pending` or `refused`                                                                     |
 | `code`       | Absent when `issued`; `approval_required` when `pending`; any other code of section 6 when `refused` |
@@ -129,9 +131,10 @@ Plaintext (strict JSON, exactly these members):
 ## 6. Codes
 
 `denied`, `bad_request`, `replay`, `clock`, `quarantined`, `rate_limited`, `witness_stale`,
-`approval_required`, `approval_unavailable`, `locked_down`, `unavailable`, `provider_error`.
-Every authorization failure is `denied`. `unavailable`, `rate_limited` and `clock` may be retried
-unchanged later; nothing else should be.
+`approval_required`, `approval_unavailable`, `approval_expired`, `locked_down`, `unavailable`,
+`provider_error`. Every authorization failure is `denied`. `approval_expired` answers a poll for
+an approval nobody decided in time (section 8). `unavailable`, `rate_limited` and `clock` may be
+retried unchanged later; nothing else should be.
 
 ## 7. Certificate renewal
 
@@ -214,3 +217,69 @@ Certificates are public, so nothing is sealed.
    one; every certificate is valid now, a start up to 60 s in the future counting as valid. Only
    then is the chain written where the caller keeps its certificate, replacing the old one in one
    step.
+
+## 8. Approvals: the poll
+
+A grant may need an operator's approval before anything is minted. The server then runs its
+checks up to the approval, keeps the verified request, and answers it with a response of section 5
+whose `status` is `pending`, `code` `approval_required` and `request_id` the approval's id. The
+request stays the one that counts: the client keeps it (the JWS as sent and the private half of
+`enc`) and asks after it with polls until the server answers `issued` or `refused`, or the client
+gives up. The credential is minted at the poll that follows an approval, not at the approval, and
+sealed to the original request's `enc`.
+
+### 8.1 Poll
+
+`POST <origin>/v1/token/poll` on the listener the request went to, `Content-Type:
+application/gmint-poll+jws`, body a compact JWS with `typ` `gmint-poll+jws`, signed with the same
+request-signing key as the request. Every poll goes on a connection of its own. Payload (strict
+JSON, exactly these members):
+
+| Member       | Rule                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `v`          | `1`                                                                                   |
+| `iss`        | As in section 3; the request's `iss`                                                  |
+| `aud`        | As in section 3; the request's `aud`                                                  |
+| `htm`        | `POST`                                                                                |
+| `htu`        | The exact poll URL, `https://`, at most 256 characters                                |
+| `iat`        | As in section 3                                                                       |
+| `jti`        | As in section 3                                                                       |
+| `seq`        | As in section 3: the next number of the same counter the request took its number from |
+| `cb`         | b64url tls-exporter of the connection the poll is sent on                             |
+| `request_id` | The `request_id` of the pending answer: b64url of 16 bytes (22 characters)            |
+| `req_hash`   | b64url SHA-256 of the original request JWS exactly as sent (32 bytes, 43 characters)  |
+
+A poll carries neither `enc` nor `req`: what is asked for, and the key the answer is sealed to,
+stay the request's. With exact members and its own `typ`, a poll never verifies as a request and a
+request never verifies as a poll, under either `typ`.
+
+### 8.2 Server checks, in order
+
+Steps 1 to 6 of section 4, with `typ` `gmint-poll+jws` and the poll URL as `htu`. The rest is the
+server's, as for a request: replay (`jti`), the sequence window, the certificate pin and the source
+address, and then the approval itself: `request_id` names one stored for this `iss` and this `kid`,
+whose request hash equals `req_hash`, and its state. A poll that fails any of them is refused
+without saying which.
+
+### 8.3 Answer
+
+A response of section 5, `typ` `gmint-res+jws`, bound to the request and to the poll like this:
+
+- `req_hash` is the ORIGINAL request's hash (the poll's `req_hash`), never the poll's own.
+- `cb` is the exporter of the connection the POLL arrived on, never the request's.
+
+`issued` is sealed as in section 5.1 to the original request's `enc`, with `info` and `aad` over
+the original request's hash and its `kid` as the client kid, exactly as if the credential had been
+issued at once. `pending` (no decision yet) carries `code` `approval_required` and the same
+`request_id`. `refused` carries a code: `denied` when the operator refused or the checks run again
+at the poll fail, `approval_expired` when nobody decided in time, `replay` for a poll after the
+credential was collected, or any other code of section 6.
+
+### 8.4 Client checks
+
+Those of section 5.2 unchanged, against the original request (steps 3 and 6: its hash, its `enc`
+key, its scope) and the poll's own exporter (step 4). A `pending` answer must name the same
+`request_id`. The client polls every 2 seconds, each poll with the next sequence number and its
+own connection's exporter, and stops at `issued`, at `refused`, or at its own time limit; an
+approval lives 5 minutes from the request. It keeps the private half of `enc` only as long as it
+waits.

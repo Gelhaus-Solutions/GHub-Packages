@@ -12,6 +12,13 @@
  * issued it travels inside an HPKE seal to the request's `enc` key, with the request hash and
  * both key ids bound into the seal, so the relay in between sees ciphertext only.
  *
+ * Poll: when a grant needs an operator's approval the response is `pending` with a `request_id`,
+ * and the client asks again with a compact JWS (`typ` gmint-poll+jws) signed with the same key,
+ * on a connection of its own, naming the approval and the hash of the request it waits for. Its
+ * answer is a response like any other, bound to the ORIGINAL request's hash and sealed to the
+ * original `enc`, but sent back on the poll's connection, so the client checks it with the
+ * request it kept and the poll's exporter.
+ *
  * Verification functions return a reason instead of throwing. Reasons are for the audit log;
  * `publicCode` turns one into what a caller may be told.
  */
@@ -36,6 +43,9 @@ import { signCompact, verifyCompact, type Ed25519Signer } from "./jws";
 export const PROTOCOL_VERSION = 1;
 export const REQUEST_TYP = "gmint-req+jws";
 export const RESPONSE_TYP = "gmint-res+jws";
+export const POLL_TYP = "gmint-poll+jws";
+/** Where a client asks after a pending request, on the listener it sent the request to. */
+export const POLL_PATH = "/v1/token/poll";
 /** Seconds a request or response timestamp may differ from the verifier's clock. */
 export const IAT_WINDOW_SECONDS = 60;
 export const SEAL_INFO_PREFIX = "gmint/v1/seal";
@@ -81,6 +91,26 @@ export interface RequestPayload {
   req: MintRequest;
 }
 
+/**
+ * A poll after a pending answer (SPEC section 8). It carries neither `enc` nor `req`: what is
+ * asked for, and the key the answer is sealed to, stay those of the request it names by hash.
+ */
+export interface PollPayload {
+  v: 1;
+  iss: string;
+  aud: string;
+  htm: "POST";
+  htu: string;
+  iat: number;
+  jti: string;
+  seq: number;
+  cb: string;
+  /** The `request_id` of the pending answer: b64url of 16 bytes. */
+  request_id: string;
+  /** b64url SHA-256 of the original request JWS. */
+  req_hash: string;
+}
+
 export type Status = "issued" | "pending" | "refused";
 
 export interface SealPlaintext {
@@ -112,6 +142,14 @@ export type Reason =
   | "request_wrong_target"
   | "request_stale"
   | "request_wrong_channel"
+  | "poll_malformed"
+  | "poll_unknown_key"
+  | "poll_bad_signature"
+  | "poll_wrong_issuer"
+  | "poll_wrong_audience"
+  | "poll_wrong_target"
+  | "poll_stale"
+  | "poll_wrong_channel"
   | "response_malformed"
   | "response_unknown_key"
   | "response_bad_signature"
@@ -125,12 +163,23 @@ export type Reason =
 
 export type Verdict<T> = { ok: true; value: T } | { ok: false; reason: Reason };
 
-/** What a client may be told about a refused request. */
+/** What a client may be told about a refused request or poll. */
 export function publicCode(reason: Reason): Code {
-  if (reason === "request_malformed") return "bad_request";
-  if (reason === "request_stale") return "clock";
+  if (reason === "request_malformed" || reason === "poll_malformed") return "bad_request";
+  if (reason === "request_stale" || reason === "poll_stale") return "clock";
   return "denied";
 }
+
+/** The ways a client's signed message fails the protocol checks; each kind reports its own. */
+type CheckFailure =
+  | "malformed"
+  | "unknown_key"
+  | "bad_signature"
+  | "wrong_issuer"
+  | "wrong_audience"
+  | "wrong_target"
+  | "stale"
+  | "wrong_channel";
 
 // ---------------------------------------------------------------- field rules
 
@@ -274,6 +323,55 @@ function parseRequestPayload(bytes: Uint8Array): RequestPayload | null {
     cb: v.cb as string,
     enc: v.enc as string,
     req,
+  };
+}
+
+/**
+ * The poll's members differ from the request's on purpose (`request_id` and `req_hash` instead
+ * of `enc` and `req`), so with exact members neither payload ever parses as the other, whatever
+ * the `typ` says.
+ */
+function parsePollPayload(bytes: Uint8Array): PollPayload | null {
+  const text = utf8Decode(bytes);
+  const v = text == null ? undefined : parseStrictJson(text);
+  if (
+    !isObject(v) ||
+    !hasExactKeys(v, [
+      "v",
+      "iss",
+      "aud",
+      "htm",
+      "htu",
+      "iat",
+      "jti",
+      "seq",
+      "cb",
+      "request_id",
+      "req_hash",
+    ])
+  ) {
+    return null;
+  }
+  if (v.v !== PROTOCOL_VERSION) return null;
+  if (typeof v.iss !== "string" || !ISS.test(v.iss)) return null;
+  if (typeof v.aud !== "string" || !AUD.test(v.aud)) return null;
+  if (v.htm !== "POST") return null;
+  if (typeof v.htu !== "string" || v.htu.length > 256 || !v.htu.startsWith("https://")) return null;
+  if (!isPosInt(v.iat) || !isPosInt(v.seq)) return null;
+  if (!bytesField(v.jti, 16) || !bytesField(v.cb, 32)) return null;
+  if (!bytesField(v.request_id, 16) || !bytesField(v.req_hash, 32)) return null;
+  return {
+    v: 1,
+    iss: v.iss,
+    aud: v.aud,
+    htm: "POST",
+    htu: v.htu,
+    iat: v.iat,
+    jti: v.jti as string,
+    seq: v.seq,
+    cb: v.cb as string,
+    request_id: v.request_id as string,
+    req_hash: v.req_hash as string,
   };
 }
 
@@ -472,95 +570,139 @@ export interface VerifiedRequest {
 }
 
 /**
- * The protocol half of Core's checks, in SPEC order: header, signature, strict payload,
- * issuer, audience and target, time, channel. Replay, sequence, pins, source, policy and
- * everything after are the server's.
+ * The protocol half of the server's checks on a client's signed message, in SPEC order: header,
+ * signature, strict payload, issuer, audience and target, time, channel. Requests and polls go
+ * through this one function so their checks cannot drift apart; each reports under its own
+ * prefix, so the audit log tells them apart.
  */
-export function verifyRequest(jws: string, ctx: VerifyRequestContext): Verdict<VerifiedRequest> {
+function verifyClientMessage<
+  P extends { iss: string; aud: string; htu: string; iat: number; cb: string },
+>(
+  jws: string,
+  typ: string,
+  kind: "request" | "poll",
+  parse: (bytes: Uint8Array) => P | null,
+  ctx: VerifyRequestContext,
+): Verdict<{ payload: P; kid: string; hash: Uint8Array }> {
+  const fail = (what: CheckFailure): { ok: false; reason: Reason } => ({
+    ok: false,
+    reason: `${kind}_${what}` as const,
+  });
   let owner: string | undefined;
-  const verified = verifyCompact(jws, REQUEST_TYP, (kid) => {
+  const verified = verifyCompact(jws, typ, (kid) => {
     const k = ctx.resolveKey(kid);
     owner = k?.owner;
     return k?.key;
   });
   if (!verified.ok) {
-    if (verified.error === "jws_unknown_key") return { ok: false, reason: "request_unknown_key" };
-    if (verified.error === "jws_bad_signature")
-      return { ok: false, reason: "request_bad_signature" };
-    return { ok: false, reason: "request_malformed" };
+    if (verified.error === "jws_unknown_key") return fail("unknown_key");
+    if (verified.error === "jws_bad_signature") return fail("bad_signature");
+    return fail("malformed");
   }
-  const payload = parseRequestPayload(verified.value.payload);
-  if (!payload) return { ok: false, reason: "request_malformed" };
-  if (payload.iss !== owner) return { ok: false, reason: "request_wrong_issuer" };
-  if (payload.aud !== ctx.aud) return { ok: false, reason: "request_wrong_audience" };
-  if (payload.htu !== ctx.htu) return { ok: false, reason: "request_wrong_target" };
-  if (Math.abs(payload.iat - nowSeconds(ctx.now)) > IAT_WINDOW_SECONDS)
-    return { ok: false, reason: "request_stale" };
-  if (!constantTimeEqual(b64uDecode(payload.cb)!, ctx.cb))
-    return { ok: false, reason: "request_wrong_channel" };
+  const payload = parse(verified.value.payload);
+  if (!payload) return fail("malformed");
+  if (payload.iss !== owner) return fail("wrong_issuer");
+  if (payload.aud !== ctx.aud) return fail("wrong_audience");
+  if (payload.htu !== ctx.htu) return fail("wrong_target");
+  if (Math.abs(payload.iat - nowSeconds(ctx.now)) > IAT_WINDOW_SECONDS) return fail("stale");
+  if (!constantTimeEqual(b64uDecode(payload.cb)!, ctx.cb)) return fail("wrong_channel");
   return {
     ok: true,
-    value: { payload, kid: verified.value.header.kid, reqHash: sha256(utf8Encode(jws)) },
+    value: { payload, kid: verified.value.header.kid, hash: sha256(utf8Encode(jws)) },
+  };
+}
+
+/**
+ * The protocol half of Core's checks, in SPEC order: header, signature, strict payload,
+ * issuer, audience and target, time, channel. Replay, sequence, pins, source, policy and
+ * everything after are the server's.
+ */
+export function verifyRequest(jws: string, ctx: VerifyRequestContext): Verdict<VerifiedRequest> {
+  const v = verifyClientMessage(jws, REQUEST_TYP, "request", parseRequestPayload, ctx);
+  if (!v.ok) return v;
+  return {
+    ok: true,
+    value: { payload: v.value.payload, kid: v.value.kid, reqHash: v.value.hash },
   };
 }
 
 // ---------------------------------------------------------------- response
+
+/** What one response says: the outcome a `buildResponse` or `buildPollResponse` caller picks. */
+type ResponseOutcome =
+  | { status: "issued"; issued: Omit<SealPlaintext, "hashed"> }
+  | { status: "pending"; requestId: string }
+  | { status: "refused"; code: Exclude<Code, "approval_required"> };
 
 export type BuildResponseOptions = {
   signer: Ed25519Signer;
   /** The verified request this answers. */
   request: VerifiedRequest;
   now?: number;
-} & (
-  | { status: "issued"; issued: Omit<SealPlaintext, "hashed"> }
-  | { status: "pending"; requestId: string }
-  | { status: "refused"; code: Exclude<Code, "approval_required"> }
-);
+} & ResponseOutcome;
 
-export async function buildResponse(opts: BuildResponseOptions): Promise<string> {
-  const { request } = opts;
+/**
+ * Signs one response (SPEC section 5), for a request or for a poll. `request` is always the
+ * request that asked for the credential: the answer binds to its hash and seals to its `enc` and
+ * kid. `cb` is the exporter of the connection the answer goes back on, the request's or the
+ * poll's; it is the only thing the two kinds of answer differ in.
+ */
+async function signResponse(
+  signer: Ed25519Signer,
+  request: VerifiedRequest,
+  cb: string,
+  outcome: ResponseOutcome,
+  now: number | undefined,
+): Promise<string> {
   const payload: ResponsePayload = {
     v: 1,
     req_hash: b64uEncode(request.reqHash),
-    cb: request.payload.cb,
-    iat: nowSeconds(opts.now),
-    status: opts.status,
+    cb,
+    iat: nowSeconds(now),
+    status: outcome.status,
   };
-  if (opts.status === "issued") {
+  if (outcome.status === "issued") {
     const plaintext: SealPlaintext = {
-      ...opts.issued,
-      hashed: b64uEncode(sha256(utf8Encode(opts.issued.credential))),
+      ...outcome.issued,
+      hashed: b64uEncode(sha256(utf8Encode(outcome.issued.credential))),
     };
     const pt = utf8Encode(JSON.stringify(plaintext));
     if (!parseSealPlaintext(pt))
       throw new TypeError("issued credential does not satisfy the protocol rules");
+    // A request read back from storage was verified once, but check the key before sealing to it.
+    const enc = b64uDecode(request.payload.enc);
+    if (!enc || enc.length !== 32) throw new TypeError("the request's enc is not an X25519 key");
     const sealed = seal(
-      b64uDecode(request.payload.enc)!,
+      enc,
       sealInfo(request.reqHash),
-      sealAad(request.kid, opts.signer.kid, request.reqHash),
+      sealAad(request.kid, signer.kid, request.reqHash),
       pt,
     );
     payload.seal = { enc: b64uEncode(sealed.enc), ct: b64uEncode(sealed.ct) };
-  } else if (opts.status === "pending") {
+  } else if (outcome.status === "pending") {
     payload.code = "approval_required";
-    payload.request_id = opts.requestId;
+    payload.request_id = outcome.requestId;
   } else {
-    payload.code = opts.code;
+    payload.code = outcome.code;
   }
   const bytes = utf8Encode(JSON.stringify(payload));
   if (!parseResponsePayload(bytes))
     throw new TypeError("response does not satisfy the protocol rules");
-  return signCompact(RESPONSE_TYP, bytes, opts.signer);
+  return signCompact(RESPONSE_TYP, bytes, signer);
+}
+
+export async function buildResponse(opts: BuildResponseOptions): Promise<string> {
+  return signResponse(opts.signer, opts.request, opts.request.payload.cb, opts, opts.now);
 }
 
 export interface VerifyResponseContext {
   /** GMint's pinned response keys. */
   serverKeys: (kid: string) => KeyObject | undefined;
-  /** The request exactly as sent. */
+  /** The request exactly as sent; for the answer to a poll, the request the poll named. */
   request: BuiltRequest;
   /** The client's own kid (the request signer's). */
   clientKid: string;
-  /** The tls-exporter value of the connection the request was sent on. */
+  /** The tls-exporter value of the connection the request, or the poll, was sent on. */
   cb: Uint8Array;
   now?: number;
 }
@@ -610,4 +752,111 @@ export function verifyResponse(jws: string, ctx: VerifyResponseContext): Verdict
   if (!scopeWithin(issued.scope, ctx.request.payload.req.scope))
     return { ok: false, reason: "response_scope_exceeded" };
   return { ok: true, value: { status: "issued", issued } };
+}
+
+// ---------------------------------------------------------------- poll (approvals)
+
+export interface BuildPollOptions {
+  signer: Ed25519Signer;
+  iss: string;
+  aud: string;
+  /** `<origin>/v1/token/poll` (`POLL_PATH`) on the listener the request went to. */
+  htu: string;
+  /** The next number of the same counter requests take theirs from. */
+  seq: number;
+  /** The tls-exporter value of the connection the poll is sent on, never the request's. */
+  cb: Uint8Array;
+  /** The `request_id` of the pending answer. */
+  requestId: string;
+  /** The request that was answered `pending`, exactly as sent. */
+  request: BuiltRequest;
+  now?: number;
+}
+
+export interface BuiltPoll {
+  jws: string;
+  payload: PollPayload;
+}
+
+export async function buildPoll(opts: BuildPollOptions): Promise<BuiltPoll> {
+  if (opts.cb.length !== 32) throw new TypeError("cb must be the 32-byte tls-exporter value");
+  // The server finds the approval by id and checks it is this client's; a poll from anyone else,
+  // or to another instance, is refused, so refuse to send one.
+  if (opts.iss !== opts.request.payload.iss || opts.aud !== opts.request.payload.aud)
+    throw new TypeError("a poll comes from the request's issuer, for the request's audience");
+  const payload: PollPayload = {
+    v: 1,
+    iss: opts.iss,
+    aud: opts.aud,
+    htm: "POST",
+    htu: opts.htu,
+    iat: nowSeconds(opts.now),
+    jti: b64uEncode(new Uint8Array(randomBytes(16))),
+    seq: opts.seq,
+    cb: b64uEncode(opts.cb),
+    request_id: opts.requestId,
+    req_hash: b64uEncode(sha256(utf8Encode(opts.request.jws))),
+  };
+  const bytes = utf8Encode(JSON.stringify(payload));
+  if (!parsePollPayload(bytes)) throw new TypeError("poll does not satisfy the protocol rules");
+  const jws = await signCompact(POLL_TYP, bytes, opts.signer);
+  return { jws, payload };
+}
+
+export interface VerifiedPoll {
+  payload: PollPayload;
+  kid: string;
+  /** SHA-256 of the exact poll bytes, for the audit log. The answer does not bind to it. */
+  pollHash: Uint8Array;
+  /** The approval the poll asks about (`request_id`). */
+  requestId: string;
+  /**
+   * The poll's `req_hash`, decoded: the request the client says it waits for. The server compares
+   * it with the hash it stored with the approval; the protocol cannot, it never saw the request.
+   */
+  reqHash: Uint8Array;
+}
+
+/**
+ * The protocol half of the server's checks on a poll: those of `verifyRequest`, in the same
+ * order, reported as `poll_*`, with `ctx.htu` the poll URL and `ctx.cb` the poll's connection.
+ * Replay, sequence, pins and source are the server's as for a request, and then the approval
+ * itself: that `requestId` exists, belongs to this client and key, and was stored for `reqHash`.
+ */
+export function verifyPoll(jws: string, ctx: VerifyRequestContext): Verdict<VerifiedPoll> {
+  const v = verifyClientMessage(jws, POLL_TYP, "poll", parsePollPayload, ctx);
+  if (!v.ok) return v;
+  const { payload } = v.value;
+  return {
+    ok: true,
+    value: {
+      payload,
+      kid: v.value.kid,
+      pollHash: v.value.hash,
+      requestId: payload.request_id,
+      reqHash: b64uDecode(payload.req_hash)!,
+    },
+  };
+}
+
+/**
+ * The answer to a poll: a response like `buildResponse`'s, bound to the ORIGINAL request's hash
+ * and sent on the poll's connection. `request` is the original request as the server stored it
+ * with the approval: its verified payload (the stored JSON, parsed back), the kid it was signed
+ * with, and its SHA-256 as bytes (the stored b64url `req_hash`, decoded). A `VerifiedRequest`
+ * from `verifyRequest` is exactly that shape. An issued credential is sealed to that request's
+ * `enc` with its kid and hash, as it would have been had it been issued at once.
+ */
+export type BuildPollResponseOptions = {
+  signer: Ed25519Signer;
+  /** The original request, as stored with the approval. */
+  request: VerifiedRequest;
+  /** The tls-exporter value the edge measured on the connection the POLL arrived on. */
+  cb: Uint8Array;
+  now?: number;
+} & ResponseOutcome;
+
+export async function buildPollResponse(opts: BuildPollResponseOptions): Promise<string> {
+  if (opts.cb.length !== 32) throw new TypeError("cb must be the 32-byte tls-exporter value");
+  return signResponse(opts.signer, opts.request, b64uEncode(opts.cb), opts, opts.now);
 }

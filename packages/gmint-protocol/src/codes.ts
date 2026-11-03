@@ -13,6 +13,7 @@ export const CODES = [
   "witness_stale",
   "approval_required",
   "approval_unavailable",
+  "approval_expired",
   "locked_down",
   "unavailable",
   "provider_error",

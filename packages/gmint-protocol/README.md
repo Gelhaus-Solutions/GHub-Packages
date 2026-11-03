@@ -13,6 +13,9 @@ What it gives you:
 - **Responses** signed by GMint and bound to the request's hash and the same connection, with the
   credential sealed by HPKE (RFC 9180) to a key the client generated for that one request, so
   nothing between the two ends ever sees it.
+- **Approvals**: when a grant needs an operator's approval, a request is answered `pending` and
+  the client asks again with signed, channel-bound polls; the credential, minted at the poll after
+  the approval, is still sealed to the key of the original request.
 - **Certificate renewal**: a signed, channel-bound request carrying a CSR made with the TLS key
   (written and read here, Ed25519 only), answered with a signed chain the caller checks against its
   own key and the GMint root it pins.
