@@ -1,5 +1,17 @@
 # @ghub/ui
 
+## 0.19.0
+
+### Minor Changes
+
+- b67b6ae: `ConsoleShell` in `@ghub/ui/modern`: the console's frame, a 48px top bar (the app's context, the workspace as a blue tab, the workspace's pages as text tabs with the current one underlined, the product's name and round buttons) over a 52px icon rail of workspaces and the page. Server rendered; the pages are links with `aria-current` that wrap under the bar on a narrow screen, the rail turns into a row, and each icon carries its name. `CONSOLE_ROUND` is the round button's classes for a caller's own button or link.
+- `ProviderButton`, `ProviderGrid` and `BrandMark` in `@ghub/ui/modern`, drawn for GPlatform Identity's sign-in (option A). A provider button is full width with its mark before the label, shaped like the fields under it; the grid leads with its first provider in ink, folds above six as console's does, and holds the others still while one round trip starts (`busyId`). `BrandMark` draws the twelve provider types Identity offers (`BRAND_NAMES`, `isBrandName`), the black ones in the text colour. Modern's `Input` takes `action` (`InputAction`): one icon button inside the field at its end, named by its `label`, such as the passkey key beside an address.
+
+### Patch Changes
+
+- 02c91d1: `Badge` positions its hidden word against the pill itself (`relative`). A badge with a `word` inside a table that scrolls on a phone no longer widens the whole page: the word's `sr-only` span was placed against a box outside the scroll frame.
+- d1ba996: `Table`'s scroll frame is a positioning box (`relative`). What a cell places absolutely, a header's `sr-only` label above all, now scrolls inside the frame; placed against a box outside it, it widened the whole page on a phone.
+
 ## 0.18.0
 
 ### Minor Changes
