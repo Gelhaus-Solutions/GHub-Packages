@@ -1106,6 +1106,8 @@ describe("the pin covers every modern component", () => {
     "Avatar",
     "Badge",
     "Banner",
+    // The three of option A are rendered in modern-providers.test.ts.
+    "BrandMark",
     "BulkBar",
     "BilingualReader",
     "Button",
@@ -1154,6 +1156,8 @@ describe("the pin covers every modern component", () => {
     // Both rendered in modern-marks.test.ts.
     "ProductChip",
     "ProductMark",
+    "ProviderButton",
+    "ProviderGrid",
     "ProveItIsYou",
     "Provenance",
     // Both rendered in modern-workspace-picker-interaction.test.ts, with their keyboard and their links.

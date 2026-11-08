@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
 import { cn } from "../cn.js";
 import { AURORA_FIELD } from "./aurora.js";
 
@@ -22,6 +22,17 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
    * character, and everything else is a word being read.
    */
   mono?: boolean;
+  /** One button inside the field at its end, such as the passkey key beside a sign-in address. */
+  action?: InputAction;
+}
+
+export interface InputAction {
+  /** Its name, read out and shown on hover, since it shows only the icon. */
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+  busy?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -34,8 +45,8 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
  * answer against, and it is invisible to a screen reader once filled. Labels
  * come from `FormField`, which also owns the hint, the error and the ARIA wiring.
  */
-export function Input({ height = 44, mono = false, className, ...rest }: InputProps) {
-  return (
+export function Input({ height = 44, mono = false, action, className, ...rest }: InputProps) {
+  const field = (
     <input
       className={cn(
         "w-full rounded-m-control border border-m-control bg-m-inset px-3 text-m-label text-m-ink shadow-m-inset",
@@ -45,9 +56,33 @@ export function Input({ height = 44, mono = false, className, ...rest }: InputPr
         "aurora:text-[14px]",
         // Ids, keys and references are mono at 13 in Aurora, a step below text.
         mono ? "font-mono tabular-nums aurora:text-[13px]" : "",
+        action !== undefined && "pr-12",
         className,
       )}
       {...rest}
     />
+  );
+  if (action === undefined) return field;
+  return (
+    <div className="relative">
+      {field}
+      <button
+        type="button"
+        aria-label={action.label}
+        title={action.label}
+        onClick={action.onClick}
+        disabled={action.disabled}
+        aria-busy={action.busy === true || undefined}
+        className={cn(
+          "absolute top-1/2 right-1 grid size-9 -translate-y-1/2 place-items-center rounded-m-control text-m-ink-2",
+          "hover:bg-m-hover hover:text-m-ink aurora:rounded-full",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m-ring",
+          "disabled:pointer-events-none disabled:opacity-60",
+          action.busy === true && "cursor-progress",
+        )}
+      >
+        {action.icon}
+      </button>
+    </div>
   );
 }
