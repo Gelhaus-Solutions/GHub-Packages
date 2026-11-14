@@ -152,7 +152,8 @@ describe("PlaceMark", () => {
   it("draws the kind's glyph on the kind's colour, never a letter", () => {
     const company = render(createElement(PlaceMark, { kind: "organisation", size: 30 }));
     expect(company).toContain('data-mark="glyph"');
-    expect(company).toContain("lucide-building2");
+    // lucide-react 1 draws Building2 as building-complex and keeps its old name as a class.
+    expect(company).toContain("lucide-building-2");
     expect(company).toContain("var(--gm-accent)");
     expect(company).toContain('aria-hidden="true"');
     expect(company).not.toMatch(/>[A-Z]{1,2}</u);
