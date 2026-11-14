@@ -10,9 +10,9 @@
     "url": "git+https://github.com/Gelhaus-Solutions/GHub-Packages.git"
   },
   "license": "SEE LICENSE IN LICENSE",
-  "packageManager": "pnpm@11.17.0",
+  "packageManager": "pnpm@11.28.9",
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=22.12.0",
     "pnpm": ">=11.0.0"
   },
   "scripts": {
@@ -26,15 +26,17 @@
     "changeset": "changeset"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "@eslint/js": "^9.39.5",
-    "eslint": "^9.39.5",
+    "@changesets/cli": "^3.0.3",
+    "@eslint/compat": "^2.1.1",
+    "@eslint/js": "^10.0.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-promise": "^7.2.1",
-    "prettier": "^3.6.2",
-    "typescript": "5.9.3",
-    "typescript-eslint": "^8.65.0"
+    "eslint-plugin-promise": "^7.3.0",
+    "prettier": "^3.10.1",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.2"
   }
 }
