@@ -6,3 +6,5 @@ allowBuilds:
   # GControl makes; without it the resolver falls back to nothing and import
   # rules stop resolving workspace packages.
   unrs-resolver: true
+  # macOS-only and prebuilt; its script never ran under pnpm 10 either.
+  fsevents: false
