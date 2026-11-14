@@ -15,7 +15,9 @@
    */
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    // TypeScript 7 loads no @types by default; the contrast suites write to process.stderr.
+    "types": ["node"]
   },
   "include": ["src"]
 }

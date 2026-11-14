@@ -1,6 +1,7 @@
 // Flat config for the whole repository. One file, one source of truth;
 // per-package overrides live in the `files:` entries below.
 
+import { fixupPluginRules } from "@eslint/compat";
 import js from "@eslint/js";
 import prettierConfig from "eslint-config-prettier";
 import importPlugin from "eslint-plugin-import";
@@ -80,7 +81,10 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
-    plugins: { import: importPlugin, promise: promisePlugin },
+    // eslint-plugin-import 2.32, its newest, still calls SourceCode methods
+    // ESLint 10 removed (getTokenOrCommentBefore in import/order's fixer), so
+    // it runs through @eslint/compat's shims.
+    plugins: { import: fixupPluginRules(importPlugin), promise: promisePlugin },
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",

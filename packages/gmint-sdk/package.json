@@ -40,10 +40,10 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@nestjs/common": "^10.4.22",
-    "@types/node": "^22.19.7",
-    "typescript": "5.9.3",
-    "vitest": "^4.1.8"
+    "@nestjs/common": "^12.5.0",
+    "@types/node": "^22.20.5",
+    "typescript": "7.0.2",
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "@ghub/gmint-protocol": "workspace:*"

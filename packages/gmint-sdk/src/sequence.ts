@@ -35,7 +35,7 @@ export async function nextSequence(path: string): Promise<number> {
       } catch {
         /* someone else removed it */
       }
-      if (attempt > 500) throw new Error("gmint: sequence lock is held too long");
+      if (attempt > 500) throw new Error("gmint: sequence lock is held too long", { cause: e });
       await sleep(5 + Math.random() * 10);
       continue;
     }

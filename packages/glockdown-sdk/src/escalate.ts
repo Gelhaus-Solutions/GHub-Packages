@@ -157,7 +157,7 @@ async function call(
           res.on("data", (c: Buffer) => chunks.push(c));
           res.on("end", () => {
             socket.destroy();
-            let parsed: unknown = null;
+            let parsed: unknown;
             try {
               parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
             } catch {
