@@ -3,19 +3,21 @@
  *
  * GMint's policy bundles, lockdown statements and approvals, and GLockdown's directives, lifts
  * and trust documents, are signed with `ssh-keygen -Y sign` and a FIDO2 key
- * (`sk-ssh-ed25519@openssh.com`), so the private key never exists as a file and every signature
- * needs a touch. This module checks such a signature against a short list of allowed public keys.
+ * (`sk-ssh-ed25519@openssh.com`, or `sk-ecdsa-sha2-nistp256@openssh.com` for a P-256 key such as
+ * a Secure Enclave one), so the private key never exists as a file and every signature needs a
+ * touch. This module checks such a signature against a short list of allowed public keys.
  *
  * Strict on purpose: version 1 only, the namespace must match, the reserved field must be
- * empty, no trailing bytes anywhere, and the key inside the signature must be byte-equal to an
- * allowed key. An `sk-` signature must carry the user-presence flag unless the caller says
- * otherwise. Plain `ssh-ed25519` is accepted only when the caller opts in (tests, and keys that
- * are not hardware-backed by the operator's own choice).
+ * empty, no trailing bytes anywhere, ECDSA's r and s must be minimal mpints, and the key inside
+ * the signature must be byte-equal to an allowed key. An `sk-` signature, of either type, must
+ * carry the user-presence flag unless the caller says otherwise. Plain `ssh-ed25519` is accepted
+ * only when the caller opts in (tests, and keys that are not hardware-backed by the operator's
+ * own choice).
  *
  * Verification returns a result instead of throwing: a bad signature is an expected input.
  */
 
-import { createHash, createPublicKey, verify as edVerify } from "node:crypto";
+import { createHash, createPublicKey, verify as cryptoVerify, type KeyObject } from "node:crypto";
 import { WireReader, concat, utf8, wireString } from "./wire";
 
 const MAGIC = new TextEncoder().encode("SSHSIG");
@@ -23,15 +25,21 @@ const ARMOR_BEGIN = "-----BEGIN SSH SIGNATURE-----";
 const ARMOR_END = "-----END SSH SIGNATURE-----";
 
 export const SK_ED25519 = "sk-ssh-ed25519@openssh.com";
+export const SK_ECDSA_P256 = "sk-ecdsa-sha2-nistp256@openssh.com";
 export const ED25519 = "ssh-ed25519";
+
+export type SshKeyType = typeof SK_ED25519 | typeof SK_ECDSA_P256 | typeof ED25519;
+
+const KEY_TYPES: readonly string[] = [SK_ED25519, SK_ECDSA_P256, ED25519];
+const P256_CURVE = "nistp256";
 
 /** FIDO2 authenticator data flags (PROTOCOL.u2f). */
 export const FLAG_USER_PRESENT = 0x01;
 export const FLAG_USER_VERIFIED = 0x04;
 
 export interface SshPublicKey {
-  type: typeof SK_ED25519 | typeof ED25519;
-  /** The raw 32-byte Ed25519 public key. */
+  type: SshKeyType;
+  /** The raw public key: 32 bytes for Ed25519, the uncompressed point 0x04 || X || Y for P-256. */
   key: Uint8Array;
   /** The FIDO application string, `sk-` keys only (usually `ssh:`). */
   application?: string;
@@ -101,7 +109,32 @@ function sha256(data: Uint8Array): Uint8Array {
   return new Uint8Array(createHash("sha256").update(data).digest());
 }
 
-/** Parses a public-key wire blob (`ssh-ed25519` or `sk-ssh-ed25519@openssh.com`). */
+function base64url(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("base64url");
+}
+
+/** A P-256 key from its 65-byte uncompressed point, or null when that is not on the curve. */
+function p256Key(point: Uint8Array): KeyObject | null {
+  if (point.length !== 65 || point[0] !== 0x04) return null;
+  try {
+    return createPublicKey({
+      key: {
+        kty: "EC",
+        crv: "P-256",
+        x: base64url(point.subarray(1, 33)),
+        y: base64url(point.subarray(33)),
+      },
+      format: "jwk",
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parses a public-key wire blob (`ssh-ed25519`, `sk-ssh-ed25519@openssh.com` or
+ * `sk-ecdsa-sha2-nistp256@openssh.com`).
+ */
 export function parsePublicKeyBlob(blob: Uint8Array, comment?: string): Result<SshPublicKey> {
   const r = new WireReader(blob);
   const typeBytes = r.string();
@@ -120,6 +153,26 @@ export function parsePublicKeyBlob(blob: Uint8Array, comment?: string): Result<S
     }
     return { ok: true, value: { type, key, application, blob, ...(comment ? { comment } : {}) } };
   }
+  if (type === SK_ECDSA_P256) {
+    const curve = r.string();
+    const point = r.string();
+    const app = r.string();
+    const application = app && utf8(app);
+    if (
+      !curve ||
+      utf8(curve) !== P256_CURVE ||
+      !point ||
+      !p256Key(point) ||
+      application == null ||
+      !r.done()
+    ) {
+      return fail("malformed_public_key");
+    }
+    return {
+      ok: true,
+      value: { type, key: point, application, blob, ...(comment ? { comment } : {}) },
+    };
+  }
   return fail(type == null ? "malformed_public_key" : "unsupported_key_type");
 }
 
@@ -131,7 +184,7 @@ export function parsePublicKeyBlob(blob: Uint8Array, comment?: string): Result<S
  */
 export function parsePublicKey(line: string): Result<SshPublicKey> {
   const parts = line.trim().split(/\s+/);
-  const i = parts.findIndex((p) => p === ED25519 || p === SK_ED25519);
+  const i = parts.findIndex((p) => KEY_TYPES.includes(p));
   if (i < 0 || !parts[i + 1]) return fail("malformed_public_key");
   const blob = strictBase64(parts[i + 1]!);
   if (!blob) return fail("malformed_public_key");
@@ -197,7 +250,32 @@ function ed25519Verify(publicKey: Uint8Array, data: Uint8Array, sig: Uint8Array)
       key: { kty: "OKP", crv: "Ed25519", x: Buffer.from(publicKey).toString("base64url") },
       format: "jwk",
     });
-    return edVerify(null, data, key, sig);
+    return cryptoVerify(null, data, key, sig);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * An SSH ECDSA signature (mpint r, mpint s) as the 64 bytes r || s that node:crypto verifies as
+ * `ieee-p1363`, or null when either is zero, longer than 32 bytes or not a minimal mpint.
+ */
+function p256Signature(blob: Uint8Array): Uint8Array | null {
+  const r = new WireReader(blob);
+  const out = new Uint8Array(64);
+  for (const offset of [0, 32]) {
+    const value = r.mpint();
+    if (!value || value.length === 0 || value.length > 32) return null;
+    out.set(value, offset + 32 - value.length);
+  }
+  return r.done() ? out : null;
+}
+
+function p256Verify(point: Uint8Array, data: Uint8Array, sig: Uint8Array): boolean {
+  const key = p256Key(point);
+  if (!key) return false;
+  try {
+    return cryptoVerify("sha256", data, { key, dsaEncoding: "ieee-p1363" }, sig);
   } catch {
     return false;
   }
@@ -228,21 +306,23 @@ export function verifySshsig(opts: VerifyOptions): Result<Verified> {
   const r = new WireReader(sig.signature);
   const typeBytes = r.string();
   if (!typeBytes || utf8(typeBytes) !== key.type) return fail("malformed_signature");
-  const raw = r.string();
-  if (!raw || raw.length !== 64) return fail("malformed_signature");
+  const inner = r.string();
+  if (!inner) return fail("malformed_signature");
 
   if (key.type === ED25519) {
-    if (!r.done()) return fail("malformed_signature");
-    return ed25519Verify(key.key, data, raw)
+    if (inner.length !== 64 || !r.done()) return fail("malformed_signature");
+    return ed25519Verify(key.key, data, inner)
       ? { ok: true, value: { key, flags: 0, counter: 0 } }
       : fail("bad_signature");
   }
 
-  // sk-ssh-ed25519: the authenticator signs
-  // SHA256(application) || flags || counter || SHA256(signed data).
+  // Both sk- types: the authenticator signs
+  // SHA256(application) || flags || counter || SHA256(signed data),
+  // with Ed25519, or with ECDSA P-256 over the SHA-256 of those bytes.
+  const raw = key.type === SK_ED25519 ? (inner.length === 64 ? inner : null) : p256Signature(inner);
   const flags = r.byte();
   const counter = r.uint32();
-  if (flags === null || counter === null || !r.done()) return fail("malformed_signature");
+  if (!raw || flags === null || counter === null || !r.done()) return fail("malformed_signature");
   const counterBytes = new Uint8Array(4);
   new DataView(counterBytes.buffer).setUint32(0, counter);
   const covered = concat(
@@ -251,7 +331,11 @@ export function verifySshsig(opts: VerifyOptions): Result<Verified> {
     counterBytes,
     sha256(data),
   );
-  if (!ed25519Verify(key.key, covered, raw)) return fail("bad_signature");
+  const good =
+    key.type === SK_ED25519
+      ? ed25519Verify(key.key, covered, raw)
+      : p256Verify(key.key, covered, raw);
+  if (!good) return fail("bad_signature");
   if ((opts.requireUserPresence ?? true) && !(flags & FLAG_USER_PRESENT)) {
     return fail("user_presence_required");
   }

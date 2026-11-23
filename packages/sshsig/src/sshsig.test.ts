@@ -4,13 +4,16 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { concat, wireString } from "./wire";
+import { softwareSkEcdsaSigner } from "./testing";
+import { WireReader, concat, wireString } from "./wire";
 import {
   ED25519,
   FLAG_USER_PRESENT,
   FLAG_USER_VERIFIED,
+  SK_ECDSA_P256,
   SK_ED25519,
   parsePublicKey,
+  parsePublicKeyBlob,
   signedData,
   verifySshsig,
   type SshPublicKey,
@@ -237,6 +240,215 @@ describe("sk-ssh-ed25519", () => {
   });
 });
 
+// A real signature by a Secure Enclave key (sk-ecdsa-sha2-nistp256) over a git commit object,
+// made with `ssh-keygen -Y sign -n git`; `ssh-keygen -Y verify` says Good.
+const SE_PUB =
+  "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBAsBoP+FnDMbcEH7YUcokscRzmqf08qI1+AofpA73duwQe6LsOwntXgw8e+H4kpqTnyqtBCi5jk1BLijUM74yVkAAAAEc3NoOg== ssh:";
+const SE_SIGNERS = `operator@secure-enclave-away namespaces="git" ${SE_PUB}`;
+const SE_PAYLOAD = new TextEncoder().encode(
+  [
+    "tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+    "author away test <away@example.invalid> 1763930000 +0100",
+    "committer away test <away@example.invalid> 1763930000 +0100",
+    "",
+    "away signature fixture",
+    "",
+  ].join("\n"),
+);
+const SE_SIG = [
+  "-----BEGIN SSH SIGNATURE-----",
+  "U1NIU0lHAAAAAQAAAH8AAAAic2stZWNkc2Etc2hhMi1uaXN0cDI1NkBvcGVuc3NoLmNvbQ",
+  "AAAAhuaXN0cDI1NgAAAEEECwGg/4WcMxtwQfthRyiSxxHOap/TyojX4Ch+kDvd27BB7ouw",
+  "7Ce1eDDx74fiSmpOfKq0EKLmOTUEuKNQzvjJWQAAAARzc2g6AAAAA2dpdAAAAAAAAAAGc2",
+  "hhNTEyAAAAeQAAACJzay1lY2RzYS1zaGEyLW5pc3RwMjU2QG9wZW5zc2guY29tAAAASgAA",
+  "ACEAtMd+Co7Sc56LyTA9H1x8tAsPVqUMcVX6e9NPqXQCi6kAAAAhAL92n4PO4i1F931Z25",
+  "w6c1t0HauqIpSHKtQypqUnDMOBIQAAAAE=",
+  "-----END SSH SIGNATURE-----",
+  "",
+].join("\n");
+
+interface SshsigFields {
+  publicKey: Uint8Array;
+  namespace: Uint8Array;
+  reserved: Uint8Array;
+  hash: Uint8Array;
+  sig: Uint8Array;
+}
+
+function unarmor(armored: string): SshsigFields {
+  const b64 = armored.trim().split("\n").slice(1, -1).join("");
+  const r = new WireReader(new Uint8Array(Buffer.from(b64, "base64")));
+  r.raw(6);
+  r.uint32();
+  const next = () => r.string()!;
+  return { publicKey: next(), namespace: next(), reserved: next(), hash: next(), sig: next() };
+}
+
+function armor(f: SshsigFields): string {
+  const outer = concat(
+    new TextEncoder().encode("SSHSIG"),
+    new Uint8Array([0, 0, 0, 1]),
+    wireString(f.publicKey),
+    wireString(f.namespace),
+    wireString(f.reserved),
+    wireString(f.hash),
+    wireString(f.sig),
+  );
+  const b64 = Buffer.from(outer)
+    .toString("base64")
+    .replace(/(.{70})/g, "$1\n");
+  return `-----BEGIN SSH SIGNATURE-----\n${b64}\n-----END SSH SIGNATURE-----\n`;
+}
+
+/** An sk-ecdsa signature with its r and s re-encoded, or its flags or counter replaced. */
+function rewriteEcdsa(
+  armored: string,
+  edit: { rs?: (r: Uint8Array, s: Uint8Array) => Uint8Array; flags?: number; counter?: number },
+): string {
+  const f = unarmor(armored);
+  const outer = new WireReader(f.sig);
+  const type = outer.string()!;
+  const inner = new WireReader(outer.string()!);
+  const r = inner.string()!;
+  const s = inner.string()!;
+  const flags = outer.byte()!;
+  const counter = outer.uint32()!;
+  const tail = new Uint8Array(5);
+  tail[0] = edit.flags ?? flags;
+  new DataView(tail.buffer).setUint32(1, edit.counter ?? counter);
+  const ecdsa = edit.rs ? edit.rs(r, s) : concat(wireString(r), wireString(s));
+  return armor({ ...f, sig: concat(wireString(type), wireString(ecdsa), tail) });
+}
+
+describe("sk-ecdsa-sha2-nistp256", () => {
+  const se = parsePublicKey(SE_PUB);
+  if (!se.ok) throw new Error(se.error);
+  const real = { signature: SE_SIG, message: SE_PAYLOAD, namespace: "git", allowed: [se.value] };
+
+  it("parses the Secure Enclave key and its allowed_signers line", () => {
+    expect(se.value).toMatchObject({ type: SK_ECDSA_P256, application: "ssh:", comment: "ssh:" });
+    expect(se.value.key.length).toBe(65);
+    expect(se.value.key[0]).toBe(0x04);
+    const line = parsePublicKey(SE_SIGNERS);
+    expect(line.ok && Buffer.from(line.value.blob).equals(Buffer.from(se.value.blob))).toBe(true);
+  });
+
+  it("verifies the real signature and reports its flags and counter", () => {
+    expect(verifySshsig(real)).toEqual({
+      ok: true,
+      value: { key: se.value, flags: 0x21, counter: 1 },
+    });
+  });
+
+  it("refuses a tampered payload and the wrong namespace", () => {
+    const tampered = new Uint8Array(SE_PAYLOAD);
+    tampered[tampered.length - 2] = tampered[tampered.length - 2]! ^ 1;
+    expect(verifySshsig({ ...real, message: tampered })).toEqual({
+      ok: false,
+      error: "bad_signature",
+    });
+    expect(verifySshsig({ ...real, namespace: NS })).toEqual({
+      ok: false,
+      error: "wrong_namespace",
+    });
+  });
+
+  it("refuses a changed flags byte or counter", () => {
+    // 0x25 keeps user presence, so only the signature can refuse it.
+    for (const edit of [{ flags: 0x25 }, { flags: 0x20 }, { counter: 2 }, { counter: 0 }]) {
+      expect(verifySshsig({ ...real, signature: rewriteEcdsa(SE_SIG, edit) })).toEqual({
+        ok: false,
+        error: "bad_signature",
+      });
+    }
+  });
+
+  it("takes only minimal, positive r and s that fit 32 bytes", () => {
+    expect(verifySshsig({ ...real, signature: rewriteEcdsa(SE_SIG, {}) }).ok).toBe(true);
+    const zero = new Uint8Array([0]);
+    const cases: ((r: Uint8Array, s: Uint8Array) => Uint8Array)[] = [
+      // A second leading zero.
+      (r, s) => concat(wireString(concat(zero, r)), wireString(s)),
+      // The sign byte dropped: negative.
+      (r, s) => concat(wireString(r.subarray(1)), wireString(s)),
+      // 33 bytes of magnitude.
+      (r, s) => concat(wireString(concat(new Uint8Array([1]), r.subarray(1))), wireString(s)),
+      // Zero.
+      (_r, s) => concat(wireString(new Uint8Array(0)), wireString(s)),
+      // Trailing bytes after s.
+      (r, s) => concat(wireString(r), wireString(s), zero),
+      // r alone.
+      (r) => wireString(r),
+    ];
+    for (const rs of cases) {
+      expect(verifySshsig({ ...real, signature: rewriteEcdsa(SE_SIG, { rs }) })).toEqual({
+        ok: false,
+        error: "malformed_signature",
+      });
+    }
+  });
+
+  it("does not mix sk-ecdsa and sk-ssh-ed25519", () => {
+    const yk = skSigner();
+    const edSig = yk.signArmored(SE_PAYLOAD, { namespace: "git" });
+    expect(verifySshsig({ ...real, allowed: [yk.key] })).toEqual({
+      ok: false,
+      error: "key_not_allowed",
+    });
+    expect(verifySshsig({ ...real, signature: edSig })).toEqual({
+      ok: false,
+      error: "key_not_allowed",
+    });
+    // The enrolled key with the other type's signature inside.
+    const ecdsaKeyEdSig = armor({ ...unarmor(SE_SIG), sig: unarmor(edSig).sig });
+    expect(verifySshsig({ ...real, signature: ecdsaKeyEdSig })).toEqual({
+      ok: false,
+      error: "malformed_signature",
+    });
+    const edKeyEcdsaSig = armor({ ...unarmor(edSig), sig: unarmor(SE_SIG).sig });
+    expect(verifySshsig({ ...real, signature: edKeyEcdsaSig, allowed: [yk.key] })).toEqual({
+      ok: false,
+      error: "malformed_signature",
+    });
+  });
+
+  describe("software stand-in", () => {
+    const sk = softwareSkEcdsaSigner();
+
+    it("verifies and applies the same flag policy as sk-ssh-ed25519", () => {
+      const opts = { message, namespace: NS, allowed: [sk.key] };
+      expect(
+        verifySshsig({ ...opts, signature: sk.sign(message, NS, { counter: 9 }) }),
+      ).toMatchObject({ ok: true, value: { flags: FLAG_USER_PRESENT, counter: 9 } });
+      expect(verifySshsig({ ...opts, signature: sk.sign(message, NS, { flags: 0 }) })).toEqual({
+        ok: false,
+        error: "user_presence_required",
+      });
+      expect(
+        verifySshsig({ ...opts, signature: sk.sign(message, NS), requireUserVerification: true }),
+      ).toEqual({ ok: false, error: "user_verification_required" });
+      const uv = sk.sign(message, NS, { flags: FLAG_USER_PRESENT | FLAG_USER_VERIFIED });
+      expect(verifySshsig({ ...opts, signature: uv, requireUserVerification: true }).ok).toBe(true);
+      expect(
+        verifySshsig({ ...opts, signature: softwareSkEcdsaSigner().sign(message, NS) }),
+      ).toEqual({ ok: false, error: "key_not_allowed" });
+    });
+
+    it.runIf(hasSshKeygen())("is the format OpenSSH itself verifies", () => {
+      const sigFile = join(dir, "msg-ecdsa.sig");
+      const signers = join(dir, "allowed_signers_ecdsa");
+      writeFileSync(sigFile, sk.sign(message, NS));
+      writeFileSync(signers, `enno namespaces="${NS}" ${sk.line}\n`);
+      const out = execFileSync(
+        "ssh-keygen",
+        ["-Y", "verify", "-f", signers, "-I", "enno", "-n", NS, "-s", sigFile],
+        { input: message, encoding: "utf8" },
+      );
+      expect(out).toContain("Good");
+    });
+  });
+});
+
 describe.runIf(hasSshKeygen())("ssh-ed25519 from ssh-keygen", () => {
   const keyFile = join(dir, "id_ed25519");
   execFileSync("ssh-keygen", ["-q", "-t", "ed25519", "-N", "", "-C", "soft", "-f", keyFile]);
@@ -280,5 +492,44 @@ describe("parsePublicKey", () => {
     });
     // A type token that does not match the blob inside.
     expect(parsePublicKey(yk.line.replace(SK_ED25519, ED25519)).ok).toBe(false);
+    expect(parsePublicKey(yk.line.replace(SK_ED25519, SK_ECDSA_P256)).ok).toBe(false);
+    expect(parsePublicKey(SE_PUB.replace(SK_ECDSA_P256, SK_ED25519)).ok).toBe(false);
+  });
+
+  it("refuses sk-ecdsa blobs with another curve, a bad point or extra bytes", () => {
+    const se = parsePublicKey(SE_PUB);
+    if (!se.ok) throw new Error(se.error);
+    const point = se.value.key;
+    const blob = (
+      type: string,
+      curve: string,
+      q: Uint8Array,
+      app = "ssh:",
+      extra = new Uint8Array(0),
+    ) => concat(wireString(type), wireString(curve), wireString(q), wireString(app), extra);
+    expect(parsePublicKeyBlob(blob(SK_ECDSA_P256, "nistp256", point)).ok).toBe(true);
+
+    const offCurve = new Uint8Array(point);
+    offCurve[64] = offCurve[64]! ^ 1;
+    const compressed = concat(new Uint8Array([0x02 | (point[64]! & 1)]), point.subarray(1, 33));
+    const malformed = [
+      blob(SK_ECDSA_P256, "nistp384", point),
+      blob(SK_ECDSA_P256, "nistp256", offCurve),
+      blob(SK_ECDSA_P256, "nistp256", compressed),
+      blob(SK_ECDSA_P256, "nistp256", concat(new Uint8Array([0x05]), point.subarray(1))),
+      blob(SK_ECDSA_P256, "nistp256", point.subarray(1)),
+      blob(SK_ECDSA_P256, "nistp256", concat(new Uint8Array([0x04]), new Uint8Array(64))),
+      blob(SK_ECDSA_P256, "nistp256", point, "ssh:", new Uint8Array([0])),
+      concat(wireString(SK_ECDSA_P256), wireString("nistp256"), wireString(point)),
+    ];
+    for (const b of malformed) {
+      expect(parsePublicKeyBlob(b)).toEqual({ ok: false, error: "malformed_public_key" });
+    }
+    for (const type of ["sk-ecdsa-sha2-nistp384@openssh.com", "ecdsa-sha2-nistp256"]) {
+      expect(parsePublicKeyBlob(blob(type, "nistp256", point))).toEqual({
+        ok: false,
+        error: "unsupported_key_type",
+      });
+    }
   });
 });

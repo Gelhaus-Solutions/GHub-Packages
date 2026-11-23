@@ -1,18 +1,19 @@
 /**
- * Test support only: a software stand-in for a FIDO2 authenticator that produces exactly the
- * bytes an sk-ssh-ed25519 key would sign (checked against `ssh-keygen -Y verify` in this
- * package's tests). Never use it for anything that is not a test.
+ * Test support only: software stand-ins for FIDO2 authenticators that produce exactly the bytes
+ * an sk-ssh-ed25519 or sk-ecdsa-sha2-nistp256 key would sign (checked against
+ * `ssh-keygen -Y verify` in this package's tests). Never use them for anything that is not a test.
  */
 
 import { createHash, generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import {
   FLAG_USER_PRESENT,
+  SK_ECDSA_P256,
   SK_ED25519,
   parsePublicKey,
   signedData,
   type SshPublicKey,
 } from "./sshsig";
-import { concat, wireString } from "./wire";
+import { concat, wireMpint, wireString } from "./wire";
 
 export interface SoftwareSkSigner {
   /** The OpenSSH public key line. */
@@ -21,18 +22,23 @@ export interface SoftwareSkSigner {
   sign(message: Uint8Array, namespace: string, opts?: { flags?: number; counter?: number }): string;
 }
 
-function rawPublic(key: KeyObject): Uint8Array {
-  return new Uint8Array(Buffer.from(key.export({ format: "jwk" }).x as string, "base64url"));
+function fromBase64url(text: unknown): Uint8Array {
+  return new Uint8Array(Buffer.from(text as string, "base64url"));
 }
 
-export function softwareSkSigner(comment = "test-yk", application = "ssh:"): SoftwareSkSigner {
-  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  const blob = concat(
-    wireString(SK_ED25519),
-    wireString(rawPublic(publicKey)),
-    wireString(application),
-  );
-  const line = `${SK_ED25519} ${Buffer.from(blob).toString("base64")} ${comment}`;
+function rawPublic(key: KeyObject): Uint8Array {
+  return fromBase64url(key.export({ format: "jwk" }).x);
+}
+
+function softwareSigner(
+  type: typeof SK_ED25519 | typeof SK_ECDSA_P256,
+  blob: Uint8Array,
+  comment: string,
+  application: string,
+  /** The inner signature for the bytes the authenticator covers. */
+  signCovered: (covered: Uint8Array) => Uint8Array,
+): SoftwareSkSigner {
+  const line = `${type} ${Buffer.from(blob).toString("base64")} ${comment}`;
   const parsed = parsePublicKey(line);
   if (!parsed.ok) throw new Error(parsed.error);
   const sha = (d: Uint8Array) => new Uint8Array(createHash("sha256").update(d).digest());
@@ -50,8 +56,12 @@ export function softwareSkSigner(comment = "test-yk", application = "ssh:"): Sof
         counter,
         sha(data),
       );
-      const raw = new Uint8Array(sign(null, covered, privateKey));
-      const sig = concat(wireString(SK_ED25519), wireString(raw), new Uint8Array([flags]), counter);
+      const sig = concat(
+        wireString(type),
+        wireString(signCovered(covered)),
+        new Uint8Array([flags]),
+        counter,
+      );
       const outer = concat(
         new TextEncoder().encode("SSHSIG"),
         new Uint8Array([0, 0, 0, 1]),
@@ -67,4 +77,40 @@ export function softwareSkSigner(comment = "test-yk", application = "ssh:"): Sof
       return `-----BEGIN SSH SIGNATURE-----\n${b64}\n-----END SSH SIGNATURE-----\n`;
     },
   };
+}
+
+/** An sk-ssh-ed25519 stand-in, the key a YubiKey makes. */
+export function softwareSkSigner(comment = "test-yk", application = "ssh:"): SoftwareSkSigner {
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const blob = concat(
+    wireString(SK_ED25519),
+    wireString(rawPublic(publicKey)),
+    wireString(application),
+  );
+  return softwareSigner(
+    SK_ED25519,
+    blob,
+    comment,
+    application,
+    (covered) => new Uint8Array(sign(null, covered, privateKey)),
+  );
+}
+
+/** An sk-ecdsa-sha2-nistp256 stand-in, the key a Secure Enclave makes. */
+export function softwareSkEcdsaSigner(comment = "test-se", application = "ssh:"): SoftwareSkSigner {
+  const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const jwk = publicKey.export({ format: "jwk" });
+  const point = concat(new Uint8Array([0x04]), fromBase64url(jwk.x), fromBase64url(jwk.y));
+  const blob = concat(
+    wireString(SK_ECDSA_P256),
+    wireString("nistp256"),
+    wireString(point),
+    wireString(application),
+  );
+  return softwareSigner(SK_ECDSA_P256, blob, comment, application, (covered) => {
+    const rs = new Uint8Array(
+      sign("sha256", covered, { key: privateKey, dsaEncoding: "ieee-p1363" }),
+    );
+    return concat(wireMpint(rs.subarray(0, 32)), wireMpint(rs.subarray(32)));
+  });
 }
