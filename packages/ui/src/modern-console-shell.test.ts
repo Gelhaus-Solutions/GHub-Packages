@@ -65,7 +65,8 @@ describe("ConsoleShell", () => {
   it("marks the current page and the current workspace, nothing else", () => {
     const html = shell();
     const current = html.match(/aria-current="page"/g) ?? [];
-    expect(current).toHaveLength(2);
+    // The page, and the workspace twice: in the rail and in the narrow screen's sheet.
+    expect(current).toHaveLength(3);
     expect(html).toMatch(/href="\/firewall\/policies"[^>]*aria-current="page"/);
     expect(html).toMatch(/href="\/firewall"[^>]*aria-current="page"[^>]*aria-label="Firewall"/);
   });
@@ -79,6 +80,53 @@ describe("ConsoleShell", () => {
 
   it("never announces the pages as a tablist", () => {
     expect(shell()).not.toContain('role="tab');
+  });
+
+  it("draws a group as one tab whose list holds its pages, and a group of one as a plain tab", () => {
+    const html = shell({
+      pages: [
+        {
+          key: "rules",
+          label: "Rules",
+          pages: [
+            { href: "/firewall/zones", label: "Zones", count: 6 },
+            {
+              href: "/firewall/guests",
+              label: "Guest rules",
+              current: true,
+              flag: "3 open to every source",
+            },
+          ],
+        },
+        { key: "access", label: "Access", pages: [{ href: "/firewall/grants", label: "Grants" }] },
+        { key: "objects", label: "Objects", pages: [] },
+      ],
+    });
+    const button = /<button[^>]*aria-expanded="false"[^>]*aria-controls="([^"]+)"[^>]*>Rules/.exec(
+      html,
+    );
+    expect(button).not.toBeNull();
+    const panel = new RegExp(`<div[^>]*hidden=""[^>]*id="${button?.[1] ?? "none"}"`);
+    expect(html).toMatch(panel);
+    expect(html).toMatch(/href="\/firewall\/guests"[^>]*aria-current="page"/);
+    expect(html).toMatch(
+      />Rules<span aria-hidden="true"[^>]*>›<\/span><span[^>]*><span class="sr-only">, <\/span>Guest rules<\/span>/,
+    );
+    expect(html).toContain(", 3 open to every source</span>");
+    expect(html).toMatch(/>6<\/span>/);
+    expect(html).toMatch(/<a href="\/firewall\/grants"[^>]*>Grants<\/a>/);
+    expect(html).not.toContain(">Objects");
+  });
+
+  it("opens the workspaces from the workspace's button below 768px, with what waits", () => {
+    const html = shell();
+    expect(html).toMatch(
+      /<button[^>]*aria-expanded="false"[^>]*><span class="sr-only">Workspaces, <\/span>/,
+    );
+    const sheet = html.slice(html.indexOf('<span class="sr-only">Workspaces, </span>'));
+    expect(sheet).toMatch(/<a href="\/"[^>]*aria-label="Overview"/);
+    expect(sheet).toContain('aria-label="Operations, 3 waiting"');
+    expect(html).toMatch(/aria-label="Workspaces" class="[^"]*max-md:hidden/);
   });
 
   it("makes the workspace tab current when the workspace has no pages", () => {

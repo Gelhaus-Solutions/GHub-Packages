@@ -329,6 +329,8 @@ export {
   CONSOLE_ROUND,
   ConsoleShell,
   type ConsolePage,
+  type ConsolePageGroup,
+  type ConsolePageLink,
   type ConsoleRailItem,
   type ConsoleRenderLink,
   type ConsoleShellProps,
