@@ -335,3 +335,9 @@ export {
   type ConsoleRenderLink,
   type ConsoleShellProps,
 } from "./console-shell.js";
+export {
+  ConsoleGroupTab,
+  ConsoleWorkspacesButton,
+  type ConsoleGroupTabProps,
+  type ConsoleWorkspacesButtonProps,
+} from "./console-menu.js";
