@@ -1,5 +1,11 @@
 # @ghub/gmint-sdk
 
+## 0.3.1
+
+### Patch Changes
+
+- 2c32c2b: `@ghub/ui` depends on lucide-react 1 (no brand icons, none of which it used), framer-motion 14 and tailwind-merge 3.7. `@ghub/gmint-sdk`'s "sequence lock is held too long" error carries the lock file's own error as its `cause`.
+
 ## 0.3.0
 
 ### Minor Changes

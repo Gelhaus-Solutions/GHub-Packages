@@ -1,5 +1,15 @@
 # @ghub/ui
 
+## 0.20.0
+
+### Minor Changes
+
+- fb31cc1: `ConsoleShell` takes a group of pages as one tab (`ConsolePageGroup`): a click opens the list of its pages under the tab, a sheet from the bottom on a phone, and the tab names the page you are on ("Rules › Guest rules"). A group of one page draws as a plain tab. Page links take `flag` (a warn dot with words) and `count` (shown in a group's list). Below 768px the rail no longer takes a row above the page: the workspace's tab becomes a button that opens the workspaces as a sheet. `ConsolePageLink` and `ConsolePageGroup` are exported.
+
+### Patch Changes
+
+- 2c32c2b: `@ghub/ui` depends on lucide-react 1 (no brand icons, none of which it used), framer-motion 14 and tailwind-merge 3.7. `@ghub/gmint-sdk`'s "sequence lock is held too long" error carries the lock file's own error as its `cause`.
+
 ## 0.19.0
 
 ### Minor Changes
