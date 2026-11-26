@@ -31,9 +31,42 @@ const result = verifySshsig({
 if (!result.ok) refuse(result.error);
 ```
 
-Verification returns a result and never throws on bad input. `@ghub/sshsig/testing` has software
-stand-ins for both FIDO2 key types (`softwareSkSigner`, `softwareSkEcdsaSigner`) that produce the
-same bytes, for tests only.
+Verification returns a result and never throws on bad input.
+
+## Certificates
+
+A signature by a certified key (`ssh-keygen -s`) counts only where the caller passes the
+authorities whose certificates it accepts. The authority's signature over the certificate must
+hold, with user presence when the authority is an `sk-` key; the certificate must be a user
+certificate without critical options, name one of the authority's principals, and be valid at `at`
+(default now), plus `graceSeconds` after its expiry. The certified key itself may be a software key.
+
+```ts
+import { parseAllowedSigner, signersFor, verifySshsig } from "@ghub/sshsig";
+
+const lines = allowedSigners.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
+const signers = lines.map((l) => {
+  const s = parseAllowedSigner(l);
+  if (!s.ok) throw new Error(s.error);
+  return s.value;
+});
+const result = verifySshsig({
+  signature,
+  message,
+  namespace: "git",
+  ...signersFor(signers, "git"),
+});
+```
+
+`parseAllowedSigner` takes the `cert-authority` and `namespaces` options and refuses a line with
+`valid-after`, `valid-before` or anything else rather than read it without its limit. Principal
+patterns are compared exactly, not expanded.
+
+## Testing
+
+`@ghub/sshsig/testing` has software stand-ins for both FIDO2 key types (`softwareSkSigner`,
+`softwareSkEcdsaSigner`), plain Ed25519 keys (`softwareEd25519Signer`) and certificates
+(`softwareCertificate`) that produce the same bytes, for tests only.
 
 ## Licence
 
