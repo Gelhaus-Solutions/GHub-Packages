@@ -50,7 +50,12 @@ const signers = lines.map((l) => {
   if (!s.ok) throw new Error(s.error);
   return s.value;
 });
-const result = verifySshsig({ signature, message, namespace: "git", ...signersFor(signers, "git") });
+const result = verifySshsig({
+  signature,
+  message,
+  namespace: "git",
+  ...signersFor(signers, "git"),
+});
 ```
 
 `parseAllowedSigner` takes the `cert-authority` and `namespaces` options and refuses a line with
