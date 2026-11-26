@@ -12,10 +12,12 @@ import {
   ED25519,
   ED25519_CERT,
   FLAG_USER_PRESENT,
+  FLAG_USER_VERIFIED,
   SK_ECDSA_P256,
   SK_ECDSA_P256_CERT,
   SK_ED25519,
   SK_ED25519_CERT,
+  WEBAUTHN_SK_ECDSA_P256,
   parsePublicKey,
   signedData,
   type SshKeyType,
@@ -26,8 +28,10 @@ import { concat, wireMpint, wireString, wireUint32, wireUint64 } from "./wire";
 export interface SignOptions {
   /** Authenticator flags, `sk-` keys only. Default user presence. */
   flags?: number;
-  /** Authenticator counter, `sk-` keys only. Default 1. */
+  /** Authenticator counter, `sk-` keys only. Default 1 (a passkey's 0). */
   counter?: number;
+  /** A passkey's clientDataJSON in place of the browser's, for tests of what is refused. */
+  clientData?: (challenge: string, origin: string) => string;
 }
 
 export interface SoftwareSigner {
@@ -154,6 +158,52 @@ export function softwareSkEcdsaSigner(comment = "test-se", application = "ssh:")
       return concat(wireMpint(rs.subarray(0, 32)), wireMpint(rs.subarray(32)));
     }),
   );
+}
+
+/**
+ * A P-256 passkey stand-in, signing as a browser does (`webauthn-sk-ecdsa`): the RP ID is the
+ * key's application, user presence and verification are set as a password manager sets them,
+ * and the counter is 0.
+ */
+export function softwarePasskey(
+  rpId = "launcher.example.de",
+  origin = `https://${rpId}`,
+  comment = "test-passkey",
+): SoftwareSigner {
+  const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const jwk = publicKey.export({ format: "jwk" });
+  const point = concat(new Uint8Array([0x04]), fromBase64url(jwk.x), fromBase64url(jwk.y));
+  const blob = concat(
+    wireString(SK_ECDSA_P256),
+    wireString("nistp256"),
+    wireString(point),
+    wireString(rpId),
+  );
+  return signer(SK_ECDSA_P256, blob, comment, (data, opts = {}) => {
+    const flags = opts.flags ?? FLAG_USER_PRESENT | FLAG_USER_VERIFIED;
+    const counter = wireUint32(opts.counter ?? 0);
+    const challenge = Buffer.from(data).toString("base64url");
+    const clientData = new TextEncoder().encode(
+      opts.clientData?.(challenge, origin) ??
+        JSON.stringify({ type: "webauthn.get", challenge, origin, crossOrigin: false }),
+    );
+    const authData = concat(sha(new TextEncoder().encode(rpId)), new Uint8Array([flags]), counter);
+    const rs = new Uint8Array(
+      sign("sha256", concat(authData, sha(clientData)), {
+        key: privateKey,
+        dsaEncoding: "ieee-p1363",
+      }),
+    );
+    return concat(
+      wireString(WEBAUTHN_SK_ECDSA_P256),
+      wireString(concat(wireMpint(rs.subarray(0, 32)), wireMpint(rs.subarray(32)))),
+      new Uint8Array([flags]),
+      counter,
+      wireString(origin),
+      wireString(clientData),
+      wireString(new Uint8Array(0)),
+    );
+  });
 }
 
 /** A plain ssh-ed25519 key, such as a signing session's key or a software authority. */

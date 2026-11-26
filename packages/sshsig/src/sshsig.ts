@@ -34,6 +34,11 @@ const ARMOR_END = "-----END SSH SIGNATURE-----";
 export const SK_ED25519 = "sk-ssh-ed25519@openssh.com";
 export const SK_ECDSA_P256 = "sk-ecdsa-sha2-nistp256@openssh.com";
 export const ED25519 = "ssh-ed25519";
+/**
+ * The signature a P-256 passkey makes through a browser (PROTOCOL.u2f): an `sk-ecdsa` key's, over
+ * the browser's clientDataJSON, whose challenge is the signed bytes.
+ */
+export const WEBAUTHN_SK_ECDSA_P256 = "webauthn-sk-ecdsa-sha2-nistp256@openssh.com";
 
 export type SshKeyType = typeof SK_ED25519 | typeof SK_ECDSA_P256 | typeof ED25519;
 
@@ -63,6 +68,8 @@ export const CERT_FOREVER = 0xffffffffffffffffn;
 /** FIDO2 authenticator data flags (PROTOCOL.u2f). */
 export const FLAG_USER_PRESENT = 0x01;
 export const FLAG_USER_VERIFIED = 0x04;
+const FLAG_ATTESTED_DATA = 0x40;
+const FLAG_EXTENSION_DATA = 0x80;
 
 export interface SshPublicKey {
   type: SshKeyType;
@@ -96,7 +103,8 @@ export type SshsigError =
   | "certificate_not_yet_valid"
   | "certificate_expired"
   | "malformed_allowed_signer"
-  | "unsupported_option";
+  | "unsupported_option"
+  | "webauthn_not_allowed";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: SshsigError };
 
@@ -163,6 +171,11 @@ export interface VerifyOptions {
    * A certified key needs no such leave: its authority vouches for it.
    */
   allowSoftwareKeys?: boolean;
+  /**
+   * Accept `webauthn-sk-ecdsa-sha2-nistp256@openssh.com` signatures by `sk-ecdsa` keys, a P-256
+   * passkey's as a browser makes them, in `allowed` and from authorities. Default false.
+   */
+  allowWebauthn?: boolean;
   /**
    * The authorities whose certificates count. Default none: a signature by a certified key is
    * then refused as `key_not_allowed`, as before certificates were read at all.
@@ -597,17 +610,36 @@ function p256Verify(point: Uint8Array, data: Uint8Array, sig: Uint8Array): boole
 }
 
 /**
+ * Whether a passkey's clientDataJSON is the one OpenSSH expects for `data`: it starts with the type,
+ * the challenge (`data` in unpadded base64url) and the origin, in that order; anything after them
+ * (crossOrigin, topOrigin) is not read.
+ */
+function clientDataFor(data: Uint8Array, origin: string, clientData: Uint8Array): boolean {
+  const prefix = new TextEncoder().encode(
+    `{"type":"webauthn.get","challenge":"${base64url(data)}","origin":"${origin}"`,
+  );
+  return (
+    clientData.length >= prefix.length && bytesEqual(clientData.subarray(0, prefix.length), prefix)
+  );
+}
+
+/**
  * Checks an SSH signature blob (`string type, string signature` and, for `sk-` keys,
- * `byte flags, uint32 counter`) made by `key` over `data`.
+ * `byte flags, uint32 counter`, and for a passkey's also `string origin, string clientData,
+ * string extensions`) made by `key` over `data`.
  */
 function verifyKeySignature(
   key: SshPublicKey,
   data: Uint8Array,
   blob: Uint8Array,
+  allowWebauthn = false,
 ): Result<{ flags: number; counter: number }> {
   const r = new WireReader(blob);
   const typeBytes = r.string();
-  if (!typeBytes || utf8(typeBytes) !== key.type) return fail("malformed_signature");
+  const type = typeBytes && utf8(typeBytes);
+  const webauthn = type === WEBAUTHN_SK_ECDSA_P256 && key.type === SK_ECDSA_P256;
+  if (webauthn && !allowWebauthn) return fail("webauthn_not_allowed");
+  if (type !== key.type && !webauthn) return fail("malformed_signature");
   const inner = r.string();
   if (!inner) return fail("malformed_signature");
 
@@ -624,14 +656,40 @@ function verifyKeySignature(
   const raw = key.type === SK_ED25519 ? (inner.length === 64 ? inner : null) : p256Signature(inner);
   const flags = r.byte();
   const counter = r.uint32();
-  if (!raw || flags === null || counter === null || !r.done()) return fail("malformed_signature");
+  if (!raw || flags === null || counter === null) return fail("malformed_signature");
+  // A passkey signs authenticatorData (with its extensions) || SHA256(clientDataJSON) instead.
+  let extensions: Uint8Array = new Uint8Array(0);
+  let digest: Uint8Array = sha256(data);
+  if (webauthn) {
+    const origin = r.string();
+    const clientData = r.string();
+    const ext = r.string();
+    const originText = origin && utf8(origin);
+    if (
+      originText == null ||
+      originText.includes('"') ||
+      !clientData ||
+      !ext ||
+      !r.done() ||
+      (flags & FLAG_ATTESTED_DATA) !== 0 ||
+      ((flags & FLAG_EXTENSION_DATA) === 0) !== (ext.length === 0) ||
+      !clientDataFor(data, originText, clientData)
+    ) {
+      return fail("malformed_signature");
+    }
+    extensions = ext;
+    digest = sha256(clientData);
+  } else if (!r.done()) {
+    return fail("malformed_signature");
+  }
   const counterBytes = new Uint8Array(4);
   new DataView(counterBytes.buffer).setUint32(0, counter);
   const covered = concat(
     sha256(new TextEncoder().encode(key.application ?? "")),
     new Uint8Array([flags]),
     counterBytes,
-    sha256(data),
+    extensions,
+    digest,
   );
   const good =
     key.type === SK_ED25519
@@ -674,8 +732,9 @@ function verifyCertified(opts: VerifyOptions, sig: ParsedSignature): Result<Veri
   if (!reparsed.ok) return reparsed;
   const ca = reparsed.value;
   if (ca.type === ED25519 && !opts.allowSoftwareKeys) return fail("unsupported_key_type");
-  const vouched = verifyKeySignature(ca, cert.signed, cert.signature);
+  const vouched = verifyKeySignature(ca, cert.signed, cert.signature, opts.allowWebauthn);
   if (!vouched.ok) {
+    if (vouched.error === "webauthn_not_allowed") return vouched;
     return fail(
       vouched.error === "bad_signature" ? "bad_certificate_signature" : "malformed_certificate",
     );
@@ -693,7 +752,7 @@ function verifyCertified(opts: VerifyOptions, sig: ParsedSignature): Result<Veri
   if (now >= cert.validBefore + BigInt(grace)) return fail("certificate_expired");
 
   const data = signedData(sig.namespace, sig.hashAlgorithm, opts.message);
-  const own = verifyKeySignature(cert.key, data, sig.signature);
+  const own = verifyKeySignature(cert.key, data, sig.signature, opts.allowWebauthn);
   if (!own.ok) return own;
   const ownFlag = missingFlag(cert.key, own.value.flags, opts);
   if (ownFlag) return fail(ownFlag);
@@ -739,7 +798,7 @@ export function verifySshsig(opts: VerifyOptions): Result<Verified> {
   if (key.type === ED25519 && !opts.allowSoftwareKeys) return fail("unsupported_key_type");
 
   const data = signedData(sig.namespace, sig.hashAlgorithm, opts.message);
-  const checked = verifyKeySignature(key, data, sig.signature);
+  const checked = verifyKeySignature(key, data, sig.signature, opts.allowWebauthn);
   if (!checked.ok) return checked;
   const flag = missingFlag(key, checked.value.flags, opts);
   if (flag) return fail(flag);
