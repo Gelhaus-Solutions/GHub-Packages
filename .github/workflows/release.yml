@@ -73,10 +73,10 @@ jobs:
         env:
           NPM_CONFIG_PROVENANCE: "true"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      # What was published, on the run's page rather than in artifact storage.
+      - name: Publish summary
         if: always()
-        with:
-          name: publish-summary
-          path: pnpm-publish-summary.json
-          retention-days: 365
-          if-no-files-found: ignore
+        run: |
+          if [ -f pnpm-publish-summary.json ]; then
+            { echo '```json'; cat pnpm-publish-summary.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
