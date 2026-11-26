@@ -1,0 +1,5 @@
+---
+"@ghub/sshsig": minor
+---
+
+Signatures by certified keys (OpenSSH certificates, `ssh-keygen -s`), for signing sessions where one touch of the hardware key certifies a short-lived key. They count only where the caller passes `authorities` (each a key and the principals its certificates may name): the authority's signature over the certificate must hold, with user presence when the authority is an `sk-` key; the certificate must be a user certificate without critical options, name an allowed principal, and be valid at `at` (default now), with `graceSeconds` after its expiry. Without `authorities` such a signature is refused as before. `parseAllowedSigner` reads allowed_signers lines with `cert-authority` and `namespaces` and refuses lines with options it cannot honour; `signersFor` splits them into `allowed` and `authorities` for one namespace; `parseCertificateBlob` reads a certificate. `@ghub/sshsig/testing` adds `softwareEd25519Signer` and `softwareCertificate`, and every stand-in gains `signRaw`.

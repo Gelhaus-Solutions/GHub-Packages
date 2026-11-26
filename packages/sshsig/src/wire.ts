@@ -39,9 +39,20 @@ export class WireReader {
     return ((b[o]! << 24) | (b[o + 1]! << 16) | (b[o + 2]! << 8) | b[o + 3]!) >>> 0;
   }
 
+  uint64(): bigint | null {
+    const high = this.uint32();
+    const low = this.uint32();
+    return high === null || low === null ? null : (BigInt(high) << 32n) | BigInt(low);
+  }
+
   byte(): number | null {
     if (this.offset + 1 > this.buf.length) return null;
     return this.buf[this.offset++]!;
+  }
+
+  /** How many bytes have been read. */
+  position(): number {
+    return this.offset;
   }
 
   raw(len: number): Uint8Array | null {
@@ -62,6 +73,18 @@ export function wireString(data: Uint8Array | string): Uint8Array {
   const out = new Uint8Array(4 + bytes.length);
   new DataView(out.buffer).setUint32(0, bytes.length);
   out.set(bytes, 4);
+  return out;
+}
+
+export function wireUint32(value: number): Uint8Array {
+  const out = new Uint8Array(4);
+  new DataView(out.buffer).setUint32(0, value);
+  return out;
+}
+
+export function wireUint64(value: bigint): Uint8Array {
+  const out = new Uint8Array(8);
+  new DataView(out.buffer).setBigUint64(0, value);
   return out;
 }
 
