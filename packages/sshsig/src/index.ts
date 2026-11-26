@@ -10,6 +10,7 @@ export {
   SK_ECDSA_P256_CERT,
   SK_ED25519,
   SK_ED25519_CERT,
+  WEBAUTHN_SK_ECDSA_P256,
   parseAllowedSigner,
   parseCertificateBlob,
   parsePublicKey,

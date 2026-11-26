@@ -62,11 +62,20 @@ const result = verifySshsig({
 `valid-after`, `valid-before` or anything else rather than read it without its limit. Principal
 patterns are compared exactly, not expanded.
 
+## Passkeys
+
+With `allowWebauthn`, an `sk-ecdsa-sha2-nistp256@openssh.com` key also verifies
+`webauthn-sk-ecdsa-sha2-nistp256@openssh.com` signatures: a P-256 passkey's, made in a browser, whose
+application is the passkey's RP ID. The signed bytes are the WebAuthn challenge; clientDataJSON must
+begin with the type `webauthn.get`, that challenge in unpadded base64url and the origin, in that
+order, as OpenSSH requires. A passkey can sign directly or vouch for certificates as an authority.
+
 ## Testing
 
 `@ghub/sshsig/testing` has software stand-ins for both FIDO2 key types (`softwareSkSigner`,
-`softwareSkEcdsaSigner`), plain Ed25519 keys (`softwareEd25519Signer`) and certificates
-(`softwareCertificate`) that produce the same bytes, for tests only.
+`softwareSkEcdsaSigner`), plain Ed25519 keys (`softwareEd25519Signer`), passkeys
+(`softwarePasskey`) and certificates (`softwareCertificate`) that produce the same bytes, for tests
+only.
 
 ## Licence
 
